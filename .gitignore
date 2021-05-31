@@ -9,3 +9,4 @@ venv
 *.synctex.gz
 *.bbl
 *.blg
+*.toc
