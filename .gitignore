@@ -1,2 +1,11 @@
+# pycharm
 venv
 .idea
+.DS_Store
+
+# latex
+*.aux
+*.log
+*.synctex.gz
+*.bbl
+*.blg

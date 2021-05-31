@@ -1,0 +1,616 @@
+%
+%                       This is a basic LaTeX Template
+%                       for the Informatics Research Review
+
+\documentclass[a4paper,11pt]{article}
+% Add local fullpage and head macros
+\usepackage{head,fullpage}     
+% Add graphicx package with pdf flag (must use pdflatex)
+\usepackage[pdftex]{graphicx}  
+% Better support for URLs
+\usepackage{url}
+% Date formating
+\usepackage{datetime}
+% For Gantt chart
+\usepackage{pgfgantt}
+\usepackage{xcolor}
+\usepackage[utf8]{inputenc}
+% maths
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\newcommand{\matr}[1]{\mathbf{#1}}
+\newcommand{\bgreek}[1]{\boldsymbol{#1}}
+\newcommand{\R}{\mathbb R}
+\newcommand{\E}{\mathbb E}
+
+\newdateformat{monthyeardate}{%
+  \monthname[\THEMONTH] \THEYEAR}
+
+\parindent=0pt          %  Switch off indent of paragraphs 
+\parskip=5pt            %  Put 5pt between each paragraph  
+\Urlmuskip=0mu plus 1mu %  Better line breaks for URLs
+
+
+%                       This section generates a title page
+%                       Edit only the following three lines
+%                       providing your exam number, 
+%                       the general field of study you are considering
+%                       for your review, and name of IRR tutor
+
+\newcommand{\examnumber}{B137355}
+\newcommand{\field}{Extending the Bayesian Deep Learning Method MultiSWAG}
+\newcommand{\tutor}{Bob Fisher}
+\newcommand{\supervisor}{Michael Gutmann}
+
+\begin{document}
+\begin{minipage}[b]{110mm}
+        {\Huge\bf School of Informatics
+        \vspace*{17mm}}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{40mm}               
+        \makebox[40mm]{
+        \includegraphics[width=40mm]{crest.png}}
+\end{minipage}
+\par\noindent
+    % Centre Title, and name
+\vspace*{2cm}
+\begin{center}
+        \Large\bf Informatics Project Proposal \\
+        \Large\bf \field
+\end{center}
+\vspace*{1.5cm}
+\begin{center}
+        \bf \examnumber\\
+        \monthyeardate\today
+\end{center}
+\vspace*{5mm}
+
+%
+%                       Insert your abstract HERE
+%                       
+\begin{abstract}
+The aim of this project is to improve the accuracy and calibration of the Bayesian deep learning method MultiSWAG, which approximates the posterior distribution of the parameters of a deep neural network with a mixture of Gaussians. This will be achieved by replacing the mixture of Gaussians with a mixture of factor analysis models. An online version of factor analysis will be implemented to ensure that the proposed method scales to deep neural networks with millions of parameters. The new approach will be compared to MultiSWAG through a series of experiments involving linear models, Gaussian processes and deep neural networks. 
+%        The abstract is a short concise outline of your 
+%        project proposal, {\bf of no more than around 100 words}.
+\end{abstract}
+
+\vspace*{1cm}
+
+\vspace*{3cm}
+Date: \today
+
+\vfill
+{\bf Tutor:} \tutor\\
+{\bf Supervisor:} \supervisor
+\newpage
+
+%                                               Through page and setup 
+%                                               fancy headings
+\setcounter{page}{1}                            % Set page number to 1
+\footruleheight{1pt}
+\headruleheight{1pt}
+\lfoot{\small School of Informatics}
+\lhead{Informatics Research Review}
+\rhead{- \thepage}
+\cfoot{}
+\rfoot{Date: \date{\today}}
+%
+
+
+\section{Motivation}
+
+Over the last ten years there has been a phenomenal amount of research in deep learning - the subset of machine learning concerned with multi-layer artificial neural networks \cite{goodfellow2016}. Despite this, the simple stochastic gradient descent (SGD) algorithm and its variants \cite{ruder2016}  \cite{duchi2011} \cite{zeiler2012}  \cite{kingma2014}, which use only local gradient information and the chain rule from calculus, are still the dominant optimisers used for training neural networks. More recently, it has been argued that the Bayesian deep learning method MultiSWAG leads to better generalisation than SGD \cite{izmailov2020} .
+
+When training a neural network (NN), SGD finds a single setting of the learnable parameters, which are then used for making predictions. Given that modern NNs can easily have tens of millions of parameters, they are usually underspecified by the available training data. Therefore, many different settings of the parameter vector are able to explain the training data, often equally well. 
+%Of course, minimising the training error is only the half the battle. 
+For a NN to be useful, it must also generalise to unseen test data.  Unfortunately, training error is rarely a good indication of test error and good regions of the parameter space with respect to the train and tests sets are often shifted \cite{izmailov2018}. Intuitively, betting everything on a single solution found by SGD would appear a risky strategy. 
+
+In contrast, Bayesian methods embrace this uncertainty by marginalising over the parameters \cite{wilson2020}. That is, at test time the predictions corresponding to \emph{all} settings of the parameters are used, weighted by how likely they are \emph{a posteriori} given the observed training data. In practical deep learning, this approach is intractable as it involves integrating over a high-dimensional solution space. Therefore, approximate methods are needed. MultiSWAG is one such approximation \cite{izmailov2020}. This method fits a Gaussian mixture model \cite{barber2007} to multiple instances of the parameter vector that are encountered along the SGD trajectory. At test time, multiple settings of the parameters are sampled from the Gaussian mixture model and the predictions of the resultant NNs are averaged, leading to better generalisation on many benchmark datasets \cite{izmailov2020}.
+
+
+%\begin{itemize}
+%    \item Establish the general subject area.
+%    \item Describe the broad foundations of your study -- provide adequate background for readers.
+%    \item Indicate the general scope of your project.
+%    \item Provide an overview of the sections that will appear in your proposal (optional).
+%    \item Engage the readers.
+%\end{itemize}
+
+\subsection{Problem Statement}
+
+As modern NN architectures grow ever larger, using only a single setting of the parameters found by SGD for inference and disregarding the uncertainty in the predictions becomes less appealing. Bayesian methods, when combined with SGD, can potentially lead to much better generalisation. MultiSWAG is one way of doing this which has shown impressive results \cite{izmailov2020}. However, given its recency, it is not yet know whether modelling the posterior distribution of the parameters of a NN with a mixture of Gaussians is the best approach. As an alternative, \textbf{this project will investigate the use of a mixture of factor analysis  \cite{barber2007} models to fit the posterior distribution of the parameters of a NN.}
+
+
+%\begin{itemize}
+%    \item Answer the question:''What is the gap that needs to be filled?"
+%    and/or ''What is the problem that needs to be solved?"
+%    \item State the problem clearly early in a paragraph.
+%    \item Limit the variables you address in stating your problem.
+%    \item Consider bordering the problem as a question.
+%\end{itemize}
+
+\subsection{Research Hypothesis and Objectives}\label{sec:hypothesis}
+
+Let $\bgreek{\theta}_t \in \R^d$ be the parameter vector of a NN after epoch $t$ of SGD. For multiple independent runs of SGD, each of $T$ epochs, a MultiSWAG mixture component is constructed by fitting a mean and covariance matrix to $\bgreek{\theta}_1, \bgreek{\theta}_2, ...., \bgreek{\theta}_T$ (in practice, the epoch count usually begins after some initial \emph{warm-up} period, during which SGD moves toward a local minimum \cite{mandt2017}). From \cite{maddox2019}, the mean vector, $\bgreek{\theta}_{\text{SWA}}$, is simply the empirical mean of the samples. That is,  
+\begin{equation}\label{eqn:swa_solution}
+	\bgreek{\theta}_{\text{SWA}} = \frac{1}{T}\sum_{t=1}^T \bgreek{\theta}_t.
+\end{equation}
+Given that modern NNs consist of millions of parameters, storing the full $d \times d$ covariance matrix is impractical. Therefore, MultiSWAG settles for estimating a low-rank plus diagonal approximation of the covariance matrix. The low-rank part is equal to 
+\begin{equation}\label{eqn:swag_cov}
+	\frac{1}{K-1} \sum_{t=T-K+1}^T (\bgreek{\theta}_t - \overline{\bgreek{\theta}}_t) (\bgreek{\theta}_t - \overline{\bgreek{\theta}}_t)^\intercal,
+\end{equation}
+where $\overline{\bgreek{\theta}}_t$ is the running average of the parameter vector after the first $t$ epochs of SGD. Note that (\ref{eqn:swag_cov}) is analogous to the standard identity for the sample covariance matrix of the observed parameter vectors, except that the sum is over the last $K$ epochs of SGD only and the empirical mean, $\bgreek{\theta}_{\text{SWA}}$, which is not available during training, is replaced by $\overline{\bgreek{\theta}}_t$.
+Given that the approximate covariance in (\ref{eqn:swag_cov}) involves a sum over $K$ outer products, it necessarily has rank $K$. Conversely, if a rank $K$ approximation is desired, then only the last $K$ parameter vectors are used in the approximation, irrespective of $T$. In particular, if $K \ll T$ then the vast majority of $\bgreek{\theta}_1, \bgreek{\theta}_2, ...., \bgreek{\theta}_T$ will not take part in (\ref{eqn:swag_cov}). While this has the benefit of reducing the computational overhead of MultiSWAG, it is a waste of data. 
+
+Another method which can be used to estimate a Gaussian distribution with a low-rank plus diagonal covariance matrix is factor analysis (FA) \cite{barber2007}.  Using $\mathcal{N}(\bgreek{\mu}, \matr{\Sigma})$ to denote the Gaussian distribution with mean $\bgreek{\mu}$ and covariance $\matr{\Sigma}$, the form of a FA model fit to $\bgreek{\theta}_1, \bgreek{\theta}_2, ...., \bgreek{\theta}_T$ is 
+\begin{equation}\label{eqn:fa_dist}
+	\mathcal{N}\Big(\bgreek{\theta}_{\text{SWA}}, \matr{FF}^{\intercal} + \matr{\Psi} \Big),
+\end{equation}
+where $\matr{F}$ is a $d \times K$ matrix and $\matr{\Psi}$ is a $d \times d$ diagonal matrix. As will be shown in Section \ref{sec:swag}, (\ref{eqn:fa_dist})
+has the exact same form as the components of the MultiSWAG mixture model. The only difference is how $\matr{F}$ and $\matr{\Psi}$ are estimated. In
+FA, they are chosen to maximise the log likelihood of the observed parameter vectors. This is commonly done by an expectation-maximisation (EM) or
+singular value decomposition (SVD) algorithm \cite{barber2007}. Crucially, both these algorithms make use of \emph{all} the data, $\bgreek{\theta}_1,
+\bgreek{\theta}_2, ...., \bgreek{\theta}_T$, irrespective of the desired rank $K$. Unlike the MultiSWAG approach, the rank is de-coupled from the amount of data used for estimation and can be chosen via a more principled approach, such as Bayesian model selection
+\cite{barber2007}.
+
+Given these differences, it is hypothesised that the posterior distribution of the parameters of a NN could be better approximated by a mixture of FA models instead of the MultiSWAG mixture of Gaussians. Furthermore, it is hypothesised that this improved model for the parameter posterior would lead to better generalisation of deep neural networks (DNNs). This project will investigate whether these hypotheses are true by completing the following key objectives: \textbf{(O1)} extend the existing MultiSWAG codebase\footnote{https://github.com/izmailovpavel/understandingbdl} to model the posterior distribution of the parameters of a DNN as a mixture of FA models; \textbf{(O2)} investigate how well the FA method approximates the posterior distribution on simple examples involving small NNs for which we are able to compute the true posterior; \textbf{(O3)} Reproduce the key experiments from \cite{izmailov2020} to establish whether the FA method leads to better generalisation of DNNs than MultiSWAG on benchmark datasets.
+
+
+%\begin{enumerate}
+%	\item Extend the existing MultiSWAG codebase\footnote{https://github.com/izmailovpavel/understandingbdl} to model the posterior distribution of the 		parameters of a deep neural network as a mixture of FA models;
+%	\item Investigate how well the FA method approximates the posterior distribution on simple examples involving small neural networks for which we are 		able to compute the true posterior;
+%	\item Reproduce the key experiments from \cite{izmailov2020} to establish whether the FA method leads to better generalisation of deep neural 				networks than MultiSWAG on benchmark datasets.
+%\end{enumerate}
+
+%This project is motivated by the belief that the parameter vectors encountered along the SGD trajectory vary along low-dimensional manifolds. 
+%By running SGD with a high constant learning rate, it is thought that the algorithm traverses the surface of a good set of points within the same 
+%\emph{basin of attraction} of the loss landscape \cite{izmailov2018}. That is, a region centred on a particular local minimum. Given that neural network loss surfaces are known to contain large flag regions around local minima (citation needed), it is likely that solutions within the same basin of attractions vary along relatively few dimensions with respect to the centre of the basin. Therefore, the main hypothesis  is that the sampled parameters within each basin of attraction could be better approximated by a FA model, which assumes that the data lies close to a low-dimensional linear subspace.
+
+%Identify the overall aims of the project and the individual measurable objectives against which you would wish the outcome of the work to be assessed. Clearly spell out any research hypothesis you are following.
+%
+%Include a justification (rationale) for the study. Be clear about what your study will not address.
+
+\subsection{Timeliness, Novelty, Significance and Beneficiaries}
+
+%Ever since it was shown that SGD can approximate Bayesian inference under certain conditions \cite{mandt2017}, 
+Recently there has been increased interest in using scalable Bayesian methods for deep learning and MultiSWAG is the result of a number of works in this direction. Indeed, its name is derived from \emph{stochastic weight averaging} (SWA) \cite{izmailov2018}, which simply averages the sampled parameter vectors from the SGD trajectory and uses the mean solution, $\bgreek{\theta}_{\text{SWA}}$, when predicting. Extending this, SWA-Gaussian (SWAG) \cite{maddox2019} also estimates a low-rank approximation of the covariance matrix and uses it to model the posterior distribution of the parameters with a Gaussian. Most recently, independent SWAG runs were combined to form the MultiSWAG mixture model \cite{izmailov2020}. 
+
+To the best of this author's knowledge, this is the first time that a mixture of FA models will be used to approximate the posterior distribution of the parameters of a NN. This work is significant because, as mentioned in Section \ref{sec:hypothesis}, the MultiSWAG Gaussians have the same form as FA models but do not make use of all the available data when estimating the covariance matrices. Therefore, a better approximation of the posterior distribution can be expected by using a mixture of FA models, which is hypothesised to lead to better generalisation of DNNs. 
+
+%Importantly,  the proposed FA extension of MultiSWAG is model-agnostic and does not alter the underlying training procedure of SGD. Hence, if successful, it could potentially be used in any deep learning application. 
+
+%Explain why the proposed research is of sufficient timeliness and novelty
+
+%The proposal should demonstrate the originality of your intended research. You should therefore explain why your research is important (for example, by explaining how your research builds on and adds to the current state of knowledge in the field or by setting out reasons why it is timely to research your proposed topic) and providing details of any immediate applications, including further research that might be done to build on your findings.
+
+%\subsection{Beneficiaries}
+
+The proposed method is model-agnostic, meaning that it can be used in conjunction with any NN architecture. Therefore, if successful, the technique is likely to be of interest to many deep learning practitioners, both in academia and industry, working in areas such as computer vision and natural language processing. The extension to the current codebase will be made open source on GitHub, allowing other researchers to experiment with the mixture of FA models posterior distribution. If shown to be superior to MultiSWAG, there is no reason why it could not be made available as a standard training procedure in open source deep learning frameworks such as PyTorch \cite{paszke2019}. Indeed, SWA has recently been added to the standard PyTorch library\footnote{https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/}.   
+
+
+%Describe how the research will benefit other researchers in the field and in related disciplines. What will be done to ensure that they can benefit? 
+
+\subsection{Feasibility}
+
+The code for running the MultiSWAG experiments from \cite{izmailov2020} is freely available on GitHub. Most of the implementation work will involve extending this codebase to include the mixture of FA models posterior distribution for the parameters of a DNN. Given that modern DNNs can easily contain tens of millions of parameters, it is unlikely that the classic EM and SVD batch FA algorithms will scale to such data. Therefore, an incremental, online FA algorithm will be implemented. This approach is outlined in Section \ref{sec:online_fa}.
+
+%The popular Python machine learning library scikit-learn \cite{pedregosa2012} provides an implementation of FA. However, it is not clear whether this method will scale to parameter vectors with millions of dimensions. The feasibility of using the scikit-learn implementation will be checked before coding work begins by running some tests on dummy data. If it proves too slow then a GPU-accelerated version of either the EM or SVD algorithm from \cite{barber2007} will be implemented in PyTorch \cite{paszke2019}.
+
+A large proportion of the project time will be allocated to running experiments and analysing the results. It may not be possible to reproduce all the experiments from \cite{izmailov2020}, but running the smaller experiments, such as those involving the MNIST dataset \cite{deng2012} and the seven-layer LeNet-5 model \cite{lecun1998},  should be possible. This would meet the minimum completion criteria for the project. If time allows and assuming that access to a GPU cluster is provided, some of the experiments involving the larger CIFAR-10 and CIFAR-100 datasets \cite{krizhevsky09} and the ResNet models \cite{he2015} will also be executed. 
+
+
+%Comment on the feasibility of the research plans given its limited time frame and resources. Outline your plans for a feasibility study before starting e.g.\ major implementation work.
+
+
+\section{Background and Related Work}
+
+%Demonstrate a knowledge and understanding of past and current work in the subject area, including relevant references like this \cite{Izmailov2019} and \cite{Athiwaratkun2018} .
+
+\subsection{Stochastic Gradient Descent}
+
+Let $f_{\bgreek{\theta}}: X \rightarrow Y$ be a NN parameterised by $\bgreek{\theta} \in \R^d$ and  $\{(\matr{x}_n, y_n)\}_{n=1}^{N} \subset X \times Y$ a set of training examples. Starting from a random initialisation, $\bgreek{\theta}_0$, vanilla SGD iteratively updates the parameter vector in the direction of the negative gradient of the training loss. Formally, the update rule is 
+\begin{equation}\label{eqn:sgd}
+	\bgreek{\theta}_{m+1} = \bgreek{\theta}_m - \alpha_m \nabla_{\bgreek{\theta}_m} \Bigg( \frac{1}{|\mathcal{B}|} \sum_{(\matr{x}_n, y_n) \in \mathcal{B}} \mathcal{L}_D (y_n, f_{\bgreek{\theta}_m}(\matr{x}_n)) + \lambda \mathcal{L}_R (\bgreek{\theta}_m) \Bigg),
+\end{equation}
+where $\mathcal{B}$ is a mini-batch of training examples and $\alpha_m > 0$ is the learning rate at update $m$. The term inside the large brackets is a combination of the data loss $\mathcal{L}_D$  and the regularisation loss $\mathcal{L}_R$, where the constant $\lambda$ controls the trade-off between goodness of fit and model complexity. For classification problems, $\mathcal{L}_D$ is typically the cross-entropy loss and $\mathcal{L}_R$ is the Euclidean norm of $\bgreek{\theta}_m$. The operation $\nabla_{\bgreek{\theta}_m}$ indicates taking the partial derivative of the loss with respect to each element of $\bgreek{\theta}_m$. If the learning rate is scheduled correctly then SGD is guaranteed to converge to a local minimum \cite{ruder2016}. 
+
+\subsection{From SWA to MultiSWAG}\label{sec:swag}
+
+Due to the difficulty of setting the learning rate, in practice SGD does not always converge to a local minimum. Depending on the SGD trajectory, it may be beneficial to average some of the iterates $\{\bgreek{\theta}_m\}_{m=0}^M$, where $M$ is the total number of times that the update in (\ref{eqn:sgd}) is applied. If, after some number of updates $k < M$, the process begins to oscillate around a local minimum $\bgreek{\theta}^*$, then taking the average of the iterates $\{\bgreek{\theta}_m\}_{m=k}^M$ is likely to provide a better estimate of $\bgreek{\theta}^*$ than the final iterate $\bgreek{\theta}_M$. This idea was proposed in some early work in stochastic optimisation \cite{spall2003}. It is the motivation behind the SWA solution, $\bgreek{\theta}_{\text{SWA}}$, from \cite{izmailov2018}, which was defined in (\ref{eqn:swa_solution}).
+
+%Keep for thesis
+%
+%Although the optimisation procedure involves minimising the (regularised) training loss, this is only a proxy for finding solutions with low test error. Recent work suggests that good regions of the loss surface with respect to train and test error are rarely perfectly aligned with each other \cite{izmailov2018}. Moreover, SGD with a decaying learning rate actually converges to solutions on the \emph{periphery} of a set of parameters with low test error. It is thought that such solutions lie in sharp regions of the training loss surface where even a small shift can result in poor generalisation. Therefore, solutions in flatter regions of the training loss surface, which are more likely to remain good even are being shifted, are desirable. 
+%
+%When used with a high constant learning rate $\alpha$, SGD first approaches a local minimum and then proceeds to bounce around in its vicinity \cite{mandt2017}. In doing so, it is thought that SGD visits those points which are on the periphery of regions corresponding to low test error, while hopping back and forth over a flat region of the training loss surface \cite{izmailov2018}. By averaging the SGD iterates, a solution closer to the centre of this flat region can be obtained. This is the idea behind the SWA solution, $\bgreek{\theta}_{\text{SWA}}$, which was defined in (\ref{eqn:swa_solution}).
+%
+%There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error \cite{izmailov2018}. SWA also finds ``wider" optima than SGD, in the sense that one has to move further away from $\bgreek{\theta}_{\text{SWA}}$ to increase both the train and test error by a given amount. 
+
+SWA was later extended to also approximate the covariance matrix of the SGD iterates \cite{maddox2019}. Together, the mean vector $\bgreek{\theta}_{\text{SWA}}$ and the approximate covariance matrix are used to define a Gaussian posterior distribution over the parameters of a NN. At test time, multiple settings of the parameter vector are sampled from the Gaussian posterior distribution and the predictions of the resultant NNs are averaged. This method, called SWA-Gaussian (SWAG), can be seen to approximate the true Bayesian model average, $p(y | \matr{x}, \mathcal{D}) = \int_{\bgreek{\theta}} p(y | \matr{x}, \bgreek{\theta}) p(\bgreek{\theta} | \mathcal{D})$, where all settings of $\bgreek{\theta}$ are used, weighted by their posterior probabilities in light of the observed data $\mathcal{D}$. 
+
+SWAG estimates a low-rank plus diagonal covariance matrix of the SGD iterates. The low-rank part is given in (\ref{eqn:swag_cov}). The diagonal part is $\matr{\Sigma}_{\text{diag}} = \text{diag}\big(\overline{\bgreek{\theta}^2} - \bgreek{\theta}_{\text{SWA}}^2 \big)$, where $\overline{\bgreek{\theta}^2}$ is the empirical mean of the squared parameter vectors collected at the end of each epoch of SGD. That is, $\overline{\bgreek{\theta}^2} = \frac{1}{T}\sum_{t=1}^T \bgreek{\theta}_t^2$, where the square is applied element-wise. The approximation in (\ref{eqn:swag_cov}) can be written in matrix form as $\frac{1}{K-1} \matr{\hat{D}\hat{D}}^{\intercal}$, where $\matr{\hat{D}}$ is formed by concatenating the vectors $(\bgreek{\theta}_t - \overline{\bgreek{\theta}}_t)$ corresponding to the last $K$ epochs of SGD. It follows that each component of the MultiSWAG mixture model is a Gaussian distribution of the form
+\begin{equation}\label{eqn:swag_dist}
+	\mathcal{N}\Big(\bgreek{\theta}_{\text{SWA}}, \frac{1}{2(K-1)} \matr{\hat{D}\hat{D}}^{\intercal} + \frac{1}{2}\matr{\Sigma}_{\text{diag}}\Big).
+\end{equation}
+By absorbing the constants into the matrices in (\ref{eqn:swag_dist}), we can rewrite the Gaussian distribution in the exact same form as the FA model in (\ref{eqn:fa_dist}), with $\matr{F} = \frac{1}{\sqrt{2(K-1)}} \matr{\hat{D}}$ and $\matr{\Psi} = \frac{1}{2} \matr{\Sigma}_{\text{diag}}$.
+
+%As described in Section \ref{sec:hypothesis}, the rank $K$ of the approximate covariance matrix is limited to the total number of epochs of SGD. Given that deep neural networks are usually trained for at most a few hundred epochs, $K$ is much less than the dimension of the parameter vector. This effectively limits the samples from the Gaussian posterior distribution to a low-dimensional subspace of the full parameter space. Despite this simplification, SWAG works well in practice because a diverse range of good solutions can be found in subspaces with as few as five dimensions \cite{izmailov2019}. Moreover, evidence suggests that distinct local minima are connected by very simple curves which pass through regions of near-constant loss along low-dimensional manifolds in the parameter space \cite{garipov2018}.
+
+The samples from a single SWAG model are all centred on the same local minimum. Given the highly non-convex nature of DNN loss surfaces \cite{li2017}, there are often many local minima in different regions of the parameter space which give rise to equally good solutions. It is argued that these are exactly the circumstances in which an approximate Bayesian model average can have the biggest impact on accuracy and calibration \cite{wilson2020}, and more diversity can be achieved by combining the samples from multiple independently trained SWAG models \cite{izmailov2020}. 
+Starting from a different random initialisation, each independent run ends up in a different \emph{basin of attraction} of the loss surface. 
+At test time, the parameter vectors which contribute to the Bayesian model average are sampled from each SWAG model with equal probability. Thus, the final posterior distribution over the parameters is a mixture of Gaussians. This is the MultiSWAG method which this project will extend by replacing the mixture of Gaussians by a mixture of FA models.
+
+\subsection{Factor Analysis}\label{sec:fa}
+
+A FA model for the parameters $\bgreek{\theta} \in \R^d$ of a NN is of the form $p(\bgreek{\theta}) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \matr{\Psi}\big)$, where $\matr{c} \in \R^d$, $\matr{F} \in \R^{d \times K}$ and $\matr{\Psi}$ is a $d\times d$ diagonal matrix \cite{barber2007}. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\bgreek{\theta}_{\text{SWA}}$. By substituting $\matr{c} = \bgreek{\theta}_{\text{SWA}}$ into $p(\bgreek{\theta})$, the distribution in (\ref{eqn:fa_dist}) is obtained. Having set the mean, an EM or SVD algorithm can in theory find the maximum likelihood estimates of $\matr{F}$ and $\matr{\Psi}$ \cite{barber2007}. 
+However, both methods require storing all the observations in memory, making them impractical for fittings the parameters of large DNNs. 
+
+%An alternative online algorithm is presented in Section \ref{sec:online_fa}. 
+
+%FA is a latent variable model which generates observations $\bgreek{\theta} \in \R^d$ as follows. First, a latent vector $\matr{h} \in \R^K$, for some $K < d$, is sampled from $p(\matr{h}) = \mathcal{N}(\matr{0}, \matr{I})$. Next, $\matr{h}$ is transformed onto a $K$-dimensional linear subspace of $\R^d$ by left-multiplying it by a \emph{factor loading} matrix $\matr{F} \in \R^{d \times K}$. The origin of this subspace is then shifted by adding a bias term $\matr{c} \in \R^d$. Finally, the data is perturbed by adding some zero mean Gaussian noise $\bgreek{\epsilon} \in \R^d$ sampled from $\mathcal{N}(\matr{0}, \matr{\Psi})$, where $\matr{\Psi}$ is a $d\times d$ diagonal matrix \cite{barber2007}. Putting all this together, an observation $\bgreek{\theta} \in \R^d$ is generated according to 
+%\begin{equation}\label{eqn:fa_model}
+%	\bgreek{\theta} = \matr{Fh} + \matr{c} + \bgreek{\epsilon},
+%\end{equation}
+%where in this context an observation $\bgreek{\theta}$ is the parameter vector of a neural network. 
+%
+%It follows that, given $\matr{h}$, the observations $\bgreek{\theta}$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\matr{\Psi}$:
+%\begin{equation}\label{eqn:fa_cond_dist}
+%	p(\bgreek{\theta} | \matr{h}) 
+%	= \mathcal{N}\Big( \matr{Fh} + \matr{c}, \matr{\Psi} \Big)
+%	= \frac{1}{\sqrt{(2\pi)^d |\matr{\Psi}|}} 
+%	\exp \Big(-\frac{1}{2} (\bgreek{\theta} - \matr{Fh} - \matr{c})^\intercal \matr{\Psi}^{-1} (\bgreek{\theta} - \matr{Fh} 	- \matr{c})\Big).
+%\end{equation}
+%
+%From \cite{barber2007}, integrating over $\matr{h}$ gives the marginal distribution $p(\bgreek{\theta}) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \matr{\Psi}\big)$. The parameters of the model are $\matr{c}, \matr{F}$ and $\matr{\Psi}$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\bgreek{\theta}_{\text{SWA}}$. By substituting $\matr{c} = \bgreek{\theta}_{\text{SWA}}$ into $p(\bgreek{\theta})$, the distribution in (\ref{eqn:fa_dist}) is obtained. Having set the bias term, an EM or SVD algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\matr{\Psi}$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data with lots of observations. An alternative online algorithm is presented in Section \ref{sec:online_fa}. 
+
+
+\section{Programme and Methodology}\label{sec:methodology}
+
+\subsection{Online Factor Analysis}\label{sec:online_fa}
+
+%The implementation work for this project involves extending the MultiSWAG codebase to model the posterior distribution of the parameters of a neural
+%networks as a mixture of FA models. Given the size of the data involved, the classic EM and SVD algorithms used for fitting FA models are not viable options. 
+
+An alternative to batch FA algorithms is to use gradient methods to maximise the log likelihood, $ L(\matr{F}, \matr{\Psi}) = \frac{1}{T} \sum_{t=1}^T \log p(\bgreek{\theta}_t | \matr{F}, \matr{\Psi})$. By adapting a general result for latent variable models from \cite{barber2007} to FA, the partial derivatives of $\log p(\bgreek{\theta} | \matr{F}, \matr{\Psi})$ with respect to $\matr{F}$ and $\matr{\Psi}$ can be written as 
+\begin{equation}\label{eqn:fa_expected_gradient}
+	\nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta} | \matr{F}, \matr{\Psi})
+	= \int_\matr{h} p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi}) \nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta}, \matr{h} | \matr{F}, \matr{\Psi}),
+\end{equation}
+where $\matr{h}$ represents the latent variables. Since $\matr{h}$ is independent from $\matr{F}$ and $\matr{\Psi}$ in the FA model,
+\begin{equation}\label{eqn:fa_log_complete_likliehood}
+	\nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta}, \matr{h} | \matr{F}, \matr{\Psi})
+	= \nabla_{\matr{F}, \matr{\Psi}} \log \Big(p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})p(\matr{h})\Big)
+	= \nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi}).
+\end{equation}
+It follows that (\ref{eqn:fa_expected_gradient}) is just the expected value of $\nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})$ over the distribution $p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi})$. It turns out that this expectation can be computed in closed-form, since both $p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})$ and $p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi})$ are tractable Gaussian distributions whose mean and covariance matrices are given in \cite{barber2007}. 
+
+This interpretation gives rise to an online stochastic gradient algorithm for optimising $\matr{F}$ and $\matr{\Psi}$. Given a single observation, $\bgreek{\theta}_t$, the partial derivatives $\nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta}_t | \matr{F}, \matr{\Psi})$ can be computed in closed-form. By definition of the log likelihood, $L(\matr{F}, \matr{\Psi})$, the expectation of these sample derivatives is proportional to $\nabla_{\matr{F}, \matr{\Psi}} L(\matr{F}, \matr{\Psi})$. This is exactly what is required for a stochastic gradient algorithm. Hence, the sample derivatives can be used with SGD or any of its variants to update $\matr{F}$ and $\matr{\Psi}$. It is worth noting that the calculation of these derivatives uses $\bgreek{\theta}_{\text{SWA}}$, which is not known during training. However, it can be replaced by the running average $\overline{\bgreek{\theta}}_t$, as done in the SWAG covariance approximation in (\ref{eqn:swag_cov}). One limitation of this approach is that many sample derivatives may be required in order to converge to the optimal $\matr{F}$ and $\matr{\Psi}$. However, a sufficiently large number of samples can be obtained by using the NN parameter vectors observed after each mini-batch update instead of waiting until the end of each epoch, at the expense of extra computation. 
+%That is, each time the parameters of the neural network are modified by applying the update in (\ref{eqn:sgd}), the new parameters are used to update $\matr{F}$ and $\matr{\Psi}$. 
+%For example, for a dataset containing 50,000 training examples (such as CIFAR-10 \cite{krizhevsky09}) and a batch size of 32, training for 100 epochs would result in over 150,000 mini-batch updates.
+
+To the best of this author's knowledge, this online gradient algorithm is a novel approach to fitting FA models to high-dimensional data. 
+%Conveniently, it can be implemented using basic matrix operations and the same simple optimisers which are used to train NNs. 
+%This means that the code for fitting both the NNs and the mixture of FA models can be written in the same framework. 
+To match the existing MultiSWAG codebase, the algorithm will be implemented in PyTorch \cite{paszke2019}. The code will be thoroughly tested by comparing it to the scikit-learn \cite{pedregosa2012} implementation of FA, which will act as a \emph{test oracle}. In addition, an online version of the  EM algorithm from \cite{barber2007} will also be implemented and compared to the gradient-based approach. This will involve modifying the M-step to update $\matr{F}$ and $\matr{\Psi}$ incrementally as each $\bgreek{\theta}_t$ is sampled, in contrast to the batch algorithm which uses all samples, $\bgreek{\theta}_1, \bgreek{\theta}_2, ...., \bgreek{\theta}_T$, to construct new estimates of $\matr{F}$ and $\matr{\Psi}$ on each iteration of EM. If at least one of these online FA algorithms is implemented correctly, objective \textbf{(O1)} will be satisfied.
+%For a number of synthetic datasets of varying size, it will be verified that the online FA algorithm returns maximum likelihood parameters $\matr{F}$ and $\matr{\Psi}$ which are very similar to those estimated by the tried and tested scikit-learn implementation. 
+
+\subsection{Experiments}\label{sec:experiments}
+
+\textbf{Linear Models. } The online FA algorithms will be used to approximate the posterior distribution of the parameters of linear regression models \cite{murphy2012}. Given the linear regression Gaussian likelihood function and a Gaussian prior over the model parameters $\bgreek{\theta}$, it turns out that the posterior $p(\bgreek{\theta} | \mathcal{D})$ is also Gaussian, with mean and covariance which can be computed in closed-form using the observed data $\mathcal{D}$ \cite{murphy2012}. The similarity between these closed-form solutions and the parameters of the Gaussian posteriors estimated by both SWAG and FA will be computed. This will complete objective \textbf{(O2)} for the case of linear NNs. In addition, these experiments will provide evidence of which online FA algorithm works better, the gradient-based approach or online EM. Whichever method comes out on top will be used in the remaining experiments. 
+
+%These results should respond to the first hypothesis - that the posterior distribution of the parameters of a neural network could be better approximated by a mixture of FA models instead of the MultiSWAG mixture of Gaussians - at least in the linear case. 
+
+ %Assuming that the online FA algorithm agrees with the scikit-learn implementation, it will then be used to approximate the posterior distribution of the parameters of some very simple neural networks.
+
+\textbf{Gaussian Processes. } 
+%Ultimately, the purpose of learning the posterior distribution of the parameters of a NN via FA is to approximate the posterior predictive distribution $p(y | \matr{x}, \mathcal{D})$ in (\ref{eqn:bma}) by an approximate Bayesian model average. 
+For a class of flexible non-parametric models called Gaussian processes (GPs) \cite{rasmussen2006}, it turns out that the predictive posterior $p(y | \matr{x}, \mathcal{D})$ is a Gaussian distribution whose mean and covariance matrix can be computed in closed-form. Moreover, under certain conditions a GP is equivalent to a NN with a single fully-connected hidden layer of infinite width \cite{williams1997}. These properties make for an interesting comparison. Given data $\mathcal{D}$ generated by a GP, $p(y | \matr{x}, \mathcal{D})$ can be approximated by applying both SWAG and the proposed FA method to a NN with a single, very wide, fully-connected hidden layer. Since in this case the ground truth $p(y | \matr{x}, \mathcal{D})$ is known, the quality of the approximations can be evaluated. This work will act as an intermediate step between the experiments involving linear models and DNNs. 
+
+%These experiments will act as an intermediate step between objectives \textbf{(O2)} and \textbf{(O3)}.
+
+%This will satisfy objective \textbf{(O2)} for the case of single-hidden layer NNs. 
+
+\textbf{Deep Neural Networks. } Both the posterior distribution of the parameters of a DNN and its posterior predictive distribution are intractable \cite{kingma2013}. However, objective \textbf{(O3)} can still be completed by reproducing a subset of the experiments from \cite{izmailov2020}, to assess both the accuracy and calibration of the proposed FA method on test data in comparison to MultiSWAG. Calibration measures how well the accuracy and confidence of a model's predictions are aligned, which is important for uncertainty estimates of probabilistic classifiers \cite{maddox2019}.
+
+
+%\begin{itemize}
+%    \item Detail the methodology to be used in pursuit of the research and justify this choice.
+%    \item Describe your contributions and novelty and where you
+%    will go beyond the state-of-the-art (new methods, new tools,
+%    new data, new insights, new proofs,...)
+%    \item Describe the programme of work, indicating the research to be undertaken and the milestones that can be used to measure its progress.
+%    \item Where suitable define work packages and define the dependences
+%    between these work packages. WPs and their dependences should be
+%    shown in the Gantt chart in the research plan.
+%    \item Explain how the project will be managed.
+%    \item State the limitations of your research.
+%\end{itemize}
+
+\subsection{Risk Assessment}
+
+The main project risk is that the online FA algorithms do not work as expected. 
+%That is, it finds a covariance matrix which is significantly different from that estimated by batch FA algorithms. 
+%Given that the proposed algorithm is a simplification of variational auto-encoders \cite{kingma2013}, which is a widely accepted method for learning generative models, it is expected to provide good estimates of the maximum likelihood parameters of FA models. 
+Even if this is the case, the project's minimum completion criteria will still be achievable. The key experiments outlined in Section \ref{sec:experiments} could be executed using the scikit-learn implementation of FA instead of the online version. This would just limit the size of the NNs involved in the experiments. 
+%The project will use only synthetic or publicly available dataset, and hence, there are no risks associated with data acquisition. 
+%It is not the intention of this project to train very deep neural networks on huge datasets. 
+The experiments involving linear models will require no more than a standard laptop or desktop computer, while experiments involving GPs and NNs with a few hidden layers will require access to a GPU. Given that this project will be completed part-time over a 12-month period, it is not anticipated that this will be a problem. 
+%The University's GPU cluster is likely to be in highest demand during the normal MSc project period between June and August. The experiments for this project will be executed after this period. 
+However, if GPU access is limited, then many comparisons can be made with SWAG instead of the much more costly MultiSWAG mixture model.  This would not detract too much from the results since the focus of the project is on the different approaches to estimating the covariance matrix in (\ref{eqn:fa_dist}). 
+As the project will only use synthetic or publicly available datasets, there are no risks associated with data acquisition.
+
+\subsection{Ethics}
+
+There are no ethical issues associated with this project. Only synthetic and publicly available benchmark datasets will be used, as described in Section \ref{sec:evaluation}. Moreover, the proposed method simply builds on recent research in Bayesian deep learning and at most is expected to provide a small improvement compared to algorithms which already exists and are publicly available.
+
+\section{Evaluation}\label{sec:evaluation}
+
+\textbf{Online Factor Analysis. } Synthetic data will be used to verify the correctness and robustness of the proposed online FA algorithms. First, data will be generated using actual FA models for various settings of the parameters $\matr{c}, \matr{F}$ and $\matr{\Psi}$. It will then be verified that in each case the online algorithms are able to recover the true covariance matrix from the observed data. Euclidean distance will be used as a measure of how dissimilar the online estimates of the covariance are from both the true value and the value returned by the scikit-learn batch FA implementation. 
+%To test the scalability of the algorithm, these tests will include datasets with millions of dimensions.  
+
+\textbf{Linear Models. } Experiments involving the posterior distribution of the parameters of linear models will use the same regression datasets as \cite{maddox2019} - the Boston Housing, Concrete Compression Strength, Energy Efficiency, Naval Propulsion, Yacht Hydrodynamics and Combined Cycle Power Plant datasets from the UCI Machine Learning Repository \cite{dua2019}. 
+%The smallest of these datasets has 308 observations and 6 dimensions, and the largest has 11,934 observations and 16 dimensions. 
+For each dataset, the mean and covariance matrix of the posterior distribution of the linear regression parameters will be computed in closed-form, by each online FA algorithm and by SWAG. Euclidean distance will be used as a measure of dissimilarity between the corresponding estimates. 
+%These experiments will be executed for FA and SWAG covariance approximations of varying rank. 
+
+\textbf{Gaussian Processes. } Synthetic datasets of varying dimensionality will be generated by GPs with squared exponential covariance functions. In each case, the mean and covariance of the Gaussian predictive posterior $p(y | \matr{x}, \mathcal{D})$ will be estimated by both SWAG and the proposed FA method for different test points $(\matr{x}, y)$. The estimates will be compared to the ground truth mean and covariance via Euclidean distance. Visual comparisons of the ground truth and estimated predictive posteriors will also be generated by fitting the models to 1 and 2-dimensional data. 
+
+\textbf{Deep Neural Networks. } For DNN experiments, MNIST \cite{deng2012}, CIFAR-10 and CIFAR-100 \cite{krizhevsky09} datasets will be used. Starting with LeNet-5 \cite{lecun1998}, as many experiments as possible from \cite{izmailov2020} will be executed using the mixture of FA models instead of the MultiSWAG mixture of Gaussians. The exact number of experiments will depend on the efficiency of the online FA algorithm. However, it is hoped that running at least some of the experiments involving the 18 and 20-layer ResNet models \cite{he2015} will be possible. The aim is to verify whether the proposed method results in better accuracy and calibration than MultiSWAG. Calibration will be measured by the negative log-likelihood metric and by plotting \emph{reliability diagrams}, as in \cite{maddox2019}.
+
+%\begin{itemize}
+%    \item Describe the specific methods of data collection.
+%    \item Explain how you intent to analyse and interpret the results.
+%\end{itemize}
+
+\section{Expected Outcomes}
+
+It is expected that an online FA algorithm which scales to large datasets will be implemented. While there exist online algorithms for learning latent variable models \cite{kingma2013} \cite{cappe2017}, they are not specific to FA. Thus, the proposed solution may be of interest to researchers in its own right. 
+%Indeed, in theory it could be used to fit FA models to streaming data or any other dataset which does not fit into memory. 
+
+It is hoped that the proposed method will result in better generalisation of NNs than MultiSWAG. However, given the difficulty of tuning these models, it may be difficult to beat the results reported in \cite{izmailov2020}. Even so, there is a significant advantage of using the FA method, as pointed out in Section \ref{sec:hypothesis}. That is, unlike MultiSWAG, the rank of the approximate covariance matrices estimated by online FA is not tied to the amount of data used for estimation. This opens up the possibility of choosing the rank in a more principled way, such as via Bayesian model selection. As long as online FA can be implemented efficiently, it would appear a fundamentally better way of modelling the posterior distribution of the parameters of a NN. 
+
+%Conclude your research proposal by addressing your predicted outcomes. What are you hoping to prove/disprove? Indicate how you envisage your research will contribute to debates and discussions in your particular subject area:
+%
+%\begin{itemize}
+%    \item How will your research make an original contribution to knowledge?
+%    \item How might it fill gaps in existing work? 
+%    \item How might it extend understanding of particular topics?
+%\end{itemize}
+
+
+\section{Research Plan, Milestones and Deliverables}
+
+%The research plan for the project is shown in Figure \ref{fig:gantt}. The milestones and deliverables associated with this plan are shown in Tables \ref{fig:milestones} and \ref{fig:deliverables}, respectively.
+
+\definecolor{barblue}{RGB}{153,204,254}
+\definecolor{groupblue}{RGB}{51,102,254}
+\definecolor{linkred}{RGB}{165,0,33} 
+
+\begin{figure}[htbp]
+\begin{ganttchart}[
+    y unit title=0.4cm,
+    y unit chart=0.5cm,
+    vgrid,hgrid,
+    x unit=0.325mm,
+    time slot format=isodate,
+    title/.append style={draw=none, fill=barblue},
+    title label font=\sffamily\bfseries\color{white},
+    title label node/.append style={below=-1.6ex},
+    title left shift=.05,
+    title right shift=-.05,
+    title height=1,
+    bar/.append style={draw=none, fill=groupblue},
+    bar height=.6,
+    bar label font=\normalsize\color{black!50},
+    group right shift=0,
+    group top shift=.6,
+    group height=.3,
+    group peaks height=.2,
+    bar incomplete/.append style={fill=green}
+   ]{2021-05-01}{2022-04-30}
+   \gantttitlecalendar{month=shortname}\\
+   
+\ganttbar[progress=50, name=T0]{Literature review}{2021-05-01}{2021-05-31} \\
+\ganttset{progress label text={}, link/.style={black, -to}}
+
+\ganttgroup{Online FA}{2021-06-01}{2021-08-15} \\
+\ganttbar[progress=0, name=T1A]{Background write-up}{2021-06-01}{2021-06-14} \\
+\ganttlinkedbar[progress=0, name=T1B]{Implementation}{2021-06-15}{2021-07-14} \\
+\ganttlinkedbar[progress=0, name=T1C]{Experiments with write-up}{2021-07-15}{2021-08-15} \\
+
+\ganttgroup{Linear Models}{2021-08-15}{2021-10-07} \\
+\ganttbar[progress=0, name=T2A]{Background write-up}{2021-08-15}{2021-08-28} \\
+\ganttlinkedbar[progress=0, name=T2B]{Experiments with write-up}{2021-08-29}{2021-10-07} \\
+
+\ganttgroup{Gaussian Processes}{2021-10-08}{2021-11-31} \\
+\ganttbar[progress=0, name=T3A]{Background write-up}{2021-10-08}{2021-10-21} \\
+\ganttlinkedbar[progress=0, name=T3B]{Experiments with write-up}{2021-10-22}{2021-11-31} \\
+
+\ganttgroup{Deep Neural Networks}{2021-12-01}{2022-02-14} \\
+\ganttbar[progress=0, name=T4A]{Background write-up}{2021-12-01}{2021-12-14} \\
+\ganttlinkedbar[progress=0, name=T4B]{Experiments with write-up}{2021-12-15}{2022-02-14} \\
+
+\ganttgroup{Dissertation}{2022-02-15}{2022-04-30} \\
+\ganttbar[progress=0, name=T5A]{Discussion and conclusion}{2022-02-15}{2022-03-14} \\
+\ganttlinkedbar[progress=0, name=T5B]{Introduction and abstract}{2022-03-15}{2022-03-31} \\
+\ganttlinkedbar[progress=0, name=T5C]{Redrafting}{2022-04-01}{2022-04-30}
+
+\ganttset{link/.style={green}}
+\ganttlink[link mid=.4]{T1B}{T2B}
+\ganttlink[link mid=.4]{T1B}{T3B}
+\ganttlink[link mid=.4]{T1B}{T4B}
+
+\ganttlink[link mid=.4]{T1C}{T5A}
+\ganttlink[link mid=.4]{T2B}{T5A}
+\ganttlink[link mid=.4]{T3B}{T5A}
+\ganttlink[link mid=.4]{T4B}{T5A}
+
+\end{ganttchart}
+\caption{Gantt Chart of the activities defined for this project.}
+\label{fig:gantt}
+\end{figure}
+
+\begin{table}[htbp]
+    \begin{center}
+        \begin{tabular}{|c|c|l|}
+        \hline
+        \textbf{Milestone} & \textbf{Month} & \textbf{Description} \\
+        \hline
+        $M_1$ & July & Implementation of online FA algorithms \\
+        $M_2$ & August & Experiments with online FA complete \\
+        $M_3$ & October & Experiments with linear models complete \\
+        $M_4$ & November & Experiments with Gaussian processes complete \\
+        $M_5$ & February & Experiments with deep neural networks complete \\
+        $M_6$ & April & Submission of dissertation \\
+        \hline
+        \end{tabular} 
+    \end{center}
+    \caption{Milestones defined in this project.}
+    \label{fig:milestones}
+\end{table}
+
+\begin{table}[htbp]
+    \begin{center}
+        \begin{tabular}{|c|c|l|}
+        \hline
+        \textbf{Deliverable} & \textbf{Month} & \textbf{Description} \\
+        \hline
+        $D_1$ & July & Working code and unit tests for online FA algorithms \\
+        $D_2$ & August & Experimental results for online FA \\
+        $D_3$ & October & Experimental results for linear models \\
+        $D_4$ & November & Experimental results for Gaussian processes \\
+        $D_5$ & February & Experimental results for deep neural networks \\
+        $D_6$ & April & Complete dissertation \\
+        \hline
+        \end{tabular} 
+    \end{center}
+    \caption{List of deliverables defined in this project.}
+    \label{fig:deliverables}
+\end{table}
+
+
+\newpage
+
+%                Now build the reference list
+\bibliographystyle{unsrt}   % The reference style
+%                This is plain and unsorted, so in the order
+%                they appear in the document.
+
+{\small
+\bibliography{main}       % bib file(s).
+}
+
+
+%\appendix
+%
+%\section{Partial Derivatives for Online Stochastic Gradient FA}\label{appendix:online_fa}
+%
+%An online stochastic gradient algorithm for FA requires the partial derivatives $\nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta} | \matr{F}, \matr{\Psi})$. As shown in Section \ref{sec:online_fa}, this is the expected value of $\nabla_{\matr{F}, \matr{\Psi}} \log p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})$ over the distribution $p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi})$. From \cite{barber2007}, 
+%\begin{align}
+%\begin{split}
+%	p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})
+%	& = \mathcal{N}\Big( \matr{Fh} + \bgreek{\theta}_{\text{SWA}}, \matr{\Psi} \Big) \\
+%	& = \frac{1}{\sqrt{(2\pi)^d |\matr{\Psi}|}} 
+%	\exp \Big(-\frac{1}{2} (\bgreek{\theta} - \matr{Fh} - \bgreek{\theta}_{\text{SWA}})^\intercal \matr{\Psi}^{-1} (\bgreek{\theta} - \matr{Fh} 	- \bgreek{\theta}_{\text{SWA}})\Big),
+%\end{split}
+%\end{align}
+%where $|\matr{\Psi}|$ is the \emph{determinant} of $\matr{\Psi}$. Setting $\matr{d} = \bgreek{\theta} - \bgreek{\theta}_{\text{SWA}}$, it follows that
+%\begin{equation}\label{eqn:log_fa_cond_dist}
+%	\log p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})
+%	= -\frac{1}{2} (\matr{d} - \matr{Fh})^\intercal \matr{\Psi}^{-1} (\matr{d}- \matr{Fh}) - \frac{1}{2} \log |\matr{\Psi}| - \frac{d}{2} \log 2\pi.
+%\end{equation}
+%Differentiating (\ref{eqn:log_fa_cond_dist}) with respect to $\matr{F}$,
+%\begin{equation}
+%	\nabla_{\matr{F}} \log p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})
+%	= \matr{\Psi}^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal.
+%\end{equation}
+%It follows that $\nabla_{\matr{F}} \log p(\bgreek{\theta} | \matr{F}, \matr{\Psi})$ is the expected value of $\matr{\Psi}^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal$ over the distribution $p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi})$. Letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi})}[\cdot]$ to simplify the notation, 
+%\begin{align}\label{eqn:derivatives_wrt_F}
+%\begin{split}
+%	\nabla_{\matr{F}} \log p(\bgreek{\theta} | \matr{F}, \matr{\Psi}) 
+%	& = \E \big[ \matr{\Psi}^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal \big] \\
+%	& = \E \big[ \matr{\Psi}^{-1} \matr{d} \matr{h}^\intercal \big] 
+%	- \E \big[ \matr{\Psi}^{-1} \matr{Fh} \matr{h}^\intercal \big] \\
+%	& = \matr{\Psi}^{-1} \matr{d} \E \big[ \matr{h}^\intercal \big] 
+%	- \matr{\Psi}^{-1} \matr{F}  \E \big[ \matr{h} \matr{h}^\intercal \big].
+%\end{split}
+%\end{align} 
+%From the E-step of the EM algorithm in \cite{barber2007}, $p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi}) \propto \mathcal{N}(\matr{m}, \matr{\Sigma})$, where
+%\begin{equation}\label{eqn:variational_params}
+%	\matr{m} = (\matr{I} + \matr{F}^\intercal \matr{\Psi}^{-1} \matr{F})^{-1} \matr{F}^\intercal \matr{\Psi}^{-1} \matr{d}
+%	\quad \text{and} \quad \matr{\Sigma} = (\matr{I} + \matr{F}^\intercal \matr{\Psi}^{-1} \matr{F})^{-1}.
+%\end{equation}
+%Hence, substituting $\E \big[ \matr{h}^\intercal \big] = \matr{m}^\intercal$ and $\E \big[ \matr{h} \matr{h}^\intercal \big] = \matr{\Sigma} + \matr{m} \matr{m}^\intercal$ into (\ref{eqn:derivatives_wrt_F}), 
+%\begin{equation}
+%	\nabla_{\matr{F}} \log p(\bgreek{\theta} | \matr{F}, \matr{\Psi}) 
+%	= \matr{\Psi}^{-1} \matr{d} \matr{m}^\intercal
+%	- \matr{\Psi}^{-1} \matr{F}  (\matr{\Sigma} + \matr{m} \matr{m}^\intercal).
+%\end{equation}
+%
+%Similarly, differentiating (\ref{eqn:log_fa_cond_dist}) with respect to $\matr{\Psi}$,
+%\begin{equation}
+%	\nabla_{\matr{\Psi}} \log p(\bgreek{\theta} | \matr{h}, \matr{F}, \matr{\Psi})
+%	= \frac{1}{2} \matr{\Psi}^{-1} (\matr{d} - \matr{Fh}) (\matr{d} - \matr{Fh})^\intercal \matr{\Psi}^{-1} - \frac{1}{2}\matr{\Psi}^{-1},
+%\end{equation}
+%which follows from the identities
+%\begin{equation}
+%	\nabla_\matr{X} (\matr{a}^\intercal \matr{X}^{-1} \matr{b}) = -\matr{X}^{-\intercal} \matr{a} \matr{b}^\intercal \matr{X}^{-\intercal} \quad \text{and} \quad
+%	\nabla_\matr{X} \log |\matr{X}| = \matr{X}^{-\intercal}
+%\end{equation}
+%and the fact that $\matr{\Psi}^{-\intercal} = \matr{\Psi}^{-1}$. Again, letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \bgreek{\theta}, \matr{F}, \matr{\Psi})}[\cdot]$,
+%\begin{align}
+%\begin{split}
+%	2 \cdot \nabla_{\matr{\Psi}} \log p(\bgreek{\theta} | \matr{F}, \matr{\Psi}) 
+%	& = \E \big[ \matr{\Psi}^{-1} (\matr{d} - \matr{Fh}) (\matr{d} - \matr{Fh})^\intercal \matr{\Psi}^{-1} - \matr{\Psi}^{-1} \big] \\
+%	& = \E \big[ \matr{\Psi}^{-1} (\matr{d} - \matr{Fh}) (\matr{d} - \matr{Fh})^\intercal \matr{\Psi}^{-1} \big]
+%	-  \E \big[ \matr{\Psi}^{-1} \big] \\
+%	& =  \E \big[ \matr{\Psi}^{-1} (\matr{d} \matr{d}^\intercal - \matr{d} \matr{h}^\intercal \matr{F}^\intercal - \matr{Fh} \matr{d}^\intercal + \matr{Fh} \matr{h}^\intercal \matr{F}^\intercal) \matr{\Psi}^{-1} \big]
+%	-  \matr{\Psi}^{-1}  \\
+%	& = \E \big[ \matr{\Psi}^{-1} \matr{d} \matr{d}^\intercal \matr{\Psi}^{-1} \big]
+%	-  \E \big[ \matr{\Psi}^{-1} \matr{d} \matr{h}^\intercal \matr{F}^\intercal \matr{\Psi}^{-1} \big] 
+%	- \E \big[ \matr{\Psi}^{-1} \matr{Fh} \matr{d}^\intercal \matr{\Psi}^{-1} \big] \\
+%        & \quad + \E \big[ \matr{\Psi}^{-1} \matr{Fh} \matr{h}^\intercal \matr{F}^\intercal \matr{\Psi}^{-1} \big]
+%        - \matr{\Psi}^{-1}  \\
+%        & = \matr{\Psi}^{-1} \matr{d} \matr{d}^\intercal \matr{\Psi}^{-1}
+%        - \matr{\Psi}^{-1} \matr{d} \E \big[  \matr{h}^\intercal  \big] \matr{F}^\intercal \matr{\Psi}^{-1}
+%        - \matr{\Psi}^{-1} \matr{F} \E \big[ \matr{h}  \big] \matr{d}^\intercal \matr{\Psi}^{-1} \\
+%        & \quad + \matr{\Psi}^{-1} \matr{F} \E \big[ \matr{h} \matr{h}^\intercal  \big] \matr{F}^\intercal \matr{\Psi}^{-1}
+%        - \matr{\Psi}^{-1} \\
+%        & = \matr{\Psi}^{-1} \matr{d} \matr{d}^\intercal \matr{\Psi}^{-1}
+%        - \matr{\Psi}^{-1} \matr{d} \matr{m}^\intercal \matr{F}^\intercal \matr{\Psi}^{-1}
+%        - \matr{\Psi}^{-1} \matr{F} \matr{m} \matr{d}^\intercal \matr{\Psi}^{-1} \\
+%        & \quad + \matr{\Psi}^{-1} \matr{F} (\matr{\Sigma} + \matr{m} \matr{m}^\intercal) \matr{F}^\intercal \matr{\Psi}^{-1}
+%        - \matr{\Psi}^{-1} \\
+%        & = \matr{\Psi}^{-1} \big(\matr{d} \matr{d}^\intercal - \matr{d} \matr{m}^\intercal \matr{F}^\intercal - \matr{F} \matr{m} \matr{d}^\intercal + \matr{F} (\matr{\Sigma} + \matr{m} \matr{m}^\intercal) \matr{F}^\intercal \big) \matr{\Psi}^{-1} - \matr{\Psi}^{-1}.
+%\end{split}
+%\end{align} 
+%
+%
+%
+%\section{Online EM for FA}\label{appendix:online_em}
+%
+%The batch EM algorithm for FA in \cite{barber2007} can be adapted to an online version. The E-step of the batch algorithm sets the variational distribution $q(\matr{h} | \bgreek{\theta}_t, \matr{F}, \matr{\Psi}) \propto \mathcal{N}(\matr{m}_t, \matr{\Sigma})$ for each $\bgreek{\theta}_t$, where $\matr{m}_t$ and $\matr{\Sigma}$ are the parameters in (\ref{eqn:variational_params}) with $\matr{d}$ replaced by $\matr{d}_t = \bgreek{\theta}_t - \bgreek{\theta}_{\text{SWA}}$. This can be done separately for each $\bgreek{\theta}_t$ as it is sampled, using the current estimates of $\matr{F}$ and $\matr{\Psi}$. The only other detail is that $\bgreek{\theta}_{\text{SWA}}$, which is not available during training, must be replaced by the running average $\overline{\bgreek{\theta}}_t$.
+%
+%Modifying the M-step requires a bit more thought, as it involves summing over all $\bgreek{\theta}_t$. The M-step sets
+%\begin{equation}
+%	\matr{F} = \matr{A}\matr{H}^{-1},
+%\end{equation}
+%where
+%\begin{equation}\label{eqn:em_A_and_H_update}
+%	\matr{A} = \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{m}_t^\intercal \quad \text{and} \quad 
+%	\matr{H} = \matr{\Sigma} + \frac{1}{T} \sum_{t=1}^T \matr{m}_t \matr{m}_t^\intercal,
+%\end{equation}
+%and
+%\begin{equation}\label{eqn:em_Psi_update}
+%	\matr{\Psi} = \text{diag}\Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{d}_t^\intercal - 2\matr{FA}^\intercal + \matr{FHF}^\intercal \Bigg).
+%\end{equation}
+%Batch EM iterates the E and M-steps above until $\matr{F}$ and $\matr{\Psi}$ coverge. On each iteration of the M-step, all components of the sums in (\ref{eqn:em_A_and_H_update}) and (\ref{eqn:em_Psi_update}) are updated. Clearly, this is not possible in an online algorithm which only holds a single $\bgreek{\theta}_t$ in memory at any one time. A compromise is to update the sums incrementally on epoch $t$, with $\matr{d}_t$ and $\matr{m}_t$ derived from $\bgreek{\theta}_t$ and $\overline{\bgreek{\theta}}_t$, and then fix these components of the sums for the remainder of the algorithm. This is the approach that will be adopted in the project. 
+%
+
+
+
+
+\end{document}
+
