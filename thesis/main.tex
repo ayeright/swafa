@@ -138,11 +138,17 @@ Having set the bias term, an EM or SVD algorithm can find the maximum likelihood
 
 \section{Online Gradient Algorithm for Factor Analysis}\label{sec:gradient_fa}
 
-In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case the log-likelihood of the parameters $\matr{F}$ and $\Psi$ is 
+In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ is 
 \begin{equation}
 	L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \log p(\theta_t | \matr{F}, \Psi).
 \end{equation}
-By adapting the gradient derivation for general latent variable model in \cite{barber2007} to FA, 
+The partial derivatives of the log-likelihood with respect to $\matr{F}$ and $\Psi$ are therefore
+\begin{equation}
+	\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi).
+\end{equation}
+Computing $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$ in full would require a pass over all observations, $\theta_1, \dots, \theta_T$. However, a stochastic gradient algorithm can be used instead, as long as the expectation of the sample derivatives is proportional to $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$. By using sample derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ for $t=1,\dots,T$, this condition clearly holds. Hence, as long as the partial derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ can be computed efficiently, they can be used in conjunction with SGD or any of its variants to optimise $\matr{F}$ and $\Psi$ online. After each $\theta_t$ is sampled and used to perform a gradient step, it can immediately be discarded. 
+
+By adapting the argument for general latent variable models in \cite{barber2007} to FA, the required sample derivatives can be written as
 \begin{align}\label{eqn:grad_log_likelihood}
 \begin{split}
 	\nabla_{\matr{F}, \Psi} \log p(\theta | \matr{F}, \Psi) 
@@ -155,7 +161,7 @@ By adapting the gradient derivation for general latent variable model in \cite{b
 	& = \E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta, \matr{h} | \matr{F}, \Psi) \big].
 \end{split}
 \end{align}
-Now, using the fact that $\matr{h} \sim \mathcal{N}(\matr{0}, \matr{I})$ is independent from $\matr{F}$ and $\Psi$,
+This is as far as the derivation in \cite{barber2007} goes. However, given the form of the FA model, it is possible to manipulate the sample derivatives further. In particular, using the fact that $\matr{h} \sim \mathcal{N}(\matr{0}, \matr{I})$ is independent from $\matr{F}$ and $\Psi$,
 \begin{align}\label{eqn:grad_log_complete_likelihood}
 \begin{split}
 	\nabla_{\matr{F}, \Psi} \log p(\theta, \matr{h} | \matr{F}, \Psi)
@@ -166,11 +172,11 @@ Now, using the fact that $\matr{h} \sim \mathcal{N}(\matr{0}, \matr{I})$ is inde
 \end{split}
 \end{align}
 Substituting Equation (\ref{eqn:grad_log_complete_likelihood}) into Equation (\ref{eqn:grad_log_likelihood}),
-\begin{equation}
+\begin{equation}\label{eqn:simplified_grad_log_likelihood}
 	\nabla_{\matr{F}, \Psi} \log p(\theta | \matr{F}, \Psi)
 	= \E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta | \matr{h}, \matr{F}, \Psi) \big].
 \end{equation}
-Note that $p(\theta | \matr{h}, \matr{F}, \Psi)$ is just the Gaussian distribution in Equation (\ref{eqn:fa_cond_dist}) for the given values of $\matr{F}$ and $\Psi$. Hence, substituting $\matr{c} = \theta_{\text{SWA}}$ into this Gaussian and applying the logarithm,
+Note that $p(\theta | \matr{h}, \matr{F}, \Psi)$ is just the Gaussian distribution in Equation (\ref{eqn:fa_cond_dist}) for the given values of $\matr{F}$ and $\Psi$. Hence, substituting $\matr{c} = \theta_{\text{SWA}}$ into Equation (\ref{eqn:fa_cond_dist}) and applying the logarithm,
 \begin{align}\label{eqn:log_fa_cond_dist}
 \begin{split}
 	\log p(\theta | \matr{h}, \matr{F}, \Psi)
@@ -178,16 +184,16 @@ Note that $p(\theta | \matr{h}, \matr{F}, \Psi)$ is just the Gaussian distributi
 	& = -\frac{1}{2} (\matr{d} - \matr{Fh})^\intercal \Psi^{-1} (\matr{d}- \matr{Fh}) - \frac{1}{2} \log |\Psi| - \frac{d}{2} \log 2\pi,
 \end{split}
 \end{align}
-where $\matr{d} = \theta - \theta_{\text{SWA}}$.
+where $\matr{d} = \theta - \theta_{\text{SWA}}$. This is convenient, since Equation (\ref{eqn:log_fa_cond_dist}) can be differentiated with respect to both $\matr{F}$ and $\Psi$. Of course, this requires access to $\theta_{\text{SWA}}$, which is not available during training. As a compromise, and following the approach in the SWAG covariance approximation, $\theta_{\text{SWA}}$ can be replaced by the running average of the neural network's parameter vectors.
 
-\subsection{Derivatives with respect to $\matr{F}$}
+\subsection{Partial derivatives with respect to $\matr{F}$}
 
 Differentiating Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\matr{F}$,
 \begin{equation}
 	\nabla_{\matr{F}} \log p(\theta | \matr{h}, \matr{F}, \Psi)
 	= \Psi^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal.
 \end{equation}
-It follows that $\nabla_{\matr{F}} \log p(\theta | \matr{F}, \Psi)$ is the expected value of $\Psi^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal$ over the distribution $p(\matr{h} | \theta, \matr{F}, \Psi)$. Letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$ to simplify the notation, 
+It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\nabla_{\matr{F}} \log p(\theta | \matr{F}, \Psi)$ is the expected value of $\Psi^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal$ over the distribution $p(\matr{h} | \theta, \matr{F}, \Psi)$. Letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$ to simplify the notation, 
 \begin{align}\label{eqn:derivatives_wrt_F}
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta | \matr{F}, \Psi) 
@@ -210,7 +216,7 @@ Hence, substituting $\E \big[ \matr{h}^\intercal \big] = \matr{m}^\intercal$ and
 	- \Psi^{-1} \matr{F}  (\Sigma + \matr{m} \matr{m}^\intercal).
 \end{equation}
 
-\subsection{Derivatives with respect to $\Psi$}
+\subsection{Partial derivatives with respect to $\Psi$}
 
 In order to differentiate Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$, it helps to use the fact that $\Psi$ is a diagonal matrix. First consider $\matr{X}^{-1} = \diag(\frac{1}{x_1}, \dots, \frac{1}{x_d})$ and $\matr{a} = (a_1, \dots, a_d)^\intercal$. Then 
 \begin{equation}\label{eqn:aXa}
@@ -221,14 +227,16 @@ and so
 	\frac{\partial}{\partial x_i} \matr{a}^\intercal \matr{X}^{-1} \matr{a} = \frac{-a_i^2}{x_i^2}
 \end{equation}
 for $i=1, \dots, d$. Since the partial derivatives of Equation (\ref{eqn:aXa}) with respect to the off-diagonal entries of $\matr{X}$ are zero, 
-\begin{equation}
+\begin{align}\label{eqn:derivatives_diag_qaud_form}
+\begin{split}
 	\nabla_\matr{X} (\matr{a}^\intercal \matr{X}^{-1} \matr{a}) 
-	= \diag\Big({\frac{-a_1^2}{x_1^2}, \dots, \frac{-a_d^2}{x_d^2}}\Big)
-	= -\diag\Big(\diag(\matr{X}^{-2}) \odot (\matr{a} \odot \matr{a})\Big),
-\end{equation}
+	& = \diag\Big({\frac{-a_1^2}{x_1^2}, \dots, \frac{-a_d^2}{x_d^2}}\Big) \\
+	& = -\diag\Big(\diag(\matr{X}^{-2}) \odot (\matr{a} \odot \matr{a})\Big),
+\end{split}
+\end{align} 
 where $\odot$ denotes the element-wise matrix product. Note that when applied to a $d$-length vector, $\diag(\cdot)$ represents the $d \times d$ diagonal matrix with the vector on its diagonal, and when applied to a $d \times d$ matrix, $\diag(\cdot)$ represents the $d$-length vector consisting of the diagonal entries of the matrix. 
 
-Setting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}- \matr{Fh}$, it follows that
+Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}- \matr{Fh}$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
 \begin{equation}\label{eqn:derivatives_wrt_Psi_1}
 	\nabla_\Psi (\matr{d} - \matr{Fh})^\intercal \Psi^{-1} (\matr{d}- \matr{Fh}) 
 	= -\diag\Big(\diag(\Psi^{-2}) \odot \big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big)\Big).
@@ -243,7 +251,7 @@ Hence, using Equation (\ref{eqn:derivatives_wrt_Psi_1}) and Equation (\ref{eqn:d
 	\nabla_{\Psi} \log p(\theta | \matr{h}, \matr{F}, \Psi)
 	= \frac{1}{2} \diag\Big(\diag(\Psi^{-2}) \odot \big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big)\Big) - \frac{1}{2}\Psi^{-1}.
 \end{equation}
-Again, letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$, it follows that
+Again, letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$, it follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that
 \begin{align}\label{eqn:expected_gradient}
 \begin{split}
 	2 \cdot \nabla_{\Psi} \log p(\theta | \matr{F}, \Psi) 
@@ -252,7 +260,7 @@ Again, letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{
 	& = \diag\Big(\diag(\Psi^{-2}) \odot \E \big[\big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big]\Big) - \Psi^{-1}.
 \end{split}
 \end{align} 
-The expectation inside Equation (\ref{eqn:expected_gradient}) is
+Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}),
 \begin{align}\label{eqn:expected_gradient_d_Fh}
 \begin{split}
 	\E \big[\big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big] 
