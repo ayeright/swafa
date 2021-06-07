@@ -121,7 +121,7 @@ FA is a latent variable model which generates observations $\theta \in \R^d$ as 
 \end{equation}
 In this context, an observation $\theta$ is the parameter vector of a neural network. 
 
-It follows that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$. Formally,
+It follows that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$ \cite{barber2007}. Formally,
 \begin{equation}\label{eqn:fa_cond_dist}
 	p(\theta | \matr{h}) 
 	= \mathcal{N}\Big( \matr{Fh} + \matr{c}, \Psi \Big)
@@ -134,9 +134,9 @@ where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, inte
 \end{equation}
 The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\theta_{\text{SWA}}$. 
 %By substituting $\matr{c} = \theta_{\text{SWA}}$ into $p(\theta)$, the distribution in (\ref{eqn:fa_dist}) is obtained. 
-Having set the bias term, an EM or SVD algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data with lots of observations. Two alternative online algorithms are presented in Section \ref{sec:gradient_fa} and \ref{sec:online_em}.
+Having set the bias term, an expectation maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data with lots of observations. Two alternative online algorithms are presented in Sections \ref{sec:gradient_fa} and \ref{sec:online_em}.
 
-\section{Online Gradient Algorithm for Factor Analysis}\label{sec:gradient_fa}
+\section{Online Stochastic Gradient Algorithm}\label{sec:gradient_fa}
 
 In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ is 
 \begin{equation}
@@ -176,7 +176,7 @@ Substituting Equation (\ref{eqn:grad_log_complete_likelihood}) into Equation (\r
 	\nabla_{\matr{F}, \Psi} \log p(\theta | \matr{F}, \Psi)
 	= \E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta | \matr{h}, \matr{F}, \Psi) \big].
 \end{equation}
-Note that $p(\theta | \matr{h}, \matr{F}, \Psi)$ is just the Gaussian distribution in Equation (\ref{eqn:fa_cond_dist}) for the given values of $\matr{F}$ and $\Psi$. Hence, substituting $\matr{c} = \theta_{\text{SWA}}$ into Equation (\ref{eqn:fa_cond_dist}) and applying the logarithm,
+Note that $p(\theta | \matr{h}, \matr{F}, \Psi)$ is just the Gaussian distribution in Equation (\ref{eqn:fa_cond_dist}), given $\matr{F}$ and $\Psi$. Hence, substituting $\matr{c} = \theta_{\text{SWA}}$ into Equation (\ref{eqn:fa_cond_dist}) and applying the logarithm,
 \begin{align}\label{eqn:log_fa_cond_dist}
 \begin{split}
 	\log p(\theta | \matr{h}, \matr{F}, \Psi)
@@ -184,11 +184,15 @@ Note that $p(\theta | \matr{h}, \matr{F}, \Psi)$ is just the Gaussian distributi
 	& = -\frac{1}{2} (\matr{d} - \matr{Fh})^\intercal \Psi^{-1} (\matr{d}- \matr{Fh}) - \frac{1}{2} \log |\Psi| - \frac{d}{2} \log 2\pi,
 \end{split}
 \end{align}
-where $\matr{d} = \theta - \theta_{\text{SWA}}$. This is convenient, since Equation (\ref{eqn:log_fa_cond_dist}) can be differentiated with respect to both $\matr{F}$ and $\Psi$. Of course, this requires access to $\theta_{\text{SWA}}$, which is not available during training. As a compromise, and following the approach in the SWAG covariance approximation, $\theta_{\text{SWA}}$ can be replaced by the running average of the neural network's parameter vectors.
+where $\matr{d} = \theta - \theta_{\text{SWA}}$. This is convenient, since Equation (\ref{eqn:log_fa_cond_dist}) can be differentiated with respect to both $\matr{F}$ and $\Psi$. Of course, this requires access to $\theta_{\text{SWA}}$, which is not available during training. As a compromise - and following the approach of the SWAG covariance approximation - $\theta_{\text{SWA}}$ can be replaced by the running average of the neural network's parameter vectors.
 
 \subsection{Partial derivatives with respect to $\matr{F}$}
 
-Differentiating Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\matr{F}$,
+From \cite{petersen2012}, for any symmetric matrix $\matr{W}$,
+\begin{equation}
+	\nabla_{\matr{A}} (\matr{x} - \matr{As})^\intercal \matr{W} (\matr{x} - \matr{As}) = -2 \matr{W} (\matr{x} - \matr{As}) \matr{s}^\intercal.
+\end{equation}
+Hence, differentiating Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\matr{F}$ gives
 \begin{equation}
 	\nabla_{\matr{F}} \log p(\theta | \matr{h}, \matr{F}, \Psi)
 	= \Psi^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal.
@@ -209,7 +213,11 @@ From the E-step of the EM algorithm in \cite{barber2007}, $p(\matr{h} | \theta, 
 	\matr{m} = (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1} \matr{F}^\intercal \Psi^{-1} \matr{d}
 	\quad \text{and} \quad \Sigma = (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1}.
 \end{equation}
-Hence, substituting $\E \big[ \matr{h}^\intercal \big] = \matr{m}^\intercal$ and $\E \big[ \matr{h} \matr{h}^\intercal \big] = \Sigma + \matr{m} \matr{m}^\intercal$ into Equation (\ref{eqn:derivatives_wrt_F}), 
+Hence, using results from \cite{petersen2012}, 
+\begin{equation}\label{eqn:expected_value_h_hh}
+	\E \big[ \matr{h}^\intercal \big] = \matr{m}^\intercal \quad \text{and} \quad \E \big[ \matr{h} \matr{h}^\intercal \big] = \Sigma + \matr{m} \matr{m}^\intercal.
+\end{equation}
+Substituting Equation (\ref{eqn:expected_value_h_hh}) into Equation (\ref{eqn:derivatives_wrt_F}), 
 \begin{equation}
 	\nabla_{\matr{F}} \log p(\theta | \matr{F}, \Psi) 
 	= \Psi^{-1} \matr{d} \matr{m}^\intercal
@@ -241,7 +249,7 @@ Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}- \matr{Fh}$, into Equati
 	\nabla_\Psi (\matr{d} - \matr{Fh})^\intercal \Psi^{-1} (\matr{d}- \matr{Fh}) 
 	= -\diag\Big(\diag(\Psi^{-2}) \odot \big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big)\Big).
 \end{equation}
-Also, using the identity $\nabla_\matr{X} \log |\matr{X}| = \matr{X}^{-\intercal}$ and the fact that $\Psi^{-\intercal} = \Psi^{-1}$, 
+Also, using the identity $\nabla_\matr{X} \log |\matr{X}| = \matr{X}^{-\intercal}$ from \cite{petersen2012} and the fact that $\Psi^{-\intercal} = \Psi^{-1}$, 
 \begin{equation}\label{eqn:derivatives_wrt_Psi_2}
 	\nabla_\Psi \log |\Psi|
 	= \Psi^{-1}.
@@ -260,13 +268,13 @@ Again, letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{
 	& = \diag\Big(\diag(\Psi^{-2}) \odot \E \big[\big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big]\Big) - \Psi^{-1}.
 \end{split}
 \end{align} 
-Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}),
+Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}) and using Equation (\ref{eqn:expected_value_h_hh}),
 \begin{align}\label{eqn:expected_gradient_d_Fh}
 \begin{split}
 	\E \big[\big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big] 
 	& = \E \big[\matr{d} \odot \matr{d} \big] - 2\E \big[ \matr{d} \odot \matr{Fh} \big] + \E \big[ \matr{Fh} \odot \matr{Fh} \big] \\
-	& = \matr{d} \odot \matr{d} - 2\matr{d} \odot \matr{F} \E \big[ \matr{h} \big] + \E \big[ \diag(\matr{Fhh^\intercal F}) \big] \\
-	& = \matr{d} \odot \matr{d} - 2\matr{d} \odot \matr{F} \matr{m} + \diag\big(\E \big[ \matr{Fhh^\intercal F} \big]\big) \\
+	& = \matr{d} \odot \matr{d} - 2\matr{d} \odot \matr{F} \E \big[ \matr{h} \big] + \E \big[ \diag(\matr{Fhh^\intercal F^\intercal}) \big] \\
+	& = \matr{d} \odot \matr{d} - 2\matr{d} \odot \matr{F} \matr{m} + \diag\big(\E \big[ \matr{Fhh^\intercal F^\intercal} \big]\big) \\
 	& = \matr{d} \odot \matr{d} - 2\matr{d} \odot \matr{F} \matr{m} + \diag\big( \matr{F} \E \big[ \matr{hh^\intercal} \big] \matr{F}^\intercal \big) \\
 	& = \matr{d} \odot \matr{d} - 2\matr{d} \odot \matr{F} \matr{m} + \diag\big( \matr{F} (\Sigma + \matr{m} \matr{m}^\intercal) \matr{F}^\intercal \big) \\
 	& = \matr{d} \odot \matr{d} - 2\matr{d} \odot \matr{F} \matr{m} + \text{sum}\big(\matr{F} (\Sigma + \matr{m} \matr{m}^\intercal) \odot \matr{F}, \text{ dim} = 1\big),
@@ -283,7 +291,7 @@ where $\text{sum}(\cdot, \text{ dim} = 1)$ denotes the operation of summing alon
 \end{align} 
 
 
-\section{Online EM for Factor Analysis}\label{sec:online_em}
+\section{Online EM}\label{sec:online_em}
 
 The batch EM algorithm for FA in \cite{barber2007} can be adapted to an online version. The E-step of the batch algorithm sets the variational distribution $q(\matr{h} | \theta_t, \matr{F}, \Psi) \propto \mathcal{N}(\matr{m}_t, \Sigma)$ for each $\theta_t$, where $\matr{m}_t$ and $\Sigma$ are the parameters in Equation (\ref{eqn:variational_params}) with $\matr{d}$ replaced by $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$. This can be done separately for each $\theta_t$ as it is sampled, using the current estimates of $\matr{F}$ and $\Psi$. The only other detail is that $\theta_{\text{SWA}}$, which is not available during training, must be replaced by the running average $\overline{\theta}_t$.
 
