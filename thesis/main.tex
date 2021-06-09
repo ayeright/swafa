@@ -158,7 +158,7 @@ By adapting the argument for general latent variable models in \cite{barber2007}
 	& = \frac{1}{p(\theta | \matr{F}, \Psi)} \int_\matr{h} p(\theta, \matr{h} | \matr{F}, \Psi) \nabla_{\matr{F}, \Psi} \log p(\theta, \matr{h} | \matr{F}, \Psi) \\
 	& = \int_\matr{h} \frac{p(\theta, \matr{h} | \matr{F}, \Psi)}{p(\theta | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} \log p(\theta, \matr{h} | \matr{F}, \Psi) \\
 	& = \int_\matr{h} p(\matr{h} | \theta, \matr{F}, \Psi) \nabla_{\matr{F}, \Psi} \log p(\theta, \matr{h} | \matr{F}, \Psi) \\
-	& = \E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta, \matr{h} | \matr{F}, \Psi) \big].
+	& = \E_{p(\matr{h} | \theta, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta, \matr{h} | \matr{F}, \Psi) \big].
 \end{split}
 \end{align}
 This is as far as the derivation in \cite{barber2007} goes. However, given the form of the FA model, it is possible to manipulate the sample derivatives further. In particular, using the fact that $\matr{h} \sim \mathcal{N}(\matr{0}, \matr{I})$ is independent from $\matr{F}$ and $\Psi$,
@@ -174,7 +174,7 @@ This is as far as the derivation in \cite{barber2007} goes. However, given the f
 Substituting Equation (\ref{eqn:grad_log_complete_likelihood}) into Equation (\ref{eqn:grad_log_likelihood}),
 \begin{equation}\label{eqn:simplified_grad_log_likelihood}
 	\nabla_{\matr{F}, \Psi} \log p(\theta | \matr{F}, \Psi)
-	= \E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta | \matr{h}, \matr{F}, \Psi) \big].
+	= \E_{p(\matr{h} | \theta, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta | \matr{h}, \matr{F}, \Psi) \big].
 \end{equation}
 Note that $p(\theta | \matr{h}, \matr{F}, \Psi)$ is just the Gaussian distribution in Equation (\ref{eqn:fa_cond_dist}), given $\matr{F}$ and $\Psi$. Hence, substituting $\matr{c} = \theta_{\text{SWA}}$ into Equation (\ref{eqn:fa_cond_dist}) and applying the logarithm,
 \begin{align}\label{eqn:log_fa_cond_dist}
@@ -197,7 +197,7 @@ Hence, differentiating Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\m
 	\nabla_{\matr{F}} \log p(\theta | \matr{h}, \matr{F}, \Psi)
 	= \Psi^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal.
 \end{equation}
-It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\nabla_{\matr{F}} \log p(\theta | \matr{F}, \Psi)$ is the expected value of $\Psi^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal$ over the distribution $p(\matr{h} | \theta, \matr{F}, \Psi)$. Letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$ to simplify the notation, 
+It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\nabla_{\matr{F}} \log p(\theta | \matr{F}, \Psi)$ is the expected value of $\Psi^{-1} (\matr{d} - \matr{Fh}) \matr{h}^\intercal$ over the distribution $p(\matr{h} | \theta, \matr{F}, \Psi)$. Letting $\E[\cdot]$ denote $\E_{p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$ to simplify the notation, 
 \begin{align}\label{eqn:derivatives_wrt_F}
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta | \matr{F}, \Psi) 
@@ -259,7 +259,7 @@ Hence, using Equation (\ref{eqn:derivatives_wrt_Psi_1}) and Equation (\ref{eqn:d
 	\nabla_{\Psi} \log p(\theta | \matr{h}, \matr{F}, \Psi)
 	= \frac{1}{2} \diag\Big(\diag(\Psi^{-2}) \odot \big((\matr{d} - \matr{Fh}) \odot (\matr{d} - \matr{Fh})\big)\Big) - \frac{1}{2}\Psi^{-1}.
 \end{equation}
-Again, letting $\E[\cdot]$ denote $\E_{\matr{h} \sim p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$, it follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that
+Again, letting $\E[\cdot]$ denote $\E_{p(\matr{h} | \theta, \matr{F}, \Psi)}[\cdot]$, it follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that
 \begin{align}\label{eqn:expected_gradient}
 \begin{split}
 	2 \cdot \nabla_{\Psi} \log p(\theta | \matr{F}, \Psi) 
@@ -293,7 +293,28 @@ where $\text{sum}(\cdot, \text{ dim} = 1)$ denotes the operation of summing alon
 
 \section{Online EM}\label{sec:online_em}
 
-The batch EM algorithm for FA in \cite{barber2007} can be adapted to an online version. The E-step of the batch algorithm sets the variational distribution $q(\matr{h} | \theta_t, \matr{F}, \Psi) \propto \mathcal{N}(\matr{m}_t, \Sigma)$ for each $\theta_t$, where $\matr{m}_t$ and $\Sigma$ are the parameters in Equation (\ref{eqn:variational_params}) with $\matr{d}$ replaced by $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$. This can be done separately for each $\theta_t$ as it is sampled, using the current estimates of $\matr{F}$ and $\Psi$. The only other detail is that $\theta_{\text{SWA}}$, which is not available during training, must be replaced by the running average $\overline{\theta}_t$.
+The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
+\begin{equation}\label{eqn:EM_bound}
+	L(\matr{F}, \Psi) \geq 
+	- \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log q(\matr{h}_t | \theta_t)\big]
+	+ \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log p(\matr{h}_t, \theta_t | \matr{F}, \Psi)\big],
+\end{equation}
+where the first and second terms on the right-hand side are called the \emph{entropy} and \emph{energy}, respectively, and $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$, are known as the \emph{variational} distributions \cite{barber2007}. The EM algorithm optimises this lower bound on the log-likelihood with respect to $\matr{F}$, $\Psi$ and also $q(\matr{h}_t | \theta_t)$, hence the name ``variational distributions''. The idea is that, by pushing up the lower bound, the log-likelihood $L(\matr{F}, \Psi)$ will hopefully increase as well. In fact, it is guaranteed that each iteration of EM does not decrease $L(\matr{F}, \Psi)$, which again follows from the properties of the Kullback-Leibler divergence \cite{barber2007}.
+
+In the E-step, $\matr{F}$ and $\Psi$ are fixed and Equation (\ref{eqn:EM_bound}) is maximised with respect to $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$. It turns out that the optimal variational distributions are 
+\begin{equation}
+	q(\matr{h}_t | \theta_t) = p(\matr{h}_t | \theta_t, \matr{F}, \Psi)  \propto \mathcal{N}(\matr{m}_t, \Sigma), 
+\end{equation}
+where $\matr{m}_t$ and $\Sigma$ are obtained by replacing $\matr{d}$ with $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$ in Equation (\ref{eqn:variational_params}). 
+
+
+%The batch EM algorithm for FA in \cite{barber2007} can be adapted to an online version. The EM algorithm consists of iterating an E-step and an M-step until 
+
+\subsection{Online E-step}
+
+The E-step of the batch algorithm sets the variational distribution $q(\matr{h} | \theta_t, \matr{F}, \Psi) \propto \mathcal{N}(\matr{m}_t, \Sigma)$ for each $\theta_t$, where $\matr{m}_t$ and $\Sigma$ are the parameters in Equation (\ref{eqn:variational_params}) with $\matr{d}$ replaced by $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$. This can be done separately for each $\theta_t$ as it is sampled, using the current estimates of $\matr{F}$ and $\Psi$. The only other detail is that $\theta_{\text{SWA}}$, which is not available during training, must be replaced by the running average $\overline{\theta}_t$.
+
+\subsection{Online M-step}
 
 Modifying the M-step requires a bit more thought, as it involves summing over all $\theta_t$. The M-step sets
 \begin{equation}
