@@ -31,6 +31,11 @@
 \newcommand{\E}{\mathbb E}
 \newcommand{\diag}{\mathop{\mathrm{diag}}}
 
+% algorithms
+\usepackage{algorithm, algpseudocode}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
 \begin{document}
 \begin{preliminary}
 
@@ -218,10 +223,22 @@ Hence, using identities from \cite{petersen2012},
 	\E \big[ \matr{h}_t^\intercal \big] = \matr{m}_t^\intercal \quad \text{and} \quad \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] = \Sigma + \matr{m}_t \matr{m}_t^\intercal.
 \end{equation}
 Substituting Equation (\ref{eqn:expected_value_h_hh}) into Equation (\ref{eqn:derivatives_wrt_F}), 
-\begin{equation}
+\begin{equation}\label{eqn:derivatives_wrt_F}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
 	= \Psi^{-1} \matr{d}_t \matr{m}_t^\intercal
 	- \Psi^{-1} \matr{F}  (\Sigma + \matr{m}_t \matr{m}_t^\intercal).
+\end{equation}
+Note that, in practice, computing Equation (\ref{eqn:variational_params}) would be unfeasible for large $d$ as it involves multiplying by the $d\times d$ matrix $\Psi^{-1}$. However, using the fact that $\Psi^{-1}$ is a diagonal matrix,
+\begin{equation}
+	\matr{F}^\intercal \Psi^{-1} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal,
+\end{equation}
+where $\odot$ denotes the element-wise matrix product and the vector $\diag(\Psi^{-1})^\intercal$ is \emph{broadcast} with the rows of the matrix $\matr{F}^\intercal$. When applied to a $d$-length vector, $\diag(\cdot)$ represents the $d \times d$ diagonal matrix with the vector on its diagonal, and when applied to a $d \times d$ matrix, $\diag(\cdot)$ represents the $d$-length vector consisting of the diagonal entries of the matrix. Now, setting $\matr{A} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$, it follows that 
+\begin{equation}\label{eqn:efficient_sigma}
+	\Sigma = (\matr{I} + \matr{A} \matr{F})^{-1},
+\end{equation}
+and then
+\begin{equation}\label{eqn:efficient_m}
+	\matr{m}_t = \Sigma \matr{A} \matr{d}_t.
 \end{equation}
 
 \subsection{Partial derivatives with respect to $\Psi$}
@@ -241,9 +258,7 @@ for $i=1, \dots, d$. Since the partial derivatives of Equation (\ref{eqn:aXa}) w
 	& = \diag\Big({\frac{-a_1^2}{x_1^2}, \dots, \frac{-a_d^2}{x_d^2}}\Big) \\
 	& = -\diag\Big(\diag(\matr{X}^{-2}) \odot (\matr{a} \odot \matr{a})\Big),
 \end{split}
-\end{align} 
-where $\odot$ denotes the element-wise matrix product. Note that when applied to a $d$-length vector, $\diag(\cdot)$ represents the $d \times d$ diagonal matrix with the vector on its diagonal, and when applied to a $d \times d$ matrix, $\diag(\cdot)$ represents the $d$-length vector consisting of the diagonal entries of the matrix. 
-
+\end{align}  
 Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
 \begin{equation}\label{eqn:derivatives_wrt_Psi_1}
 	\nabla_\Psi (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) 
@@ -282,13 +297,40 @@ Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}) and
 \end{align} 
 where $\text{sum}(\cdot, \text{ dim} = 1)$ denotes the operation of summing along the rows of a matrix. Finally, substituting Equation (\ref{eqn:expected_gradient_d_Fh}) into Equation (\ref{eqn:expected_gradient}) and rearranging, 
 \begin{align}
-\begin{split}
+\begin{split}\label{eqn:derivatives_wrt_Psi}
 	\nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \frac{1}{2} \diag\Big(\diag(\Psi^{-2}) \odot \big(\matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \matr{m}_t \\
 	& \quad + \text{sum}\big(\matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \odot \matr{F}, \text{ dim} = 1\big) \Big)
 	 - \frac{1}{2} \Psi^{-1}.
 \end{split}
 \end{align} 
+Pseudo code for online stochastic gradient FA is given in Algorithm \ref{alg:gradient_fa}.
+
+\begin{algorithm}[!htbp] 
+	\caption{Online Stochastic Gradient Factor Analysis}
+	\label{alg:gradient_fa}
+	\begin{algorithmic}[1]
+		\Require{Observation dimension $d$, latent dimension $K$, learning rate $\alpha > 0$} 
+		\State Initialise $\matr{F} \in \R^{d \times K}, \Psi = \diag(x_1,\dots,x_d), \overline{\theta}_0 = \matr{0}^d$
+		\For {$t=1,\dots,T$}
+			\State Sample observation $\theta_t \in \R^d$
+			\State Update running average: 
+			$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
+			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
+			\State $\Psi^{-1} \leftarrow \diag\Big(\frac{1}{x_1}, \dots, \frac{1}{x_d}\Big)$ 
+			\State $\Psi^{-2} \leftarrow \diag\Big(\frac{1}{x_1^2}, \dots, \frac{1}{x_d^2}\Big)$
+			\State $\matr{A} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$
+			\State $\Sigma \leftarrow (\matr{I} + \matr{A} \matr{F})^{-1}$ (Equation (\ref{eqn:efficient_sigma}))
+			\State $\matr{m}_t \leftarrow \Sigma \matr{A} \matr{d}_t$ (Equation (\ref{eqn:efficient_m}))
+			\State Compute $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_F})
+			\State Compute $\nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_Psi})
+			\State $\matr{F} \leftarrow \matr{F} + \alpha \nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$
+			\State $\Psi \leftarrow \Psi + \alpha \nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi)$
+		\EndFor
+		\State $\theta_{\text{SWA}} = \overline{\theta}_t$
+		\State \Return $\theta_{\text{SWA}}, \matr{F}, \Psi$
+	\end{algorithmic}
+\end{algorithm}
 
 
 \section{Online EM}\label{sec:online_em}
