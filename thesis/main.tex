@@ -139,11 +139,13 @@ where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, inte
 \end{equation}
 The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\theta_{\text{SWA}}$. 
 %By substituting $\matr{c} = \theta_{\text{SWA}}$ into $p(\theta)$, the distribution in (\ref{eqn:fa_dist}) is obtained. 
-Having set the bias term, an expectation maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data with lots of observations. Two alternative online algorithms are presented in Sections \ref{sec:gradient_fa} and \ref{sec:online_em}.
+Having set the bias term, an expectation maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Sections \ref{sec:gradient_fa} and \ref{sec:online_em}.
 
-\section{Online Stochastic Gradient Algorithm}\label{sec:gradient_fa}
+\section{Online Stochastic Gradient Ascent}\label{sec:gradient_fa}
 
-In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ is 
+In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. 
+
+In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ given the observed data, $\theta_1,\dots,\theta_T$, is 
 \begin{equation}
 	L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \log p(\theta_t | \matr{F}, \Psi).
 \end{equation}
@@ -151,9 +153,10 @@ The partial derivatives of the log-likelihood with respect to $\matr{F}$ and $\P
 \begin{equation}
 	\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi).
 \end{equation}
-Computing $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$ in full would require a pass over all observations, $\theta_1, \dots, \theta_T$. However, a stochastic gradient algorithm can be used instead, as long as the expectation of the sample derivatives is proportional to $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$. By using sample derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ for $t=1,\dots,T$, this condition clearly holds. Hence, as long as the partial derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ can be computed efficiently, they can be used in conjunction with SGD or any of its variants to optimise $\matr{F}$ and $\Psi$ online. After each $\theta_t$ is sampled and used to perform a gradient step, it can immediately be discarded. 
+Computing $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$ in full would require a pass over all observations, $\theta_1, \dots, \theta_T$. However, a stochastic gradient algorithm can be used instead, as long as the expectation of the sample derivatives is proportional to $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$. By using $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$, $t=1,\dots,T$, as the sample derivatives, this condition clearly holds. Hence, as long as the partial derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ can be computed efficiently, they can be used in conjunction with SGD or any of its variants to optimise $\matr{F}$ and $\Psi$ online. 
+%After each $\theta_t$ is sampled and used to perform a gradient step, it can immediately be discarded. 
 
-By adapting the argument for general latent variable models in \cite{barber2007} to FA, the required sample derivatives can be written as
+By adapting an argument for general latent variable models in \cite{barber2007} to FA, the required sample derivatives can be written as
 \begin{align}\label{eqn:grad_log_likelihood}
 \begin{split}
 	\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi) 
@@ -203,7 +206,7 @@ Hence, differentiating Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\m
 	= \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal.
 \end{equation}
 It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ is the expected value of $\Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal$ over the distribution $p(\matr{h}_t | \theta_t, \matr{F}, \Psi)$. Letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}[\cdot]$ to simplify the notation, 
-\begin{align}\label{eqn:derivatives_wrt_F}
+\begin{align}\label{eqn:expected_derivatives_wrt_F}
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \E \big[ \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal \big] \\
@@ -213,7 +216,7 @@ It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\
 	- \Psi^{-1} \matr{F}  \E \big[ \matr{h}_t \matr{h}_t^\intercal \big].
 \end{split}
 \end{align} 
-From the E-step of the EM algorithm in \cite{barber2007}, $p(\matr{h}_t | \theta_t, \matr{F}, \Psi) \propto \mathcal{N}(\matr{m}_t, \Sigma)$, where
+From the E-step of the EM algorithm for FA in \cite{barber2007}, $p(\matr{h}_t | \theta_t, \matr{F}, \Psi) \propto \mathcal{N}(\matr{m}_t, \Sigma)$, where
 \begin{equation}\label{eqn:variational_params}
 	\matr{m}_t = (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1} \matr{F}^\intercal \Psi^{-1} \matr{d}_t
 	\quad \text{and} \quad \Sigma = (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1}.
@@ -222,28 +225,33 @@ Hence, using identities from \cite{petersen2012},
 \begin{equation}\label{eqn:expected_value_h_hh}
 	\E \big[ \matr{h}_t^\intercal \big] = \matr{m}_t^\intercal \quad \text{and} \quad \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] = \Sigma + \matr{m}_t \matr{m}_t^\intercal.
 \end{equation}
-Substituting Equation (\ref{eqn:expected_value_h_hh}) into Equation (\ref{eqn:derivatives_wrt_F}), 
-\begin{equation}\label{eqn:derivatives_wrt_F}
+Finally, substituting Equation (\ref{eqn:expected_value_h_hh}) into Equation (\ref{eqn:expected_derivatives_wrt_F}), 
+\begin{align}\label{eqn:derivatives_wrt_F}
+\begin{split}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
-	= \Psi^{-1} \matr{d}_t \matr{m}_t^\intercal
-	- \Psi^{-1} \matr{F}  (\Sigma + \matr{m}_t \matr{m}_t^\intercal).
-\end{equation}
+	& = \Psi^{-1} \matr{d}_t \matr{m}_t^\intercal
+	- \Psi^{-1} \matr{F}  (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \\
+	& = \diag\big(\Psi^{-1}\big) \odot \big(\matr{d}_t \matr{m}_t^\intercal  - \matr{F}  (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \big),
+\end{split}
+\end{align} 
+where $\odot$ denotes the element-wise matrix product (with broadcasting). When applied to a $d$-length vector, $\diag(\cdot)$ represents the $d \times d$ diagonal matrix with the vector on its diagonal, and when applied to a $d \times d$ matrix, $\diag(\cdot)$ represents the $d$-length vector consisting of the diagonal entries of the matrix.
+
 Note that, in practice, computing Equation (\ref{eqn:variational_params}) would be infeasible for high-dimensional $\theta_t \in \R^d$, as it involves multiplying by the $d\times d$ matrix $\Psi^{-1}$. However, using the fact that $\Psi^{-1}$ is a diagonal matrix,
 \begin{equation}
-	\matr{F}^\intercal \Psi^{-1} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal,
+	\matr{F}^\intercal \Psi^{-1} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal.
 \end{equation}
-where $\odot$ denotes the element-wise matrix product and the vector $\diag(\Psi^{-1})^\intercal$ is \emph{broadcast} with the rows of the matrix $\matr{F}^\intercal$. When applied to a $d$-length vector, $\diag(\cdot)$ represents the $d \times d$ diagonal matrix with the vector on its diagonal, and when applied to a $d \times d$ matrix, $\diag(\cdot)$ represents the $d$-length vector consisting of the diagonal entries of the matrix. Now, setting $\matr{A} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$, it follows that 
+Setting $\matr{C} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$, it follows that 
 \begin{equation}\label{eqn:efficient_sigma}
-	\Sigma = (\matr{I} + \matr{A} \matr{F})^{-1},
+	\Sigma = (\matr{I} + \matr{C} \matr{F})^{-1},
 \end{equation}
 and then
 \begin{equation}\label{eqn:efficient_m}
-	\matr{m}_t = \Sigma \matr{A} \matr{d}_t.
+	\matr{m}_t = \Sigma \matr{C} \matr{d}_t.
 \end{equation}
 
 \subsection{Partial derivatives with respect to $\Psi$}
 
-In order to differentiate Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$, it helps to use the fact that $\Psi$ is a diagonal matrix. First consider $\matr{X}^{-1} = \diag(\frac{1}{x_1}, \dots, \frac{1}{x_d})$ and $\matr{a} = (a_1, \dots, a_d)^\intercal$. Then 
+In order to differentiate Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$, it again helps to use the fact that $\Psi$ is diagonal. First consider $\matr{X}^{-1} = \diag(\frac{1}{x_1}, \dots, \frac{1}{x_d})$ and $\matr{a} = (a_1, \dots, a_d)^\intercal$. Then 
 \begin{equation}\label{eqn:aXa}
 	\matr{a}^\intercal \matr{X}^{-1} \matr{a} = \sum_{i=1}^d \frac{a_i^2}{x_i},
 \end{equation}
@@ -256,37 +264,37 @@ for $i=1, \dots, d$. Since the partial derivatives of Equation (\ref{eqn:aXa}) w
 \begin{split}
 	\nabla_\matr{X} (\matr{a}^\intercal \matr{X}^{-1} \matr{a}) 
 	& = \diag\Big({\frac{-a_1^2}{x_1^2}, \dots, \frac{-a_d^2}{x_d^2}}\Big) \\
-	& = -\diag\Big(\diag(\matr{X}^{-2}) \odot (\matr{a} \odot \matr{a})\Big),
+	& = -\diag\big(\diag(\matr{X}^{-2}) \odot \matr{a}^2\big),
 \end{split}
 \end{align}  
 Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
 \begin{equation}\label{eqn:derivatives_wrt_Psi_1}
 	\nabla_\Psi (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) 
-	= -\diag\Big(\diag(\Psi^{-2}) \odot \big((\matr{d}_t - \matr{Fh}_t) \odot (\matr{d}_t - \matr{Fh}_t)\big)\Big).
+	= -\diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big).
 \end{equation}
 Also, using the identity $\nabla_\matr{X} \log |\matr{X}| = \matr{X}^{-\intercal}$ from \cite{petersen2012} and the fact that $\Psi^{-\intercal} = \Psi^{-1}$, 
 \begin{equation}\label{eqn:derivatives_wrt_Psi_2}
 	\nabla_\Psi \log |\Psi|
 	= \Psi^{-1}.
 \end{equation}
-Hence, using Equation (\ref{eqn:derivatives_wrt_Psi_1}) and Equation (\ref{eqn:derivatives_wrt_Psi_2}), the partial derivatives of (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$ are
+Hence, the partial derivatives of Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$ are
 \begin{equation}
 	\nabla_{\Psi} \log p(\theta_t | \matr{h}_t, \matr{F}, \Psi)
-	= \frac{1}{2} \diag\Big(\diag(\Psi^{-2}) \odot \big((\matr{d}_t - \matr{Fh}) \odot (\matr{d}_t - \matr{Fh})\big)\Big) - \frac{1}{2}\Psi^{-1}.
+	= \frac{1}{2} \diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big) - \frac{1}{2}\Psi^{-1}.
 \end{equation}
 Again, letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}[\cdot]$, it follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that
 \begin{align}\label{eqn:expected_gradient}
 \begin{split}
 	2 \cdot \nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi) 
-	& = \E \Big[ \diag\Big(\diag(\Psi^{-2}) \odot \big((\matr{d}_t - \matr{Fh}_t) \odot (\matr{d}_t - \matr{Fh}_t)\big)\Big) - \Psi^{-1} \Big] \\
-	& = \diag\Big(\E \big[\diag(\Psi^{-2}) \odot \big((\matr{d}_t - \matr{Fh}_t) \odot (\matr{d}_t - \matr{Fh}_t)\big]\Big) - \E \big[ \Psi^{-1} \big] \\
-	& = \diag\Big(\diag(\Psi^{-2}) \odot \E \big[\big((\matr{d}_t - \matr{Fh}_t) \odot (\matr{d}_t - \matr{Fh}_t)\big]\Big) - \Psi^{-1}.
+	& = \E \Big[ \diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big) - \frac{1}{2}\Psi^{-1} \Big] \\
+	& = \diag\Big(\E \big[\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big]\Big) - \E \big[ \Psi^{-1} \big] \\
+	& = \diag\Big(\diag(\Psi^{-2}) \odot \E \big[(\matr{d}_t - \matr{Fh}_t)^2\big]\Big) - \Psi^{-1}.
 \end{split}
 \end{align} 
-Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}) and using Equation (\ref{eqn:expected_value_h_hh}),
+Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}) and substituting in the expressions from Equation (\ref{eqn:expected_value_h_hh}),
 \begin{align}\label{eqn:expected_gradient_d_Fh}
 \begin{split}
-	\E \big[\big((\matr{d}_t - \matr{Fh}) \odot (\matr{d}_t - \matr{Fh}_t)\big] 
+	\E \big[(\matr{d}_t - \matr{Fh}_t)^2\big] 
 	& = \E \big[\matr{d}_t \odot \matr{d}_t \big] - 2\E \big[ \matr{d}_t \odot \matr{Fh}_t \big] + \E \big[ \matr{Fh}_t \odot \matr{Fh}_t \big] \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \E \big[ \matr{h}_t \big] + \E \big[ \diag(\matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal) \big] \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \matr{m}_t + \diag\big(\E \big[ \matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal \big]\big) \\
@@ -312,23 +320,24 @@ Pseudo code for online stochastic gradient FA is given in Algorithm \ref{alg:gra
 	\label{alg:gradient_fa}
 	\begin{algorithmic}[1]
 		\Require{Observation dimension $d$, latent dimension $K$, learning rate $\alpha > 0$} 
-		\State Initialise $\matr{F} \in \R^{d \times K}, \Psi = \diag(x_1,\dots,x_d), \overline{\theta}_0 = \matr{0}^d$
+		\State Initialise $\matr{F} \in \R^{d \times K}$ and $\Psi = \diag(x_1,\dots,x_d)$ randomly, $\overline{\theta}_0 = \matr{0}^d$
 		\For {$t=1,\dots,T$}
 			\State Sample observation $\theta_t \in \R^d$
-			\State Update running average: 
-			$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
+			\State
+				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
 			\State $\Psi^{-1} \leftarrow \diag\Big(\frac{1}{x_1}, \dots, \frac{1}{x_d}\Big)$ 
 			\State $\Psi^{-2} \leftarrow \diag\Big(\frac{1}{x_1^2}, \dots, \frac{1}{x_d^2}\Big)$
-			\State $\matr{A} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$
-			\State $\Sigma \leftarrow (\matr{I} + \matr{A} \matr{F})^{-1}$ (Equation (\ref{eqn:efficient_sigma}))
-			\State $\matr{m}_t \leftarrow \Sigma \matr{A} \matr{d}_t$ (Equation (\ref{eqn:efficient_m}))
+			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$
+			\State $\Sigma \leftarrow (\matr{I} + \matr{C} \matr{F})^{-1}$ 
+			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
 			\State Compute $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_F})
-			\State Compute $\nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_Psi})
 			\State $\matr{F} \leftarrow \matr{F} + \alpha \nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$
+			\State Compute $\nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_Psi})
+				(using new $\matr{F}$)
 			\State $\Psi \leftarrow \Psi + \alpha \nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi)$
 		\EndFor
-		\State $\theta_{\text{SWA}} \leftarrow \overline{\theta}_t$
+		\State $\theta_{\text{SWA}} \leftarrow \overline{\theta}_T$
 		\State \Return $\theta_{\text{SWA}}, \matr{F}, \Psi$
 	\end{algorithmic}
 \end{algorithm}
@@ -350,7 +359,7 @@ In the batch E-step, $\matr{F}$ and $\Psi$ are fixed and Equation (\ref{eqn:EM_b
 \begin{equation}
 	q(\matr{h}_t | \theta_t) = p(\matr{h}_t | \theta_t, \matr{F}, \Psi)  \propto \mathcal{N}(\matr{m}_t, \Sigma), 
 \end{equation}
-where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:variational_params}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM all $q(\matr{h}_t | \theta_t)$ are update on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling the next observation. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ will be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it will be replaced by the running average of the neural network's parameter vectors, as in the online gradient-based FA algorithm from Section \ref{sec:gradient_fa}.
+where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:variational_params}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM all $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ will be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it will be replaced by the running average of the neural network's parameter vectors, as in the online gradient-based FA algorithm from Section \ref{sec:gradient_fa}.
 
 
 \subsection{M-step}
@@ -376,7 +385,7 @@ and
 		+ \text{sum} (\matr{F} \matr{H} \odot \matr{F} -2\matr{F} \odot \matr{A}, \text{ dim} = 1) \Bigg).
 \end{split}
 \end{align}
-Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on each iteration all components of the sums in Equation (\ref{eqn:em_A_and_H_update}) and Equation (\ref{eqn:em_Psi_update}) are updated. As in the E-step, updating all components is not possible in an online algorithm. Therefore, in the online version the sums will be updated incrementally on each iteration $t$, with $\matr{d}_t$ and $\matr{m}_t$ derived from $\theta_t$ and the current estimates of $\matr{F}$ and $\Psi$. Again, $\theta_{\text{SWA}}$ will be replaced by the running average of the neural network's parameter vectors when computing $\matr{d}_t$ and $\matr{m}_t$.
+Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on each iteration all components of the sums in Equation (\ref{eqn:em_A_and_H_update}) and Equation (\ref{eqn:em_Psi_update}) are updated. As in the E-step, updating all components is not possible in an online algorithm. Therefore, in the online version these sums will be updated incrementally on each iteration $t$, with $\matr{d}_t$ and $\matr{m}_t$ derived from $\theta_t$ and the current estimates of $\matr{F}$ and $\Psi$. Again, $\theta_{\text{SWA}}$ will be replaced by the running average of the neural network's parameter vectors when computing $\matr{d}_t$ and $\matr{m}_t$.
 
 Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 
@@ -385,27 +394,27 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 	\label{alg:online_em}
 	\begin{algorithmic}[1]
 		\Require{Observation dimension $d$, latent dimension $K$} 
-		\State Initialise $\overline{\theta}_0 = \matr{0}^d, \matr{A} = \matr{0}^{d \times K}, 
-			\matr{B} = \matr{0}^{K \times K}, \matr{d} = \matr{0}^d$
+		\State Initialise $\overline{\theta}_0 = \matr{0}^d, \overline{\matr{A}} = \matr{0}^{d \times K}, 
+			\overline{\matr{B}} = \matr{0}^{K \times K}, \overline{\matr{d}^2} = \matr{0}^d$
 		\For {$t=1,\dots,T$}
 			\State Sample observation $\theta_t \in \R^d$
-			\State Update running average: 
+			\State 
 				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
 			\State $\Psi^{-1} \leftarrow \diag\Big(\frac{1}{x_1}, \dots, \frac{1}{x_d}\Big)$ 
-			\State $\matr{A} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$
-			\State $\Sigma \leftarrow (\matr{I} + \matr{A} \matr{F})^{-1}$ (Equation (\ref{eqn:efficient_sigma}))
-			\State $\matr{m}_t \leftarrow \Sigma \matr{A} \matr{d}_t$ (Equation (\ref{eqn:efficient_m}))
-			\State $\matr{A} \leftarrow \matr{A} + \frac{1}{t} (\matr{d}_t \matr{m}_t^\intercal - \matr{A})$
-			\State $\matr{B} \leftarrow \matr{B} + \frac{1}{t} (\matr{m}_t \matr{m}_t^\intercal - \matr{B})$
-			\State $\matr{d} \leftarrow \matr{d} + \frac{1}{t} (\matr{d}_t^2 - \matr{d})$
-			\State $\matr{H} \leftarrow \Sigma + \matr{B}$
-			\State $\matr{F} \leftarrow \matr{A}\matr{H}^{-1}$
+			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$
+			\State $\Sigma \leftarrow (\matr{I} + \matr{C} \matr{F})^{-1}$ 
+			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
+			\State $\overline{\matr{A}} \leftarrow \overline{\matr{A}} + \frac{1}{t} (\matr{d}_t \matr{m}_t^\intercal - \overline{\matr{A}})$
+			\State $\overline{\matr{B}} \leftarrow \overline{\matr{B}}+ \frac{1}{t} (\matr{m}_t \matr{m}_t^\intercal - \overline{\matr{B}})$
+			\State $\overline{\matr{d}^2} \leftarrow \overline{\matr{d}^2} + \frac{1}{t} (\matr{d}_t^2 - \overline{\matr{d}^2})$
+			\State $\matr{H} \leftarrow \Sigma + \overline{\matr{B}}$
+			\State $\matr{F} \leftarrow \overline{\matr{A}}\matr{H}^{-1}$
 			\State $\Psi \leftarrow 
-				\diag \big( \matr{d}
-				+ \text{sum} (\matr{F} \matr{H} \odot \matr{F} -2\matr{F} \odot \matr{A}, \text{ dim} = 1) \big)$ 
+				\diag \Big( \overline{\matr{d}^2}
+				+ \text{sum} \big(\matr{F} \matr{H} \odot \matr{F} -2\matr{F} \odot \overline{\matr{A}}, \text{ dim} = 1\big) \Big)$ 
 		\EndFor
-		\State $\theta_{\text{SWA}} \leftarrow \overline{\theta}_t$
+		\State $\theta_{\text{SWA}} \leftarrow \overline{\theta}_T$
 		\State \Return $\theta_{\text{SWA}}, \matr{F}, \Psi$
 	\end{algorithmic}
 \end{algorithm}
