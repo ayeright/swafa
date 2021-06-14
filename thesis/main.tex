@@ -326,9 +326,7 @@ Pseudo code for online stochastic gradient FA is given in Algorithm \ref{alg:gra
 			\State
 				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
-			\State $\Psi^{-1} \leftarrow \diag\Big(\frac{1}{x_1}, \dots, \frac{1}{x_d}\Big)$ 
-			\State $\Psi^{-2} \leftarrow \diag\Big(\frac{1}{x_1^2}, \dots, \frac{1}{x_d^2}\Big)$
-			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$
+			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$ (with broadcasting)
 			\State $\Sigma \leftarrow (\matr{I} + \matr{C} \matr{F})^{-1}$ 
 			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
 			\State Compute $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_F})
@@ -394,6 +392,7 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 	\label{alg:online_em}
 	\begin{algorithmic}[1]
 		\Require{Observation dimension $d$, latent dimension $K$} 
+		\State Initialise $\matr{F} \in \R^{d \times K}$ and $\Psi = \diag(x_1,\dots,x_d)$ randomly
 		\State Initialise $\overline{\theta}_0 = \matr{0}^d, \overline{\matr{A}} = \matr{0}^{d \times K}, 
 			\overline{\matr{B}} = \matr{0}^{K \times K}, \overline{\matr{d}^2} = \matr{0}^d$
 		\For {$t=1,\dots,T$}
@@ -401,15 +400,14 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 			\State 
 				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
-			\State $\Psi^{-1} \leftarrow \diag\Big(\frac{1}{x_1}, \dots, \frac{1}{x_d}\Big)$ 
-			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$
+			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$ (with broadcasting)
 			\State $\Sigma \leftarrow (\matr{I} + \matr{C} \matr{F})^{-1}$ 
 			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
-			\State $\overline{\matr{A}} \leftarrow \overline{\matr{A}} + \frac{1}{t} (\matr{d}_t \matr{m}_t^\intercal - \overline{\matr{A}})$
 			\State $\overline{\matr{B}} \leftarrow \overline{\matr{B}}+ \frac{1}{t} (\matr{m}_t \matr{m}_t^\intercal - \overline{\matr{B}})$
-			\State $\overline{\matr{d}^2} \leftarrow \overline{\matr{d}^2} + \frac{1}{t} (\matr{d}_t^2 - \overline{\matr{d}^2})$
 			\State $\matr{H} \leftarrow \Sigma + \overline{\matr{B}}$
+			\State $\overline{\matr{A}} \leftarrow \overline{\matr{A}} + \frac{1}{t} (\matr{d}_t \matr{m}_t^\intercal - \overline{\matr{A}})$
 			\State $\matr{F} \leftarrow \overline{\matr{A}}\matr{H}^{-1}$
+			\State $\overline{\matr{d}^2} \leftarrow \overline{\matr{d}^2} + \frac{1}{t} (\matr{d}_t^2 - \overline{\matr{d}^2})$
 			\State $\Psi \leftarrow 
 				\diag \Big( \overline{\matr{d}^2}
 				+ \text{sum} \big(\matr{F} \matr{H} \odot \matr{F} -2\matr{F} \odot \overline{\matr{A}}, \text{ dim} = 1\big) \Big)$ 

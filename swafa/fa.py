@@ -94,13 +94,10 @@ class OnlineEMFA(OnlineFA):
 
     def update(self, theta: Tensor):
         diag_inv_psi, d, m, sigma = self.calc_starter_values(theta)
-        self.update_A_hat(d, m)
         H = self.calc_H(sigma, m)
+        self.update_A_hat(d, m)
         self.update_F(H)
         self.update_psi(d, H)
-
-    def update_A_hat(self, d: Tensor, m: Tensor):
-        self.A_hat = self.update_running_average(self.A_hat, d.mm(m.t()))
 
     def calc_H(self, sigma: Tensor, m: Tensor) -> Tensor:
         self.update_B_hat(m)
@@ -108,6 +105,9 @@ class OnlineEMFA(OnlineFA):
 
     def update_B_hat(self, m: Tensor):
         self.A_hat = self.update_running_average(self.A_hat, m.mm(m.t()))
+
+    def update_A_hat(self, d: Tensor, m: Tensor):
+        self.A_hat = self.update_running_average(self.A_hat, d.mm(m.t()))
 
     def update_F(self, H: Tensor):
         return self.A_hat.mm(torch.linalg.inv(H))
