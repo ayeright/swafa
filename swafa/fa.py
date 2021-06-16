@@ -4,58 +4,183 @@ import torch
 from torch import Tensor
 
 
-class OnlineFA(ABC):
+class OnlineFactorAnalysis(ABC):
+    """
+    An abstract class used as a base for learning factor analysis (FA) models [1] online.
+
+    Any concrete class which inherits from this class must implement the `update` method.
+
+    The variable names used in this class generally matches those used in [1].
+
+    Attributes:
+        observation_dim: The size of the observed variable space. An integer.
+        latent_dim: The size of the latent variable space. An integer.
+        c: The mean of the observed variables. A Tensor of shape (observation_dim, 1).
+        F: The factor loading matrix. A Tensor of shape (observation_dim, latent_dim).
+        diag_psi: The diagonal entries of the Gaussian noise covariance matrix, usually referred to as `Psi`. A Tensor
+            of shape (observation_dim, 1).
+        t: The current time step, or equivalently, the number of observations seen. An integer which starts off as 0.
+
+    References:
+        [1] David Barber. Bayesian Reasoning and Machine Learning. Cambridge University Press, 2012.
+    """
 
     def __init__(self, observation_dim: int, latent_dim: int):
-        self.d = observation_dim
-        self.k = latent_dim
-        self.F = torch.randn(self.d, self.k)
-        self.diag_psi = torch.randn(self.d, 1)
-        self.theta_hat = torch.zeros(self.d, 1)
+        """
+        Initialise the mean of the observed variables, the factor loading matrix and the Gaussian noise covariance
+        matrix.
+
+        Args:
+            observation_dim: The size of the observed variable space.
+            latent_dim: The size of the latent variable space.
+        """
+        self.observation_dim = observation_dim
+        self.latent_dim = latent_dim
+        self.c = torch.zeros(observation_dim, 1)
+        self.F = torch.randn(observation_dim, latent_dim)
+        self.diag_psi = torch.randn(observation_dim, 1)
         self.t = 0
 
     def calc_starter_values(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
-        diag_inv_psi = self.invert_psi()
-        d = self.centre_theta(theta)
-        m, sigma = self.calc_variational_params(d, diag_inv_psi)
-        return diag_inv_psi, d, m, sigma
+        """
+        Given an observation, calculate values which are likely to be needed by all online FA algorithms.
 
-    def centre_theta(self, theta: Tensor) -> Tensor:
-        self.theta_hat = self.update_running_average(self.theta_hat, theta)
-        return theta - self.theta_hat
+        Also, increment the current time step and update the running mean of the observed variables.
 
-    def invert_psi(self) -> Tensor:
+        Args:
+            theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
+
+        Returns:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
+                (observation_dim, 1).
+            m: The mean of `p(h | theta, F, Psi)p(h)`. That is, the posterior distribution of the latent variables given
+                the observation and the current values of `F` and `Psi`. Of shape (latent_dim, 1).
+            sigma: The covariance of `p(h | theta, F, Psi)p(h)`. Of shape (latent_dim, latent_dim).
+        """
+        self.t += 1
+        theta = theta.reshape(-1, 1)
+        self._update_c(theta)
+        d = self._centre_observation(theta)
+        diag_inv_psi = self._invert_psi()
+        m, sigma = self._calc_variational_params(d, diag_inv_psi)
+        return d, diag_inv_psi, m, sigma
+
+    def _update_c(self, theta: Tensor):
+        """
+        Update the running average of the observed variables.
+
+        Args:
+            theta: A single observation. Of shape (observation_dim, 1).
+        """
+        self.c = self.update_running_average(self.c, theta)
+
+    def _centre_observation(self, theta: Tensor) -> Tensor:
+        """
+        Centre the observation by subtracting the mean of all observations.
+
+        Args:
+            theta: A single observation. Of shape (observation_dim, 1).
+
+        Returns:
+            The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+        """
+        return theta - self.c
+
+    def _invert_psi(self) -> Tensor:
+        """
+        Invert the diagonal Gaussian noise covariance matrix.
+
+        Returns:
+            The diagonal entries of the inverse of the noise covariance matrix. Of shape (observation_dim, 1).
+        """
         return 1 / self.diag_psi
 
-    def calc_variational_params(self, d: Tensor, diag_inv_psi: Tensor) -> (Tensor, Tensor):
+    def _calc_variational_params(self, d: Tensor, diag_inv_psi: Tensor) -> (Tensor, Tensor):
+        """
+        Calculate the mean and covariance of the optimal variational distribution given the centred observation.
+
+        The optimal variational distribution is `p(h | theta, F, Psi)p(h)`. That is, the posterior distribution of the
+        latent variables given the observation and the current values of `F` and `Psi`.
+
+        This distribution is Gaussian with mean `m` and covariance `sigma`, as given in [1].
+
+        Args:
+            d: The centred observation. Of shape (observation_dim, 1).
+            diag_inv_psi: The diagonal entries of the inverse of the noise covariance matrix. Of shape
+                (observation_dim, 1).
+
+        Returns:
+            m: The mean of the optimal variational distribution. Of shape (latent_dim, 1).
+            sigma: The covariance of the optimal variational distribution. Of shape (latent_dim, latent_dim).
+        """
         C = (self.F * diag_inv_psi).t()
-        sigma = self.calc_variational_sigma(C)
-        m = self.calc_variational_mean(sigma, C, d)
+        sigma = self._calc_variational_covariance(C)
+        m = self._calc_variational_mean(sigma, C, d)
         return m, sigma
 
-    def calc_variational_sigma(self, C: Tensor) -> Tensor:
-        return torch.linalg.inv(torch.eye(self.k) + C.mm(self.F))
+    def _calc_variational_covariance(self, C: Tensor) -> Tensor:
+        """
+        Calculate the covariance of the optimal variational distribution.
+
+        Args:
+            C: The transpose of `F` right-multiplied by the inverse of `Psi`. Of shape (latent_dim, observation_dim).
+
+        Returns:
+           The covariance of the optimal variational distribution. Of shape (latent_dim, latent_dim).
+        """
+        I = torch.eye(self.latent_dim)
+        return torch.linalg.inv(I + C.mm(self.F))
 
     @staticmethod
-    def calc_variational_mean(sigma: Tensor, C: Tensor, d: Tensor) -> Tensor:
+    def _calc_variational_mean(sigma: Tensor, C: Tensor, d: Tensor) -> Tensor:
+        """
+        Calculate the mean of the optimal variational distribution.
+
+        Args:
+            sigma: The covariance of the optimal variational distribution. Of shape (latent_dim, latent_dim).
+            C: The transpose of `F` right-multiplied by the inverse of `Psi`. Of shape (latent_dim, observation_dim).
+            d: The centred observation. Of shape (observation_dim, 1).
+
+        Returns:
+           The mean of the optimal variational distribution. Of shape (latent_dim, 1).
+        """
         return sigma.mm(C.mm(d))
 
-    def update_running_average(self, old_average: Tensor, new_obs: Tensor) -> Tensor:
-        return old_average + (new_obs - old_average) / self.t
+    def update_running_average(self, old_average: Tensor, new_observation: Tensor) -> Tensor:
+        """
+        Update the running average given a new observation.
+
+        Args:
+            old_average: The average up until the current time step.
+            new_observation: The observation to use to update the average.
+
+        Returns:
+            The updated running average.
+        """
+        return old_average + (new_observation - old_average) / self.t
 
     @abstractmethod
     def update(self, theta: Tensor):
+        """
+        Given a new observation, update the parameters of the FA model.
+
+        Args:
+            theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
+        """
         ...
 
 
-class OnlineGradientFA(OnlineFA):
+class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
 
     def __init__(self, observation_dim: int, latent_dim: int, learning_rate: float):
         super().__init__(observation_dim, latent_dim)
         self.alpha = learning_rate
 
     def update(self, theta: Tensor):
-        diag_inv_psi, d, m, sigma = self.calc_starter_values(theta)
+        d, diag_inv_psi, m, sigma = self.calc_starter_values(theta)
         F_times_sigma_plus_m_mt = self.calc_F_times_sigma_plus_m_mt(m, sigma)
         self.update_F(diag_inv_psi, d, m, F_times_sigma_plus_m_mt)
         self.update_psi(diag_inv_psi, d, m, F_times_sigma_plus_m_mt)
@@ -84,16 +209,16 @@ class OnlineGradientFA(OnlineFA):
         return x + self.alpha * gradient
 
 
-class OnlineEMFA(OnlineFA):
+class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
 
     def __init__(self, observation_dim: int, latent_dim: int):
         super().__init__(observation_dim, latent_dim)
-        self.A_hat = torch.zeros(self.d, self.k)
-        self.B_hat = torch.zeros(self.k, self.k)
-        self.d_squared_hat = torch.zeros(self.d, 1)
+        self.A_hat = torch.zeros(observation_dim, latent_dim)
+        self.B_hat = torch.zeros(latent_dim, latent_dim)
+        self.d_squared_hat = torch.zeros(observation_dim, 1)
 
     def update(self, theta: Tensor):
-        diag_inv_psi, d, m, sigma = self.calc_starter_values(theta)
+        d, diag_inv_psi, m, sigma = self.calc_starter_values(theta)
         H = self.calc_H(sigma, m)
         self.update_A_hat(d, m)
         self.update_F(H)
@@ -104,7 +229,7 @@ class OnlineEMFA(OnlineFA):
         return sigma + self.B_hat
 
     def update_B_hat(self, m: Tensor):
-        self.A_hat = self.update_running_average(self.A_hat, m.mm(m.t()))
+        self.B_hat = self.update_running_average(self.B_hat, m.mm(m.t()))
 
     def update_A_hat(self, d: Tensor, m: Tensor):
         self.A_hat = self.update_running_average(self.A_hat, d.mm(m.t()))
