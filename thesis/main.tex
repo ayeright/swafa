@@ -238,9 +238,9 @@ where $\odot$ denotes the element-wise matrix product (with broadcasting). When 
 
 Note that, in practice, computing Equation (\ref{eqn:variational_params}) would be infeasible for high-dimensional $\theta_t \in \R^d$, as it involves multiplying by the $d\times d$ matrix $\Psi^{-1}$. However, using the fact that $\Psi^{-1}$ is a diagonal matrix,
 \begin{equation}
-	\matr{F}^\intercal \Psi^{-1} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal.
+	\matr{F}^\intercal \Psi^{-1} = \big(\matr{F} \odot \diag(\Psi^{-1})\big)^\intercal.
 \end{equation}
-Setting $\matr{C} = \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$, it follows that 
+Setting $\matr{C} = \big(\matr{F} \odot \diag(\Psi^{-1})\big)^\intercal$, it follows that 
 \begin{equation}\label{eqn:efficient_sigma}
 	\Sigma = (\matr{I} + \matr{C} \matr{F})^{-1},
 \end{equation}
@@ -326,7 +326,7 @@ Pseudo code for online stochastic gradient FA is given in Algorithm \ref{alg:gra
 			\State
 				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
-			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$ (with broadcasting)
+			\State $\matr{C} \leftarrow \big(\matr{F} \odot \diag(\Psi^{-1})\big)^\intercal$ (with broadcasting)
 			\State $\Sigma \leftarrow (\matr{I} + \matr{C} \matr{F})^{-1}$ 
 			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
 			\State Compute $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_F})
@@ -400,7 +400,7 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 			\State 
 				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
-			\State $\matr{C} \leftarrow \matr{F}^\intercal \odot \diag(\Psi^{-1})^\intercal$ (with broadcasting)
+			\State $\matr{C} \leftarrow \big(\matr{F} \odot \diag(\Psi^{-1})\big)^\intercal$ (with broadcasting)
 			\State $\Sigma \leftarrow (\matr{I} + \matr{C} \matr{F})^{-1}$ 
 			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
 			\State $\overline{\matr{B}} \leftarrow \overline{\matr{B}}+ \frac{1}{t} (\matr{m}_t \matr{m}_t^\intercal - \overline{\matr{B}})$
