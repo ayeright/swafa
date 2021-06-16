@@ -41,11 +41,13 @@ class OnlineFactorAnalysis(ABC):
         self.diag_psi = torch.randn(observation_dim, 1)
         self.t = 0
 
-    def calc_starter_values(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
+    def update_commons(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
         """
-        Given an observation, calculate values which are likely to be needed by all online FA algorithms.
+        Given an observation, perform updates which are common to all online FA algorithms.
 
-        Also, increment the current time step and update the running mean of the observed variables.
+        That is, increment the current time step and update the running mean of the observed variables.
+
+        Also, calculate and return variables which are likely to be needed by all online FA algorithms.
 
         Args:
             theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
@@ -180,7 +182,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         self.alpha = learning_rate
 
     def update(self, theta: Tensor):
-        d, diag_inv_psi, m, sigma = self.calc_starter_values(theta)
+        d, diag_inv_psi, m, sigma = self.update_commons(theta)
         F_times_sigma_plus_m_mt = self.calc_F_times_sigma_plus_m_mt(m, sigma)
         self.update_F(diag_inv_psi, d, m, F_times_sigma_plus_m_mt)
         self.update_psi(diag_inv_psi, d, m, F_times_sigma_plus_m_mt)
@@ -218,7 +220,7 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         self.d_squared_hat = torch.zeros(observation_dim, 1)
 
     def update(self, theta: Tensor):
-        d, diag_inv_psi, m, sigma = self.calc_starter_values(theta)
+        d, diag_inv_psi, m, sigma = self.update_commons(theta)
         H = self.calc_H(sigma, m)
         self.update_A_hat(d, m)
         self.update_F(H)
