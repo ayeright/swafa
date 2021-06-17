@@ -10,7 +10,7 @@ class OnlineFactorAnalysis(ABC):
 
     Any concrete class which inherits from this class must implement the `update` method.
 
-    The variable names used in this class generally matches those used in [1].
+    The variable names used in this class generally match those used in [1].
 
     Attributes:
         observation_dim: The size of the observed variable space. An integer.
@@ -41,7 +41,7 @@ class OnlineFactorAnalysis(ABC):
         self.diag_psi = torch.randn(observation_dim, 1)
         self.t = 0
 
-    def update_commons(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
+    def _update_commons(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
         """
         Given an observation, perform updates which are common to all online FA algorithms.
 
@@ -66,7 +66,7 @@ class OnlineFactorAnalysis(ABC):
         self._update_c(theta)
         d = self._centre_observation(theta)
         diag_inv_psi = self._invert_psi()
-        m, sigma = self._calc_variational_params(d, diag_inv_psi)
+        m, sigma = self._calc_latent_posterior_params(d, diag_inv_psi)
         return d, diag_inv_psi, m, sigma
 
     def _update_c(self, theta: Tensor):
@@ -76,7 +76,7 @@ class OnlineFactorAnalysis(ABC):
         Args:
             theta: A single observation. Of shape (observation_dim, 1).
         """
-        self.c = self.update_running_average(self.c, theta)
+        self.c = self._update_running_average(self.c, theta)
 
     def _centre_observation(self, theta: Tensor) -> Tensor:
         """
@@ -100,14 +100,12 @@ class OnlineFactorAnalysis(ABC):
         """
         return 1 / self.diag_psi
 
-    def _calc_variational_params(self, d: Tensor, diag_inv_psi: Tensor) -> (Tensor, Tensor):
+    def _calc_latent_posterior_params(self, d: Tensor, diag_inv_psi: Tensor) -> (Tensor, Tensor):
         """
-        Calculate the mean and covariance of the optimal variational distribution given the centred observation.
+        Calculate the mean and covariance of the posterior distribution of the latent variables.
 
-        The optimal variational distribution is `p(h | theta, F, Psi)p(h)`. That is, the posterior distribution of the
-        latent variables given the observation and the current values of `F` and `Psi`.
-
-        This distribution is Gaussian with mean `m` and covariance `sigma`, as given in [1].
+        The distribution is `p(h | theta, F, Psi)p(h) = N(m, sigma)`, given the observation and the current values of
+        `F` and `Psi`.
 
         Args:
             d: The centred observation. Of shape (observation_dim, 1).
@@ -115,31 +113,34 @@ class OnlineFactorAnalysis(ABC):
                 (observation_dim, 1).
 
         Returns:
-            m: The mean of the optimal variational distribution. Of shape (latent_dim, 1).
-            sigma: The covariance of the optimal variational distribution. Of shape (latent_dim, latent_dim).
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            sigma: The covariance of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, latent_dim).
         """
         C = (self.F * diag_inv_psi).t()
-        sigma = self._calc_variational_covariance(C)
-        m = self._calc_variational_mean(sigma, C, d)
+        sigma = self._calc_latent_posterior_covariance(C)
+        m = self._calc_latent_posterior_mean(sigma, C, d)
         return m, sigma
 
-    def _calc_variational_covariance(self, C: Tensor) -> Tensor:
+    def _calc_latent_posterior_covariance(self, C: Tensor) -> Tensor:
         """
-        Calculate the covariance of the optimal variational distribution.
+        Calculate the covariance of the posterior distribution of the latent variables.
 
         Args:
             C: The transpose of `F` right-multiplied by the inverse of `Psi`. Of shape (latent_dim, observation_dim).
 
         Returns:
-           The covariance of the optimal variational distribution. Of shape (latent_dim, latent_dim).
+           The covariance of the posterior distribution of the latent variables given the observation. Of shape
+            (latent_dim, latent_dim).
         """
         I = torch.eye(self.latent_dim)
         return torch.linalg.inv(I + C.mm(self.F))
 
     @staticmethod
-    def _calc_variational_mean(sigma: Tensor, C: Tensor, d: Tensor) -> Tensor:
+    def _calc_latent_posterior_mean(sigma: Tensor, C: Tensor, d: Tensor) -> Tensor:
         """
-        Calculate the mean of the optimal variational distribution.
+        Calculate the mean of the posterior distribution of the latent variables.
 
         Args:
             sigma: The covariance of the optimal variational distribution. Of shape (latent_dim, latent_dim).
@@ -147,11 +148,12 @@ class OnlineFactorAnalysis(ABC):
             d: The centred observation. Of shape (observation_dim, 1).
 
         Returns:
-           The mean of the optimal variational distribution. Of shape (latent_dim, 1).
+           The mean of the posterior distribution of the latent variables given the observation. Of shape
+           (latent_dim, 1).
         """
         return sigma.mm(C.mm(d))
 
-    def update_running_average(self, old_average: Tensor, new_observation: Tensor) -> Tensor:
+    def _update_running_average(self, old_average: Tensor, new_observation: Tensor) -> Tensor:
         """
         Update the running average given a new observation.
 
@@ -176,38 +178,155 @@ class OnlineFactorAnalysis(ABC):
 
 
 class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
+    """
+    Implementation of online stochastic gradient factor analysis (FA) from [1].
+
+    The variable names used in this class generally match those used in [1].
+
+    Attributes:
+        observation_dim: The size of the observed variable space. An integer.
+        latent_dim: The size of the latent variable space. An integer.
+        c: The mean of the observed variables. A Tensor of shape (observation_dim, 1).
+        F: The factor loading matrix. A Tensor of shape (observation_dim, latent_dim).
+        diag_psi: The diagonal entries of the Gaussian noise covariance matrix, usually referred to as `Psi`. A Tensor
+            of shape (observation_dim, 1).
+        t: The current time step, or equivalently, the number of observations seen. An integer which starts off as 0.
+        alpha: The learning rate for gradient updates. A float.
+
+    References:
+        [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
+            2021.
+    """
 
     def __init__(self, observation_dim: int, latent_dim: int, learning_rate: float):
+        """
+        Initialise the parameters of the FA model.
+
+        Args:
+            observation_dim: The size of the observed variable space.
+            latent_dim: The size of the latent variable space.
+            learning_rate: The learning rate for gradient updates.
+        """
         super().__init__(observation_dim, latent_dim)
         self.alpha = learning_rate
 
     def update(self, theta: Tensor):
-        d, diag_inv_psi, m, sigma = self.update_commons(theta)
-        F_times_sigma_plus_m_mt = self.calc_F_times_sigma_plus_m_mt(m, sigma)
-        self.update_F(diag_inv_psi, d, m, F_times_sigma_plus_m_mt)
-        self.update_psi(diag_inv_psi, d, m, F_times_sigma_plus_m_mt)
+        """
+        Given a new observation, update the parameters of the FA model.
 
-    def update_F(self, diag_inv_psi: Tensor, d: Tensor, m: Tensor, sigma: Tensor):
-        gradient_wrt_F = self.calc_gradient_wrt_F(diag_inv_psi, d, m, sigma)
-        self.F = self.gradient_step(self.F, gradient_wrt_F)
+        Args:
+            theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
+        """
+        d, diag_inv_psi, m, sigma = self._update_commons(theta)
+        F_times_sigma_plus_m_mt = self._calc_F_times_sigma_plus_m_mt(m, sigma)
+        self._update_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self._update_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
 
-    def update_psi(self, diag_inv_psi: Tensor, d: Tensor, m: Tensor, sigma: Tensor):
-        diag_gradient_wrt_psi = self.calc_gradient_wrt_psi(diag_inv_psi, d, m, sigma)
-        self.diag_psi = self.gradient_step(self.diag_psi, diag_gradient_wrt_psi)
+    def _calc_F_times_sigma_plus_m_mt(self, m: Tensor, sigma: Tensor) -> Tensor:
+        """
+        Calculate `F(sigma + mm^T)`.
 
-    def calc_gradient_wrt_F(self, diag_inv_psi: Tensor, d: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
-                            ) -> Tensor:
-        return diag_inv_psi * (d.mm(m.t()) - F_times_sigma_plus_m_mt)
+        This quantity is used multiple times in the gradient calculations, so it is more efficient to compute it only
+        once.
 
-    def calc_gradient_wrt_psi(self, diag_inv_psi: Tensor, d: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
-                              ) -> Tensor:
-        E = d ** 2 - 2 * d * self.F.mm(m) + torch.sum(F_times_sigma_plus_m_mt * self.F, dim=1)
-        return ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
+        Args:
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            sigma: The covariance of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, latent_dim).
 
-    def calc_F_times_sigma_plus_m_mt(self, m: Tensor, sigma: Tensor) -> Tensor:
+        Returns:
+            `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+        """
         return self.F.mm(sigma + m.mm(m.t()))
 
-    def gradient_step(self, x: Tensor, gradient: Tensor):
+    def _update_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
+        """
+        Update the factor loading matrix.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
+                (observation_dim, 1).
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+        """
+        gradient_wrt_F = self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self.F = self._gradient_ascent_step(self.F, gradient_wrt_F)
+
+    def _update_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
+        """
+        Update the diagonal entries of the Gaussian noise covariance matrix.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
+                (observation_dim, 1).
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+        """
+        diag_gradient_wrt_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self.diag_psi = self._gradient_ascent_step(self.diag_psi, diag_gradient_wrt_psi)
+
+    def _calc_gradient_wrt_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
+                             ) -> Tensor:
+        """
+        Calculate the gradient of the log-likelihood wrt the factor loading matrix.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
+                (observation_dim, 1).
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+
+        Returns:
+            The gradient of the log-likelihood wrt the factor loading matrix. Of shape (observation_dim, latent_dim).
+        """
+        return diag_inv_psi * (d.mm(m.t()) - F_times_sigma_plus_m_mt)
+
+    def _calc_gradient_wrt_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
+                               ) -> Tensor:
+        """
+        Calculate the gradient of the log-likelihood wrt the diagonal entries of the Gaussian noise covariance matrix.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
+                (observation_dim, 1).
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+
+        Returns:
+            The gradient of the log-likelihood wrt the diagonal elements of the Gaussian noise covariance matrix. Of
+            shape (observation_dim, 1).
+        """
+        E = d ** 2 - \
+            2 * d * self.F.mm(m) + \
+            torch.sum(F_times_sigma_plus_m_mt * self.F, dim=1, keepdim=True)
+        return ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
+
+    def _gradient_ascent_step(self, x: Tensor, gradient: Tensor):
+        """
+        Update the input by taking a step in the direction of the positive gradient.
+
+        The size of the step is controlled by the learning rate.
+
+        Args:
+            x: The input to update using the gradient. Of arbitrary shape.
+            gradient: The gradient wrt x. Shape must be the same as x.
+
+        Returns:
+            The updated input.
+        """
         return x + self.alpha * gradient
 
 
@@ -220,7 +339,7 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         self.d_squared_hat = torch.zeros(observation_dim, 1)
 
     def update(self, theta: Tensor):
-        d, diag_inv_psi, m, sigma = self.update_commons(theta)
+        d, diag_inv_psi, m, sigma = self._update_commons(theta)
         H = self.calc_H(sigma, m)
         self.update_A_hat(d, m)
         self.update_F(H)
@@ -231,17 +350,18 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         return sigma + self.B_hat
 
     def update_B_hat(self, m: Tensor):
-        self.B_hat = self.update_running_average(self.B_hat, m.mm(m.t()))
+        self.B_hat = self._update_running_average(self.B_hat, m.mm(m.t()))
 
     def update_A_hat(self, d: Tensor, m: Tensor):
-        self.A_hat = self.update_running_average(self.A_hat, d.mm(m.t()))
+        self.A_hat = self._update_running_average(self.A_hat, d.mm(m.t()))
 
     def update_F(self, H: Tensor):
         return self.A_hat.mm(torch.linalg.inv(H))
 
     def update_psi(self, d: Tensor, H: Tensor):
         self.update_d_squared_hat(d)
-        self.diag_psi = self.d_squared_hat + torch.sum(self.F.mm(H) * self.F - 2 * self.F * self.A_hat, dim=1)
+        self.diag_psi = self.d_squared_hat + \
+            torch.sum(self.F.mm(H) * self.F - 2 * self.F * self.A_hat, dim=1, keepdim=True)
 
     def update_d_squared_hat(self, d: Tensor):
-        self.A_hat = self.update_running_average(self.A_hat, d ** 2)
+        self.A_hat = self._update_running_average(self.A_hat, d ** 2)
