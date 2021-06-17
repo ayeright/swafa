@@ -27,8 +27,8 @@ class OnlineFactorAnalysis(ABC):
 
     def __init__(self, observation_dim: int, latent_dim: int):
         """
-        Initialise the mean of the observed variables, the factor loading matrix and the Gaussian noise covariance
-        matrix.
+        Initialise the mean of the observed variables, the factor loading matrix, the Gaussian noise covariance
+        matrix and the time step counter.
 
         Args:
             observation_dim: The size of the observed variable space.
@@ -331,37 +331,123 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
 
 
 class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
+    """
+    Implementation of online expectation maximisation for factor analysis (FA) from [1].
+
+    The variable names used in this class generally match those used in [1].
+
+    Attributes:
+        observation_dim: The size of the observed variable space. An integer.
+        latent_dim: The size of the latent variable space. An integer.
+        c: The mean of the observed variables. A Tensor of shape (observation_dim, 1).
+        F: The factor loading matrix. A Tensor of shape (observation_dim, latent_dim).
+        diag_psi: The diagonal entries of the Gaussian noise covariance matrix, usually referred to as `Psi`. A Tensor
+            of shape (observation_dim, 1).
+        t: The current time step, or equivalently, the number of observations seen. An integer which starts off as 0.
+        A_hat: The running average of `dm^t`. A Tensor of shape (observation_dim, latent_dim).
+        B_hat: The running average of `mm^t`. A Tensor of shape (latent_dim, latent_dim).
+        d_squared_hat: The running average of `d^2`. A Tensor of shape (observation_dim, 1).
+
+    References:
+        [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
+            2021.
+    """
 
     def __init__(self, observation_dim: int, latent_dim: int):
+        """
+        Initialise the parameters of the FA model and the running averages.
+
+        Args:
+            observation_dim: The size of the observed variable space.
+            latent_dim: The size of the latent variable space.
+        """
         super().__init__(observation_dim, latent_dim)
         self.A_hat = torch.zeros(observation_dim, latent_dim)
         self.B_hat = torch.zeros(latent_dim, latent_dim)
         self.d_squared_hat = torch.zeros(observation_dim, 1)
 
     def update(self, theta: Tensor):
-        d, diag_inv_psi, m, sigma = self._update_commons(theta)
-        H = self.calc_H(sigma, m)
-        self.update_A_hat(d, m)
-        self.update_F(H)
-        self.update_psi(d, H)
+        """
+        Given a new observation, update the running averages and the parameters of the FA model.
 
-    def calc_H(self, sigma: Tensor, m: Tensor) -> Tensor:
-        self.update_B_hat(m)
+        Args:
+            theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
+        """
+        d, diag_inv_psi, m, sigma = self._update_commons(theta)
+        H = self._calc_H(m, sigma)
+        self._update_A_hat(d, m)
+        self._update_F(H)
+        self._update_psi(d, H)
+
+    def _calc_H(self, m: Tensor, sigma: Tensor) -> Tensor:
+        """
+        Calculate the sum of the latent posterior covariance matrix and the running average of `mm^t`.
+
+        Args:
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            sigma: The covariance of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, latent_dim).
+
+        Returns:
+            The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
+            (latent_dim, latent_dim).
+        """
+        self._update_B_hat(m)
         return sigma + self.B_hat
 
-    def update_B_hat(self, m: Tensor):
+    def _update_B_hat(self, m: Tensor):
+        """
+        Update the running average of `mm^t`.
+
+        Args:
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+        """
         self.B_hat = self._update_running_average(self.B_hat, m.mm(m.t()))
 
-    def update_A_hat(self, d: Tensor, m: Tensor):
+    def _update_A_hat(self, d: Tensor, m: Tensor):
+        """
+        Update the running average of `dm^t`.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+        """
         self.A_hat = self._update_running_average(self.A_hat, d.mm(m.t()))
 
-    def update_F(self, H: Tensor):
+    def _update_F(self, H: Tensor):
+        """
+        Update the factor loading matrix.
+
+        Args:
+            H: The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
+                (latent_dim, latent_dim).
+        """
         return self.A_hat.mm(torch.linalg.inv(H))
 
-    def update_psi(self, d: Tensor, H: Tensor):
-        self.update_d_squared_hat(d)
+    def _update_psi(self, d: Tensor, H: Tensor):
+        """
+        Update the diagonal entries of the Gaussian noise covariance matrix.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            H: The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
+                (latent_dim, latent_dim).
+        """
+        self._update_d_squared_hat(d)
         self.diag_psi = self.d_squared_hat + \
             torch.sum(self.F.mm(H) * self.F - 2 * self.F * self.A_hat, dim=1, keepdim=True)
 
-    def update_d_squared_hat(self, d: Tensor):
-        self.A_hat = self._update_running_average(self.A_hat, d ** 2)
+    def _update_d_squared_hat(self, d: Tensor):
+        """
+        Update the running average of `d^2`.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+        """
+        self.d_squared_hat = self._update_running_average(self.d_squared_hat, d ** 2)
