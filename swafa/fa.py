@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import torch
 from torch import Tensor
@@ -25,7 +26,7 @@ class OnlineFactorAnalysis(ABC):
         [1] David Barber. Bayesian Reasoning and Machine Learning. Cambridge University Press, 2012.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int):
+    def __init__(self, observation_dim: int, latent_dim: int, device: Optional[torch.device] = None):
         """
         Initialise the mean of the observed variables, the factor loading matrix, the Gaussian noise covariance
         matrix and the time step counter.
@@ -33,12 +34,14 @@ class OnlineFactorAnalysis(ABC):
         Args:
             observation_dim: The size of the observed variable space.
             latent_dim: The size of the latent variable space.
+            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
+                default tensor type.
         """
         self.observation_dim = observation_dim
         self.latent_dim = latent_dim
-        self.c = torch.zeros(observation_dim, 1)
-        self.F = torch.randn(observation_dim, latent_dim)
-        self.diag_psi = torch.randn(observation_dim, 1)
+        self.c = torch.zeros(observation_dim, 1, device=device)
+        self.F = torch.randn(observation_dim, latent_dim, device=device)
+        self.diag_psi = torch.randn(observation_dim, 1, device=device)
         self.t = 0
 
     def _update_commons(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
@@ -198,7 +201,8 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             2021.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int, learning_rate: float):
+    def __init__(self, observation_dim: int, latent_dim: int, learning_rate: float = 1e-3,
+                 device: Optional[torch.device] = None):
         """
         Initialise the parameters of the FA model.
 
@@ -206,8 +210,10 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             observation_dim: The size of the observed variable space.
             latent_dim: The size of the latent variable space.
             learning_rate: The learning rate for gradient updates.
+            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
+                default tensor type.
         """
-        super().__init__(observation_dim, latent_dim)
+        super().__init__(observation_dim, latent_dim, device=device)
         self.alpha = learning_rate
 
     def update(self, theta: Tensor):
@@ -353,18 +359,20 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
             2021.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int):
+    def __init__(self, observation_dim: int, latent_dim: int, device: Optional[torch.device] = None):
         """
         Initialise the parameters of the FA model and the running averages.
 
         Args:
             observation_dim: The size of the observed variable space.
             latent_dim: The size of the latent variable space.
+            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
+                default tensor type.
         """
-        super().__init__(observation_dim, latent_dim)
-        self.A_hat = torch.zeros(observation_dim, latent_dim)
-        self.B_hat = torch.zeros(latent_dim, latent_dim)
-        self.d_squared_hat = torch.zeros(observation_dim, 1)
+        super().__init__(observation_dim, latent_dim, device=device)
+        self.A_hat = torch.zeros(observation_dim, latent_dim, device=device)
+        self.B_hat = torch.zeros(latent_dim, latent_dim, device=device)
+        self.d_squared_hat = torch.zeros(observation_dim, 1, device=device)
 
     def update(self, theta: Tensor):
         """
