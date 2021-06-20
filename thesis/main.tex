@@ -267,7 +267,7 @@ for $i=1, \dots, d$. Since the partial derivatives of Equation (\ref{eqn:aXa}) w
 	& = -\diag\big(\diag(\matr{X}^{-2}) \odot \matr{a}^2\big),
 \end{split}
 \end{align}  
-Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
+where the square of a vector is applied element-wise. Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
 \begin{equation}\label{eqn:derivatives_wrt_Psi_1}
 	\nabla_\Psi (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) 
 	= -\diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big).
@@ -295,20 +295,20 @@ Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}) and
 \begin{align}\label{eqn:expected_gradient_d_Fh}
 \begin{split}
 	\E \big[(\matr{d}_t - \matr{Fh}_t)^2\big] 
-	& = \E \big[\matr{d}_t \odot \matr{d}_t \big] - 2\E \big[ \matr{d}_t \odot \matr{Fh}_t \big] + \E \big[ \matr{Fh}_t \odot \matr{Fh}_t \big] \\
-	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \E \big[ \matr{h}_t \big] + \E \big[ \diag(\matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal) \big] \\
-	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \matr{m}_t + \diag\big(\E \big[ \matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal \big]\big) \\
-	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \matr{m}_t + \diag\big( \matr{F} \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] \matr{F}^\intercal \big) \\
-	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \matr{m}_t + \diag\big( \matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \matr{F}^\intercal \big) \\
-	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \matr{m}_t + \text{sum}\big(\matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \odot \matr{F}, \text{ dim} = 1\big),
+	& = \E \big[\matr{d}_t \odot \matr{d}_t \big] - 2\E \big[ \matr{d}_t \odot (\matr{Fh}_t) \big] + \E \big[ (\matr{Fh}_t) \odot (\matr{Fh}_t) \big] \\
+	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \big(\matr{F} \E \big[ \matr{h}_t \big]\big) + \E \big[ \diag(\matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal) \big] \\
+	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big(\E \big[ \matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal \big]\big) \\
+	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big( \matr{F} \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] \matr{F}^\intercal \big) \\
+	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big( \matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \matr{F}^\intercal \big) \\
+	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t)  + \text{sum}\big((\matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal)) \odot \matr{F}, \text{ dim} = 1\big),
 \end{split}
 \end{align} 
 where $\text{sum}(\cdot, \text{ dim} = 1)$ denotes the operation of summing along the rows of a matrix. Finally, substituting Equation (\ref{eqn:expected_gradient_d_Fh}) into Equation (\ref{eqn:expected_gradient}) and rearranging, 
 \begin{align}
 \begin{split}\label{eqn:derivatives_wrt_Psi}
 	\nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi) 
-	& = \frac{1}{2} \diag\Big(\diag(\Psi^{-2}) \odot \big(\matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \matr{F} \matr{m}_t \\
-	& \quad + \text{sum}\big(\matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \odot \matr{F}, \text{ dim} = 1\big) \Big)
+	& = \frac{1}{2} \diag\Bigg(\diag(\Psi^{-2}) \odot \Big(\matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) \\
+	& \quad + \text{sum}\big((\matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal)) \odot \matr{F}, \text{ dim} = 1\big)\Big) \Bigg)
 	 - \frac{1}{2} \Psi^{-1}.
 \end{split}
 \end{align} 
@@ -377,10 +377,10 @@ and
 	\Psi 
 	& = \text{diag}\Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{d}_t^\intercal - 2\matr{FA}^\intercal + \matr{FHF}^\intercal \Bigg) \\
 	& = \diag \Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t^2
-		- 2 \cdot \text{sum} (\matr{F} \odot \matr{A}, \text{ dim} = 1)
-		+ \text{sum}(\matr{F} \matr{H} \odot \matr{F}, \text{ dim} = 1) \Bigg) \\
+		- 2 \cdot \text{sum} \big(\matr{F} \odot \matr{A}, \text{ dim} = 1\big)
+		+ \text{sum}\big((\matr{F} \matr{H}) \odot \matr{F}, \text{ dim} = 1\big) \Bigg) \\
 	& = \diag \Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t^2
-		+ \text{sum} (\matr{F} \matr{H} \odot \matr{F} -2\matr{F} \odot \matr{A}, \text{ dim} = 1) \Bigg).
+		+ \text{sum} \big((\matr{F} \matr{H}) \odot \matr{F} -2\matr{F} \odot \matr{A}, \text{ dim} = 1\big) \Bigg).
 \end{split}
 \end{align}
 Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on each iteration all components of the sums in Equation (\ref{eqn:em_A_and_H_update}) and Equation (\ref{eqn:em_Psi_update}) are updated. As in the E-step, updating all components is not possible in an online algorithm. Therefore, in the online version these sums will be updated incrementally on each iteration $t$, with $\matr{d}_t$ and $\matr{m}_t$ derived from $\theta_t$ and the current estimates of $\matr{F}$ and $\Psi$. Again, $\theta_{\text{SWA}}$ will be replaced by the running average of the neural network's parameter vectors when computing $\matr{d}_t$ and $\matr{m}_t$.
@@ -410,7 +410,7 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 			\State $\overline{\matr{d}^2} \leftarrow \overline{\matr{d}^2} + \frac{1}{t} (\matr{d}_t^2 - \overline{\matr{d}^2})$
 			\State $\Psi \leftarrow 
 				\diag \Big( \overline{\matr{d}^2}
-				+ \text{sum} \big(\matr{F} \matr{H} \odot \matr{F} -2\matr{F} \odot \overline{\matr{A}}, \text{ dim} = 1\big) \Big)$ 
+				+ \text{sum} \big((\matr{F} \matr{H}) \odot \matr{F} -2\matr{F} \odot \overline{\matr{A}}, \text{ dim} = 1\big) \Big)$ 
 		\EndFor
 		\State $\theta_{\text{SWA}} \leftarrow \overline{\theta}_T$
 		\State \Return $\theta_{\text{SWA}}, \matr{F}, \Psi$
