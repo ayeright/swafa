@@ -330,9 +330,8 @@ Pseudo code for online stochastic gradient FA is given in Algorithm \ref{alg:gra
 			\State $\Sigma \leftarrow (\matr{I} + \matr{C} \matr{F})^{-1}$ 
 			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
 			\State Compute $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_F})
-			\State $\matr{F} \leftarrow \matr{F} + \alpha \nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$
 			\State Compute $\nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi)$ according to Equation (\ref{eqn:derivatives_wrt_Psi})
-				(using new $\matr{F}$)
+			\State $\matr{F} \leftarrow \matr{F} + \alpha \nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$
 			\State $\Psi \leftarrow \Psi + \alpha \nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi)$
 		\EndFor
 		\State $\theta_{\text{SWA}} \leftarrow \overline{\theta}_T$

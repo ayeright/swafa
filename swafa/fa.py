@@ -225,8 +225,10 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         """
         d, diag_inv_psi, m, sigma = self._update_commons(theta)
         F_times_sigma_plus_m_mt = self._calc_F_times_sigma_plus_m_mt(m, sigma)
-        self._update_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self._update_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        gradient_wrt_F = self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        diag_gradient_wrt_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self.F = self._gradient_ascent_step(self.F, gradient_wrt_F)
+        self.diag_psi = self._gradient_ascent_step(self.diag_psi, diag_gradient_wrt_psi)
 
     def _calc_F_times_sigma_plus_m_mt(self, m: Tensor, sigma: Tensor) -> Tensor:
         """
@@ -245,38 +247,6 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
         """
         return self.F.mm(sigma + m.mm(m.t()))
-
-    def _update_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
-        """
-        Update the factor loading matrix.
-
-        Args:
-            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
-                (observation_dim, 1).
-            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
-                (observation_dim, 1).
-            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
-                (latent_dim, 1).
-            F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
-        """
-        gradient_wrt_F = self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self.F = self._gradient_ascent_step(self.F, gradient_wrt_F)
-
-    def _update_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
-        """
-        Update the diagonal entries of the Gaussian noise covariance matrix.
-
-        Args:
-            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
-                (observation_dim, 1).
-            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
-                (observation_dim, 1).
-            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
-                (latent_dim, 1).
-            F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
-        """
-        diag_gradient_wrt_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self.diag_psi = self._gradient_ascent_step(self.diag_psi, diag_gradient_wrt_psi)
 
     def _calc_gradient_wrt_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
                              ) -> Tensor:
