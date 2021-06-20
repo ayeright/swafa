@@ -373,12 +373,12 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
             theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
         """
         d, diag_inv_psi, m, sigma = self._update_commons(theta)
-        H = self._calc_H(m, sigma)
+        H_hat = self._calc_H_hat(m, sigma)
         self._update_A_hat(d, m)
-        self._update_F(H)
-        self._update_psi(d, H)
+        self._update_F(H_hat)
+        self._update_psi(d, H_hat)
 
-    def _calc_H(self, m: Tensor, sigma: Tensor) -> Tensor:
+    def _calc_H_hat(self, m: Tensor, sigma: Tensor) -> Tensor:
         """
         Calculate the sum of the latent posterior covariance matrix and the running average of `mm^t`.
 
@@ -417,29 +417,29 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         """
         self.A_hat = self._update_running_average(self.A_hat, d.mm(m.t()))
 
-    def _update_F(self, H: Tensor):
+    def _update_F(self, H_hat: Tensor):
         """
         Update the factor loading matrix.
 
         Args:
-            H: The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
+            H_hat: The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
                 (latent_dim, latent_dim).
         """
-        return self.A_hat.mm(torch.linalg.inv(H))
+        return self.A_hat.mm(torch.linalg.inv(H_hat))
 
-    def _update_psi(self, d: Tensor, H: Tensor):
+    def _update_psi(self, d: Tensor, H_hat: Tensor):
         """
         Update the diagonal entries of the Gaussian noise covariance matrix.
 
         Args:
             d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
                 (observation_dim, 1).
-            H: The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
+            H_hat: The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
                 (latent_dim, latent_dim).
         """
         self._update_d_squared_hat(d)
-        self.diag_psi = self.d_squared_hat + \
-            torch.sum(self.F.mm(H) * self.F - 2 * self.F * self.A_hat, dim=1, keepdim=True)
+        self.diag_psi = self.d_squared_hat \
+            + torch.sum(self.F.mm(H_hat) * self.F - 2 * self.F * self.A_hat, dim=1, keepdim=True)
 
     def _update_d_squared_hat(self, d: Tensor):
         """
