@@ -13,6 +13,12 @@ class OnlineFactorAnalysis(ABC):
 
     The variable names used in this class generally match those used in [1].
 
+    Args:
+        observation_dim: The size of the observed variable space.
+        latent_dim: The size of the latent variable space.
+        device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
+            tensor type.
+
     Attributes:
         observation_dim: The size of the observed variable space. An integer.
         latent_dim: The size of the latent variable space. An integer.
@@ -27,21 +33,11 @@ class OnlineFactorAnalysis(ABC):
     """
 
     def __init__(self, observation_dim: int, latent_dim: int, device: Optional[torch.device] = None):
-        """
-        Initialise the mean of the observed variables, the factor loading matrix, the Gaussian noise covariance
-        matrix and the time step counter.
-
-        Args:
-            observation_dim: The size of the observed variable space.
-            latent_dim: The size of the latent variable space.
-            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
-                default tensor type.
-        """
         self.observation_dim = observation_dim
         self.latent_dim = latent_dim
         self.c = torch.zeros(observation_dim, 1, device=device)
         self.F = torch.randn(observation_dim, latent_dim, device=device)
-        self.diag_psi = torch.randn(observation_dim, 1, device=device)
+        self.diag_psi = torch.ones(observation_dim, 1, device=device)
         self.t = 0
 
     def _update_commons(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
@@ -193,6 +189,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         F: The factor loading matrix. A Tensor of shape (observation_dim, latent_dim).
         diag_psi: The diagonal entries of the Gaussian noise covariance matrix, usually referred to as `Psi`. A Tensor
             of shape (observation_dim, 1).
+        log_diag_psi: The logarithm of diag_psi. A Tensor of shape (observation_dim, 1).
         t: The current time step, or equivalently, the number of observations seen. An integer which starts off as 0.
         alpha: The learning rate for gradient updates. A float.
 
@@ -214,6 +211,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
                 default tensor type.
         """
         super().__init__(observation_dim, latent_dim, device=device)
+        self.log_diag_psi = torch.log(self.diag_psi)
         self.alpha = learning_rate
 
     def update(self, theta: Tensor):
@@ -226,9 +224,10 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         d, diag_inv_psi, m, sigma = self._update_commons(theta)
         F_times_sigma_plus_m_mt = self._calc_F_times_sigma_plus_m_mt(m, sigma)
         gradient_wrt_F = self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        diag_gradient_wrt_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        gradient_wrt_log_diag_psi = self._calc_gradient_wrt_log_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
         self.F = self._gradient_ascent_step(self.F, gradient_wrt_F)
-        self.diag_psi = self._gradient_ascent_step(self.diag_psi, diag_gradient_wrt_psi)
+        self.log_diag_psi = self._gradient_ascent_step(self.log_diag_psi, gradient_wrt_log_diag_psi)
+        self.diag_psi = torch.exp(self.log_diag_psi)
 
     def _calc_F_times_sigma_plus_m_mt(self, m: Tensor, sigma: Tensor) -> Tensor:
         """
@@ -267,6 +266,28 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         """
         return diag_inv_psi * (d.mm(m.t()) - F_times_sigma_plus_m_mt)
 
+    def _calc_gradient_wrt_log_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
+                                   ) -> Tensor:
+        """
+        Calculate the gradient of the log-likelihood wrt the logarithm of the diagonal entries of the Gaussian noise
+        covariance matrix.
+
+        Args:
+            d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
+                (observation_dim, 1).
+            diag_inv_psi: The diagonal entries of the inverse of the Gaussian noise covariance matrix. Of shape
+                (observation_dim, 1).
+            m: The mean of the posterior distribution of the latent variables given the observation. Of shape
+                (latent_dim, 1).
+            F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+
+        Returns:
+            The gradient of the log-likelihood wrt the logarithm of the diagonal elements of the Gaussian noise
+            covariance matrix. Of shape (observation_dim, 1).
+        """
+        gradient_wrt_diag_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        return gradient_wrt_diag_psi * self.diag_psi
+
     def _calc_gradient_wrt_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
                                ) -> Tensor:
         """
@@ -285,9 +306,9 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             The gradient of the log-likelihood wrt the diagonal elements of the Gaussian noise covariance matrix. Of
             shape (observation_dim, 1).
         """
-        E = d ** 2 - \
-            2 * d * self.F.mm(m) + \
-            torch.sum(F_times_sigma_plus_m_mt * self.F, dim=1, keepdim=True)
+        E = d ** 2 \
+            - 2 * d * self.F.mm(m) \
+            + torch.sum(F_times_sigma_plus_m_mt * self.F, dim=1, keepdim=True)
         return ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
 
     def _gradient_ascent_step(self, x: Tensor, gradient: Tensor):
