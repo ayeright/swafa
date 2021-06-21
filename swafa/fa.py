@@ -3,6 +3,8 @@ from typing import Optional
 
 import torch
 from torch import Tensor
+from torch.autograd import Variable
+from torch.optim import Optimizer, Adam
 
 
 class OnlineFactorAnalysis(ABC):
@@ -210,6 +212,17 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
 
     The variable names used in this class generally match those used in [1].
 
+    Args:
+        observation_dim: The size of the observed variable space.
+        latent_dim: The size of the latent variable space.
+        optimiser: The class of the optimiser to use for gradient updates.
+        optimiser_kwargs: Keyword arguments for the optimiser.
+        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
+            factor loading matrix.
+        device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
+            tensor type.
+        random_seed: The random seed for reproducibility.
+
     Attributes:
         observation_dim: The size of the observed variable space. An integer.
         latent_dim: The size of the latent variable space. An integer.
@@ -219,28 +232,21 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             of shape (observation_dim, 1).
         log_diag_psi: The logarithm of diag_psi. A Tensor of shape (observation_dim, 1).
         t: The current time step, or equivalently, the number of observations seen. An integer which starts off as 0.
-        alpha: The learning rate for gradient updates. A float.
+        optimiser: The initialised optimiser which will perform the gradient updates.
 
     References:
         [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
             2021.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int, learning_rate: float = 1e-3,
-                 device: Optional[torch.device] = None):
-        """
-        Initialise the parameters of the FA model.
-
-        Args:
-            observation_dim: The size of the observed variable space.
-            latent_dim: The size of the latent variable space.
-            learning_rate: The learning rate for gradient updates.
-            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
-                default tensor type.
-        """
-        super().__init__(observation_dim, latent_dim, device=device)
+    def __init__(self, observation_dim: int, latent_dim: int, optimiser: Optimizer = Adam,
+                 optimiser_kwargs: Optional[dict] = None, init_factors_noise_std: float = 1e-3,
+                 device: Optional[torch.device] = None, random_seed: int = 0):
+        super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
+                         random_seed=random_seed)
+        optimiser_kwargs = optimiser_kwargs or {}
         self.log_diag_psi = torch.log(self.diag_psi)
-        self.alpha = learning_rate
+        self.optimiser = optimiser([self.F, self.log_diag_psi], **optimiser_kwargs)
 
     def update(self, theta: Tensor):
         """
@@ -251,10 +257,9 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         """
         d, diag_inv_psi, m, sigma = self._update_commons(theta)
         F_times_sigma_plus_m_mt = self._calc_F_times_sigma_plus_m_mt(m, sigma)
-        gradient_wrt_F = self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        gradient_wrt_log_diag_psi = self._calc_gradient_wrt_log_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self.F = self._gradient_ascent_step(self.F, gradient_wrt_F)
-        self.log_diag_psi = self._gradient_ascent_step(self.log_diag_psi, gradient_wrt_log_diag_psi)
+        self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self._calc_gradient_wrt_log_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self.optimiser.step()
         self.diag_psi = torch.exp(self.log_diag_psi)
 
     def _calc_F_times_sigma_plus_m_mt(self, m: Tensor, sigma: Tensor) -> Tensor:
@@ -275,10 +280,11 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         """
         return self.F.mm(sigma + m.mm(m.t()))
 
-    def _calc_gradient_wrt_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
-                             ) -> Tensor:
+    def _calc_gradient_wrt_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
         """
         Calculate the gradient of the log-likelihood wrt the factor loading matrix.
+
+        Store gradient in self.F.grad.
 
         Args:
             d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
@@ -288,18 +294,16 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             m: The mean of the posterior distribution of the latent variables given the observation. Of shape
                 (latent_dim, 1).
             F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
-
-        Returns:
-            The gradient of the log-likelihood wrt the factor loading matrix. Of shape (observation_dim, latent_dim).
         """
-        return diag_inv_psi * (d.mm(m.t()) - F_times_sigma_plus_m_mt)
+        self.F.grad = diag_inv_psi * (d.mm(m.t()) - F_times_sigma_plus_m_mt)
 
-    def _calc_gradient_wrt_log_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
-                                   ) -> Tensor:
+    def _calc_gradient_wrt_log_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
         """
         Calculate the gradient of the log-likelihood wrt the logarithm of the diagonal entries of the Gaussian noise
         covariance matrix.
 
+        Store gradient in self.log_diag_psi.grad.
+
         Args:
             d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
                 (observation_dim, 1).
@@ -308,13 +312,9 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             m: The mean of the posterior distribution of the latent variables given the observation. Of shape
                 (latent_dim, 1).
             F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
-
-        Returns:
-            The gradient of the log-likelihood wrt the logarithm of the diagonal elements of the Gaussian noise
-            covariance matrix. Of shape (observation_dim, 1).
         """
         gradient_wrt_diag_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        return gradient_wrt_diag_psi * self.diag_psi
+        self.log_diag_psi.grad = gradient_wrt_diag_psi * self.diag_psi
 
     def _calc_gradient_wrt_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
                                ) -> Tensor:
@@ -339,27 +339,21 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             + torch.sum(F_times_sigma_plus_m_mt * self.F, dim=1, keepdim=True)
         return ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
 
-    def _gradient_ascent_step(self, x: Tensor, gradient: Tensor):
-        """
-        Update the input by taking a step in the direction of the positive gradient.
-
-        The size of the step is controlled by the learning rate.
-
-        Args:
-            x: The input to update using the gradient. Of arbitrary shape.
-            gradient: The gradient wrt x. Shape must be the same as x.
-
-        Returns:
-            The updated input.
-        """
-        return x + self.alpha * gradient
-
 
 class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
     """
     Implementation of online expectation maximisation for factor analysis (FA) from [1].
 
     The variable names used in this class generally match those used in [1].
+
+    Args:
+        observation_dim: The size of the observed variable space.
+        latent_dim: The size of the latent variable space.
+        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
+            factor loading matrix.
+        device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
+            tensor type.
+        random_seed: The random seed for reproducibility.
 
     Attributes:
         observation_dim: The size of the observed variable space. An integer.
@@ -378,17 +372,10 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
             2021.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int, device: Optional[torch.device] = None):
-        """
-        Initialise the parameters of the FA model and the running averages.
-
-        Args:
-            observation_dim: The size of the observed variable space.
-            latent_dim: The size of the latent variable space.
-            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
-                default tensor type.
-        """
-        super().__init__(observation_dim, latent_dim, device=device)
+    def __init__(self, observation_dim: int, latent_dim: int, init_factors_noise_std: float = 1e-3,
+                 device: Optional[torch.device] = None, random_seed: int = 0):
+        super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
+                         random_seed=random_seed)
         self.A_hat = torch.zeros(observation_dim, latent_dim, device=device)
         self.B_hat = torch.zeros(latent_dim, latent_dim, device=device)
         self.d_squared_hat = torch.zeros(observation_dim, 1, device=device)
