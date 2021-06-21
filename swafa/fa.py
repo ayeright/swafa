@@ -13,11 +13,19 @@ class OnlineFactorAnalysis(ABC):
 
     The variable names used in this class generally match those used in [1].
 
+    Factor loading matrix `F` is initialised to be a matrix with 1s on the diagonal and zero mean Gaussian noise
+    everywhere else.
+
+    Diagonal covariance matrix `Psi` is initialised to be the identity matrix.
+
     Args:
         observation_dim: The size of the observed variable space.
         latent_dim: The size of the latent variable space.
+        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
+            factor loading matrix.
         device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
             tensor type.
+        random_seed: The random seed for reproducibility.
 
     Attributes:
         observation_dim: The size of the observed variable space. An integer.
@@ -32,13 +40,33 @@ class OnlineFactorAnalysis(ABC):
         [1] David Barber. Bayesian Reasoning and Machine Learning. Cambridge University Press, 2012.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int, device: Optional[torch.device] = None):
+    def __init__(self, observation_dim: int, latent_dim: int, init_factors_noise_std: float = 1e-3,
+                 device: Optional[torch.device] = None, random_seed: int = 0):
+        torch.manual_seed(random_seed)
         self.observation_dim = observation_dim
         self.latent_dim = latent_dim
         self.c = torch.zeros(observation_dim, 1, device=device)
-        self.F = torch.randn(observation_dim, latent_dim, device=device)
+        self.F = self._init_F(init_factors_noise_std, device)
         self.diag_psi = torch.ones(observation_dim, 1, device=device)
         self.t = 0
+
+    def _init_F(self, noise_std: float, device: Optional[torch.device] = None) -> Tensor:
+        """
+        Initialise the factor loading matrix.
+
+        Initialised to be a matrix with 1s on the diagonal and zero mean Gaussian noise everywhere else.
+
+        Args:
+            noise_std: The standard deviation of the noise in the off-diagonal entries.
+            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
+                default tensor type.
+
+        Returns:
+            The initial factor loading matrix. Of shape (observation_dim, latent_dim).
+        """
+        I = torch.eye(self.observation_dim, self.latent_dim, device=device)
+        off_diagonal_noise = torch.normal(0, noise_std, (self.observation_dim, self.latent_dim)).to(device)
+        return I + (1 - I) * off_diagonal_noise
 
     def _update_commons(self, theta: Tensor) -> (Tensor, Tensor, Tensor, Tensor):
         """
