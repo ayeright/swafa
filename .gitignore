@@ -10,3 +10,5 @@ venv
 *.bbl
 *.blg
 *.toc
+
+*__pycache__*

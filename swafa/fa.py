@@ -3,7 +3,6 @@ from typing import Optional
 
 import torch
 from torch import Tensor
-from torch.autograd import Variable
 from torch.optim import Optimizer, Adam
 
 
