@@ -258,7 +258,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         F_times_sigma_plus_m_mt = self._calc_F_times_sigma_plus_m_mt(m, sigma)
         self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
         self._calc_gradient_wrt_log_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self.optimiser.step()
+        self._gradient_step()
         self.diag_psi = torch.exp(self.log_diag_psi)
 
     def _calc_F_times_sigma_plus_m_mt(self, m: Tensor, sigma: Tensor) -> Tensor:
@@ -312,13 +312,15 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
                 (latent_dim, 1).
             F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
         """
-        gradient_wrt_diag_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self.log_diag_psi.grad = gradient_wrt_diag_psi * self.diag_psi
+        self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self.log_diag_psi.grad = self.diag_psi.grad * self.diag_psi
 
     def _calc_gradient_wrt_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
-                               ) -> Tensor:
+                               ):
         """
         Calculate the gradient of the log-likelihood wrt the diagonal entries of the Gaussian noise covariance matrix.
+
+        Store gradient in self.diag_psi.grad.
 
         Args:
             d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
@@ -328,15 +330,22 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             m: The mean of the posterior distribution of the latent variables given the observation. Of shape
                 (latent_dim, 1).
             F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
-
-        Returns:
-            The gradient of the log-likelihood wrt the diagonal elements of the Gaussian noise covariance matrix. Of
-            shape (observation_dim, 1).
         """
         E = d ** 2 \
             - 2 * d * self.F.mm(m) \
             + torch.sum(F_times_sigma_plus_m_mt * self.F, dim=1, keepdim=True)
-        return ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
+        self.diag_psi.grad = ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
+
+    def _gradient_step(self):
+        """
+        Perform a gradient step to update self.F and self.log_diag_psi.
+
+        Goal is to maximise the log-likelihood, but Torch optimisers are designed to minimise. So multiply the gradients
+        by -1 before performing the updates.
+        """
+        self.F.grad = -self.F.grad
+        self.log_diag_psi.grad = -self.log_diag_psi.grad
+        self.optimiser.step()
 
 
 class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
