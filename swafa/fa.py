@@ -4,6 +4,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 from torch.optim import Optimizer, Adam
+from torch.autograd import Variable
 
 
 class OnlineFactorAnalysis(ABC):
@@ -215,7 +216,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         observation_dim: The size of the observed variable space.
         latent_dim: The size of the latent variable space.
         optimiser: The class of the optimiser to use for gradient updates.
-        optimiser_kwargs: Keyword arguments for the optimiser.
+        optimiser_kwargs: Keyword arguments for the optimiser. If not given, will default to dict(lr=1e-3).
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix.
         device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
@@ -229,7 +230,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         F: The factor loading matrix. A Tensor of shape (observation_dim, latent_dim).
         diag_psi: The diagonal entries of the Gaussian noise covariance matrix, usually referred to as `Psi`. A Tensor
             of shape (observation_dim, 1).
-        log_diag_psi: The logarithm of diag_psi. A Tensor of shape (observation_dim, 1).
+        log_diag_psi: The logarithm of self.diag_psi. A Tensor of shape (observation_dim, 1).
         t: The current time step, or equivalently, the number of observations seen. An integer which starts off as 0.
         optimiser: The initialised optimiser which will perform the gradient updates.
 
@@ -243,8 +244,9 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
                  device: Optional[torch.device] = None, random_seed: int = 0):
         super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
                          random_seed=random_seed)
-        optimiser_kwargs = optimiser_kwargs or {}
-        self.log_diag_psi = torch.log(self.diag_psi)
+        optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
+        self.F = Variable(self.F, requires_grad=False)  # we will compute our own gradients
+        self.log_diag_psi = Variable(torch.log(self.diag_psi), requires_grad=False)
         self.optimiser = optimiser([self.F, self.log_diag_psi], **optimiser_kwargs)
 
     def update(self, theta: Tensor):
@@ -256,9 +258,9 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         """
         d, diag_inv_psi, m, sigma = self._update_commons(theta)
         F_times_sigma_plus_m_mt = self._calc_F_times_sigma_plus_m_mt(m, sigma)
-        self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self._calc_gradient_wrt_log_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self._gradient_step()
+        gradient_wrt_F = self._calc_gradient_wrt_F(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        gradient_wrt_log_diag_psi = self._calc_gradient_wrt_log_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        self._gradient_step(gradient_wrt_F, gradient_wrt_log_diag_psi)
         self.diag_psi = torch.exp(self.log_diag_psi)
 
     def _calc_F_times_sigma_plus_m_mt(self, m: Tensor, sigma: Tensor) -> Tensor:
@@ -279,11 +281,10 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         """
         return self.F.mm(sigma + m.mm(m.t()))
 
-    def _calc_gradient_wrt_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
+    def _calc_gradient_wrt_F(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor
+                             ) -> Tensor:
         """
         Calculate the gradient of the log-likelihood wrt the factor loading matrix.
-
-        Store gradient in self.F.grad.
 
         Args:
             d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
@@ -293,16 +294,18 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             m: The mean of the posterior distribution of the latent variables given the observation. Of shape
                 (latent_dim, 1).
             F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
-        """
-        self.F.grad = diag_inv_psi * (d.mm(m.t()) - F_times_sigma_plus_m_mt)
 
-    def _calc_gradient_wrt_log_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor):
+        Returns:
+            Gradient of the log-likelihood wrt the factor loading matrix. Of shape (observation_dim, latent_dim).
+        """
+        return diag_inv_psi * (d.mm(m.t()) - F_times_sigma_plus_m_mt)
+
+    def _calc_gradient_wrt_log_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor
+                                   ) -> Tensor:
         """
         Calculate the gradient of the log-likelihood wrt the logarithm of the diagonal entries of the Gaussian noise
         covariance matrix.
 
-        Store gradient in self.log_diag_psi.grad.
-
         Args:
             d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
                 (observation_dim, 1).
@@ -311,17 +314,19 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             m: The mean of the posterior distribution of the latent variables given the observation. Of shape
                 (latent_dim, 1).
             F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+
+        Returns:
+            Gradient of the log-likelihood wrt the logarithm of the diagonal entries of the Gaussian noise covariance
+            matrix. Of shape (observation_dim, 1)
         """
-        self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
-        self.log_diag_psi.grad = self.diag_psi.grad * self.diag_psi
+        gradient_wrt_diag_psi = self._calc_gradient_wrt_psi(d, diag_inv_psi, m, F_times_sigma_plus_m_mt)
+        return gradient_wrt_diag_psi * self.diag_psi
 
     def _calc_gradient_wrt_psi(self, d: Tensor, diag_inv_psi: Tensor, m: Tensor, F_times_sigma_plus_m_mt: Tensor,
-                               ):
+                               ) -> Tensor:
         """
         Calculate the gradient of the log-likelihood wrt the diagonal entries of the Gaussian noise covariance matrix.
 
-        Store gradient in self.diag_psi.grad.
-
         Args:
             d: The centred observation. That is, the current observation minus the mean of all observations. Of shape
                 (observation_dim, 1).
@@ -330,21 +335,31 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             m: The mean of the posterior distribution of the latent variables given the observation. Of shape
                 (latent_dim, 1).
             F_times_sigma_plus_m_mt: `F(sigma + mm^T)`. Of shape (observation_dim, latent_dim).
+
+        Returns:
+            Gradient of the log-likelihood wrt the diagonal entries of the Gaussian noise covariance matrix. Of shape
+            (observation_dim, 1)
         """
         E = d ** 2 \
             - 2 * d * self.F.mm(m) \
             + torch.sum(F_times_sigma_plus_m_mt * self.F, dim=1, keepdim=True)
-        self.diag_psi.grad = ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
+        return ((diag_inv_psi ** 2) * E - diag_inv_psi) / 2
 
-    def _gradient_step(self):
+    def _gradient_step(self, gradient_wrt_F: Tensor, gradient_wrt_log_diag_psi: Tensor):
         """
         Perform a gradient step to update self.F and self.log_diag_psi.
 
         Goal is to maximise the log-likelihood, but Torch optimisers are designed to minimise. So multiply the gradients
         by -1 before performing the updates.
+
+        Args:
+            gradient_wrt_F: Gradient of the log-likelihood wrt the factor loading matrix. Of shape
+                (observation_dim, latent_dim).
+            gradient_wrt_log_diag_psi: Gradient of the log-likelihood wrt the logarithm of the diagonal entries of the
+                Gaussian noise covariance matrix. Of shape (observation_dim, 1)
         """
-        self.F.grad = -self.F.grad
-        self.log_diag_psi.grad = -self.log_diag_psi.grad
+        self.F.grad = -gradient_wrt_F
+        self.log_diag_psi.grad = -gradient_wrt_log_diag_psi
         self.optimiser.step()
 
 
