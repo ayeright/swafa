@@ -124,7 +124,7 @@ class TestOnlineGradientFactorAnalysis:
     @pytest.mark.parametrize("optimiser", [SGD, Adam])
     @pytest.mark.parametrize("learning_rate", [1e-3, 1e-1])
     def test_updates_change_log_diag_psi(self, observation_dim, latent_dim, init_factors_noise_std, optimiser,
-                                        learning_rate):
+                                         learning_rate):
         fa = OnlineGradientFactorAnalysis(
             observation_dim, latent_dim, optimiser=optimiser, optimiser_kwargs=dict(lr=learning_rate),
             init_factors_noise_std=init_factors_noise_std
@@ -139,8 +139,7 @@ class TestOnlineGradientFactorAnalysis:
     @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
     @pytest.mark.parametrize("optimiser", [SGD, Adam])
     @pytest.mark.parametrize("learning_rate", [1e-3, 1e-1])
-    def test_updated_diag_psi(self, observation_dim, latent_dim, init_factors_noise_std, optimiser,
-                                        learning_rate):
+    def test_updated_diag_psi(self, observation_dim, latent_dim, init_factors_noise_std, optimiser, learning_rate):
         fa = OnlineGradientFactorAnalysis(
             observation_dim, latent_dim, optimiser=optimiser, optimiser_kwargs=dict(lr=learning_rate),
             init_factors_noise_std=init_factors_noise_std

@@ -410,11 +410,12 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         Args:
             theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
         """
-        d, diag_inv_psi, m, sigma = self._update_commons(theta)
+        d, _, m, sigma = self._update_commons(theta)
         H_hat = self._calc_H_hat(m, sigma)
         self._update_A_hat(d, m)
-        self._update_F(H_hat)
-        self._update_psi(d, H_hat)
+        if self.t > 1:  # to avoid computing the inverse of H_hat, which is zero on the first iteration
+            self._update_F(H_hat)
+            self._update_psi(d, H_hat)
 
     def _calc_H_hat(self, m: Tensor, sigma: Tensor) -> Tensor:
         """
@@ -463,7 +464,7 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
             H_hat: The sum of the latent posterior covariance matrix and the running average of `mm^t`. Of shape
                 (latent_dim, latent_dim).
         """
-        return self.A_hat.mm(torch.linalg.inv(H_hat))
+        self.F = self.A_hat.mm(torch.linalg.inv(H_hat))
 
     def _update_psi(self, d: Tensor, H_hat: Tensor):
         """
