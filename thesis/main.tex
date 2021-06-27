@@ -401,7 +401,7 @@ where
 \end{equation}
 and
 \begin{equation}\label{eqn:em_Psi_update}
-	\Psi = \text{diag}\Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{d}_t^\intercal - 2\matr{FA}^\intercal + \matr{FHF}^\intercal \Bigg).
+	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{d}_t^\intercal - 2\matr{FA}^\intercal + \matr{FHF}^\intercal \Bigg)\Bigg).
 \end{equation}
 Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on each iteration all components of the sums in Equation (\ref{eqn:em_A_and_H_update}) and Equation (\ref{eqn:em_Psi_update}) are updated. As in the E-step, updating all components is not possible in an online algorithm. Therefore, in the online version these sums will be updated incrementally on each iteration. 
 
@@ -418,7 +418,7 @@ Then the estimates of $\matr{F}$ and $\Psi$ on iteration $t$ become
 \end{equation}
 and
 \begin{equation}\label{eqn:em_Psi_incremental_update}
-	\Psi = \text{diag}\Bigg( \frac{1}{t} \sum_{i=1}^t \matr{d}_i \matr{d}_i^\intercal - 2 \matr{F}\overline{\matr{A}}_t^\intercal + \matr{F}\overline{\matr{H}}_t \matr{F}^\intercal \Bigg).
+	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{t} \sum_{i=1}^t \matr{d}_i \matr{d}_i^\intercal - 2 \matr{F}\overline{\matr{A}}_t^\intercal + \matr{F}\overline{\matr{H}}_t \matr{F}^\intercal \Bigg)\Bigg).
 \end{equation}
 As in the online gradient-based FA algorithm from Section \ref{sec:gradient_fa}, it suffices to work with $\psi = \diag(\Psi)$ instead of $\Psi$. 
 The diagonal entries of Equation (\ref{eqn:em_Psi_incremental_update}) can be computed more efficiently as 
