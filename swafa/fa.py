@@ -55,6 +55,7 @@ class OnlineFactorAnalysis(ABC):
         self._d = None
         self._m = None
         self._sigma = None
+        self._I = torch.eye(latent_dim, device=device)
 
     def _init_F(self, noise_std: float, device: Optional[torch.device] = None) -> Tensor:
         """
@@ -133,8 +134,7 @@ class OnlineFactorAnalysis(ABC):
         Args:
             C: The transpose of `F` right-multiplied by the inverse of `Psi`. Of shape (latent_dim, observation_dim).
         """
-        I = torch.eye(self.latent_dim)
-        self._sigma = torch.linalg.inv(I + C.mm(self.F))
+        self._sigma = torch.linalg.inv(self._I + C.mm(self.F))
 
     def _update_latent_posterior_mean(self, C: Tensor):
         """
