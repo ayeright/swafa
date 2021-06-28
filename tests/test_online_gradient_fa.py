@@ -1,5 +1,5 @@
-import torch
 import pytest
+import torch
 from torch.optim import Optimizer, SGD
 
 from swafa.fa import OnlineGradientFactorAnalysis
