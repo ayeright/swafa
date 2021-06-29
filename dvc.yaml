@@ -1,0 +1,5 @@
+stages:
+  online_fa:
+    cmd: python experiments/stages/online_fa.py
+    deps:
+      - experiments/stages/online_fa.py
