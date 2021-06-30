@@ -1,21 +1,35 @@
+from typing import List, Dict
+
 import numpy as np
+import pandas as pd
 import torch
 from torch import Tensor
 from torch.distributions.multivariate_normal import MultivariateNormal
-from torch.optim import SGD, Adam
+from torch.optim import Adam
 from sklearn.decomposition import FactorAnalysis
 
 from swafa.fa import OnlineGradientFactorAnalysis, OnlineEMFactorAnalysis
 
 
-def run_all_experiments():
-    run_experiment(5, 3, 10000)
+def run_all_experiments(experiments_config: List[dict]) -> pd.DataFrame:
+    results = []
+    for config in experiments_config:
+        results.append(
+            run_experiment(
+                config['observation_dim'],
+                config['latent_dim'],
+                config['spectrum_range'],
+                config['n_samples'],
+            )
+        )
+    return pd.DataFrame(results)
 
 
-def run_experiment(observation_dim: int, latent_dim: int, n_samples: int):
-    c = torch.randn(observation_dim)
-    F = torch.randn(observation_dim, latent_dim)
-    psi = torch.diag(torch.rand(observation_dim))
+def run_experiment(observation_dim: int, latent_dim: int, spectrum_range: List[int], n_samples: int
+                   ) -> Dict[str, float]:
+    results = dict()
+
+    c, F, psi = generate_fa_model(observation_dim, latent_dim, spectrum_range)
     covar = compute_covariance(F, psi)
     observations = sample_observations(c, F, psi, n_samples)
 
@@ -23,14 +37,40 @@ def run_experiment(observation_dim: int, latent_dim: int, n_samples: int):
     mean_online_gradients, covar_online_gradients = solve_with_online_gradients(observations, latent_dim)
     mean_online_em, covar_online_em = solve_with_online_em(observations, latent_dim)
 
-    ll = compute_gaussian_log_likelihood(c, covar, observations)
-    ll_sklearn = compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations)
-    ll_online_gradients = compute_gaussian_log_likelihood(mean_online_gradients, covar_online_gradients, observations)
-    ll_online_em = compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations)
+    results['covar_norm'] = torch.linalg.norm(covar)
+    results['covar_distance_sklearn'] = torch.linalg.norm(covar - covar_sklearn)
+    results['covar_distance_online_gradients'] = torch.linalg.norm(covar - covar_online_gradients)
+    results['covar_distance_online_em'] = torch.linalg.norm(covar - covar_online_em)
 
-    covar_distance_sklearn = torch.linalg.norm(covar - covar_sklearn)
-    covar_distance_online_gradients = torch.linalg.norm(covar - covar_online_gradients)
-    covar_distance_online_em = torch.linalg.norm(covar - covar_online_em)
+    results['ll'] = compute_gaussian_log_likelihood(c, covar, observations)
+    results['ll_sklearn'] = compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations)
+    results['ll_online_gradients'] = compute_gaussian_log_likelihood(mean_online_gradients, covar_online_gradients,
+                                                                     observations)
+    results['ll_online_em'] = compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations)
+
+    return results
+
+
+def generate_fa_model(observation_dim: int, latent_dim: int, spectrum_range: List[int]) -> (Tensor, Tensor, Tensor):
+    c = torch.randn(observation_dim)
+    F, spectrum = generate_factors(observation_dim, latent_dim, spectrum_range)
+    psi = generate_noise_covariance(observation_dim, spectrum)
+    return c, F, psi
+
+
+def generate_factors(observation_dim: int, latent_dim: int, spectrum_range: List[int]) -> (Tensor, Tensor):
+    A = torch.randn(observation_dim, observation_dim)
+    M = A.mm(A.t())
+    _, V = torch.linalg.eigh(M)
+    Vk = V[:, :latent_dim]
+    spectrum = torch.FloatTensor(observation_dim, 1).uniform_(*spectrum_range)
+    F = Vk * torch.sqrt(spectrum)
+    return F, spectrum
+
+
+def generate_noise_covariance(observation_dim: int, spectrum: Tensor) -> Tensor:
+    diag_psi = torch.FloatTensor(observation_dim).uniform_(0, spectrum.max())
+    return torch.diag(diag_psi)
 
 
 def sample_observations(c: Tensor, F: Tensor, psi: Tensor, n_samples: int) -> Tensor:
@@ -87,7 +127,7 @@ def compute_gaussian_log_likelihood(mean: Tensor, covar: Tensor, X: Tensor) -> T
 
 
 def main():
-    run_all_experiments()
+    results = run_all_experiments()
 
 
 if __name__ == '__main__':
