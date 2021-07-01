@@ -7,11 +7,14 @@ from torch import Tensor
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.optim import Adam
 from sklearn.decomposition import FactorAnalysis
+import yaml
+import click
 
 from swafa.fa import OnlineGradientFactorAnalysis, OnlineEMFactorAnalysis
 
 
-def run_all_experiments(experiments_config: List[dict]) -> pd.DataFrame:
+def run_all_experiments(experiments_config: List[dict], init_factors_noise_std: float, optimiser_kwargs: dict
+                        ) -> pd.DataFrame:
     results = []
     for config in experiments_config:
         results.append(
@@ -20,13 +23,15 @@ def run_all_experiments(experiments_config: List[dict]) -> pd.DataFrame:
                 config['latent_dim'],
                 config['spectrum_range'],
                 config['n_samples'],
+                init_factors_noise_std,
+                optimiser_kwargs,
             )
         )
     return pd.DataFrame(results)
 
 
-def run_experiment(observation_dim: int, latent_dim: int, spectrum_range: List[int], n_samples: int
-                   ) -> Dict[str, float]:
+def run_experiment(observation_dim: int, latent_dim: int, spectrum_range: List[int], n_samples: int,
+                   init_factors_noise_std: float, optimiser_kwargs: dict) -> Dict[str, float]:
     results = dict()
 
     c, F, psi = generate_fa_model(observation_dim, latent_dim, spectrum_range)
@@ -34,19 +39,22 @@ def run_experiment(observation_dim: int, latent_dim: int, spectrum_range: List[i
     observations = sample_observations(c, F, psi, n_samples)
 
     mean_sklearn, covar_sklearn = solve_with_sklearn(observations, latent_dim)
-    mean_online_gradients, covar_online_gradients = solve_with_online_gradients(observations, latent_dim)
-    mean_online_em, covar_online_em = solve_with_online_em(observations, latent_dim)
+    mean_online_gradients, covar_online_gradients = solve_with_online_gradients(
+        observations, latent_dim, init_factors_noise_std, optimiser_kwargs,
+    )
+    mean_online_em, covar_online_em = solve_with_online_em(observations, latent_dim, init_factors_noise_std)
 
-    results['covar_norm'] = torch.linalg.norm(covar)
-    results['covar_distance_sklearn'] = torch.linalg.norm(covar - covar_sklearn)
-    results['covar_distance_online_gradients'] = torch.linalg.norm(covar - covar_online_gradients)
-    results['covar_distance_online_em'] = torch.linalg.norm(covar - covar_online_em)
+    results['covar_norm'] = torch.linalg.norm(covar).item()
+    results['covar_distance_sklearn'] = torch.linalg.norm(covar - covar_sklearn).item()
+    results['covar_distance_online_gradients'] = torch.linalg.norm(covar - covar_online_gradients).item()
+    results['covar_distance_online_em'] = torch.linalg.norm(covar - covar_online_em).item()
 
-    results['ll'] = compute_gaussian_log_likelihood(c, covar, observations)
-    results['ll_sklearn'] = compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations)
-    results['ll_online_gradients'] = compute_gaussian_log_likelihood(mean_online_gradients, covar_online_gradients,
-                                                                     observations)
-    results['ll_online_em'] = compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations)
+    results['ll'] = compute_gaussian_log_likelihood(c, covar, observations).item()
+    results['ll_sklearn'] = compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations).item()
+    results['ll_online_gradients'] = compute_gaussian_log_likelihood(
+        mean_online_gradients, covar_online_gradients, observations
+    ).item()
+    results['ll_online_em'] = compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations).item()
 
     return results
 
@@ -90,9 +98,13 @@ def solve_with_sklearn(observations: Tensor, latent_dim: int) -> (Tensor, Tensor
     return mean, covar
 
 
-def solve_with_online_gradients(observations: Tensor, latent_dim: int) -> (Tensor, Tensor):
+def solve_with_online_gradients(observations: Tensor, latent_dim: int, init_factors_noise_std: float,
+                                optimiser_kwargs: dict) -> (Tensor, Tensor):
     observation_dim = observations.shape[1]
-    fa = OnlineGradientFactorAnalysis(observation_dim, latent_dim, optimiser=Adam, optimiser_kwargs=dict(lr=1e-2))
+    fa = OnlineGradientFactorAnalysis(
+        observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, optimiser=Adam,
+        optimiser_kwargs=optimiser_kwargs
+    )
     for theta in observations:
         fa.update(theta)
     mean = fa.c.squeeze()
@@ -100,9 +112,9 @@ def solve_with_online_gradients(observations: Tensor, latent_dim: int) -> (Tenso
     return mean, covar
 
 
-def solve_with_online_em(observations: Tensor, latent_dim: int) -> (Tensor, Tensor):
+def solve_with_online_em(observations: Tensor, latent_dim: int, init_factors_noise_std: float) -> (Tensor, Tensor):
     observation_dim = observations.shape[1]
-    fa = OnlineEMFactorAnalysis(observation_dim, latent_dim)
+    fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
     for theta in observations:
         fa.update(theta)
     mean = fa.c.squeeze()
@@ -126,8 +138,20 @@ def compute_gaussian_log_likelihood(mean: Tensor, covar: Tensor, X: Tensor) -> T
     return unnormalised_log_likelihood + log_normalising_factor
 
 
-def main():
-    results = run_all_experiments()
+@click.command()
+@click.option('--results-output-path', type=str, help='The file path to save the experiment results')
+def main(results_output_path):
+    with open("params.yaml", 'r') as fd:
+        params = yaml.safe_load(fd)
+
+    results = run_all_experiments(
+        params['online_fa']['experiments'],
+        params['online_fa']['init_factors_noise_std'],
+        params['online_fa']['optimiser_kwargs']
+    )
+    print(results)
+
+    results.to_parquet(results_output_path)
 
 
 if __name__ == '__main__':

@@ -12,3 +12,5 @@ venv
 *.toc
 
 *__pycache__*
+
+experiments/data/

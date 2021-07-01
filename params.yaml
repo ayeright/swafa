@@ -1,0 +1,6 @@
+online_fa:
+  init_factors_noise_std: 0.01
+  optimiser_kwargs:
+    lr: 0.05
+  experiments:
+    - {observation_dim: 10, latent_dim: 3, spectrum_range: [0, 1], n_samples: 1000}
