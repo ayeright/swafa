@@ -50,7 +50,7 @@ class OnlineFactorAnalysis(ABC):
         self.t = 0
         self.c = torch.zeros(observation_dim, 1, device=device)
         self.F = self._init_F(init_factors_noise_std, device)
-        self.diag_psi = torch.ones(observation_dim, 1, device=device)
+        self.diag_psi = self._init_psi(device=device)
         self._diag_inv_psi = None
         self._d = None
         self._m = None
@@ -74,6 +74,22 @@ class OnlineFactorAnalysis(ABC):
         I = torch.eye(self.observation_dim, self.latent_dim, device=device)
         off_diagonal_noise = torch.normal(0, noise_std, (self.observation_dim, self.latent_dim)).to(device)
         return I + (1 - I) * off_diagonal_noise
+
+    def _init_psi(self, device: Optional[torch.device] = None) -> Tensor:
+        """
+        Initialise the diagonal entries of the Gaussian noise covariance matrix.
+
+        Set all entries to the maximum of the diagonal of the factor loading matrix multiplied by its transpose.
+
+        Args:
+            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
+                default tensor type.
+
+        Returns:
+            The initial diagonal entries of the Gaussian noise covariance matrix. Of shape (observation_dim, 1).
+        """
+        max_diag_FFt = torch.sum(self.F ** 2, dim=1).max()
+        return max_diag_FFt * torch.ones(self.observation_dim, 1, device=device)
 
     def _update_commons(self, theta: Tensor):
         """
