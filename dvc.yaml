@@ -1,13 +1,14 @@
 stages:
   online_fa:
-    cmd: python experiments/stages/online_fa.py
+    cmd: python experiments/online_fa.py
       --results-output-path experiments/data/online_fa_results.parquet
     deps:
-      - experiments/stages/online_fa.py
+      - experiments/online_fa.py
       - swafa/fa.py
     params:
       - online_fa.init_factors_noise_std
-      - online_fa.optimiser_kwargs
+      - online_fa.gradient_optimiser_kwargs
       - online_fa.experiments
+      - online_fa.n_trials
     outs:
       - experiments/data/online_fa_results.parquet

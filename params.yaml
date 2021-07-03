@@ -1,6 +1,22 @@
 online_fa:
-  init_factors_noise_std: 0.01
-  optimiser_kwargs:
-    lr: 0.05
+  init_factors_noise_std: 0.1
+  gradient_optimiser_kwargs:
+    lr: 0.001
   experiments:
-    - {observation_dim: 10, latent_dim: 3, spectrum_range: [0, 1], n_samples: 1000}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 1], n_samples: 500}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 1], n_samples: 1000}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 1], n_samples: 5000}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 1], n_samples: 10000}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 1], n_samples: 500}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 1], n_samples: 1000}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 1], n_samples: 5000}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 1], n_samples: 10000}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 10], n_samples: 500}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 10], n_samples: 1000}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 10], n_samples: 5000}
+    - {observation_dim: 1000, latent_dim: 100, spectrum_range: [0, 10], n_samples: 10000}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 10], n_samples: 500}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 10], n_samples: 1000}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 10], n_samples: 5000}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [0, 10], n_samples: 10000}
+  n_trials: 10
