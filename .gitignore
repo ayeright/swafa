@@ -14,3 +14,4 @@ venv
 *__pycache__*
 
 experiments/data/
+experiments/notebooks/.ipynb_checkpoints/
