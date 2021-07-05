@@ -12,3 +12,13 @@ stages:
       - online_fa.n_trials
     outs:
       - experiments/data/online_fa_results.parquet
+
+  online_fa_analysis:
+    cmd: python experiments/online_fa_analysis.py
+      --results-input-path experiments/data/online_fa_results.parquet
+      --analysis-output-dir experiments/data/online_fa_analysis
+    deps:
+      - experiments/online_fa_analysis.py
+      - experiments/data/online_fa_results.parquet
+    outs:
+      - experiments/data/online_fa_analysis
