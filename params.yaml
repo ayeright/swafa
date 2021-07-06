@@ -44,3 +44,6 @@ online_fa:
     - {observation_dim: 1000, latent_dim: 100, spectrum_range: [1, 10], n_samples: 50000}
     - {observation_dim: 1000, latent_dim: 100, spectrum_range: [1, 10], n_samples: 100000}
   n_trials: 10
+
+online_fa_analysis:
+  metric_columns: ['covar_norm', 'covar_distance_sklearn', 'covar_distance_online_gradient', 'covar_distance_online_em']

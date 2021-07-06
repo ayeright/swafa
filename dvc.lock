@@ -260,3 +260,25 @@ stages:
     - path: experiments/data/online_fa_results.parquet
       md5: b0a23d2526f735d607bfd5e106ddeec6
       size: 33677
+  online_fa_analysis:
+    cmd: python experiments/online_fa_analysis.py --results-input-path experiments/data/online_fa_results.parquet
+      --analysis-output-dir experiments/data/online_fa_analysis
+    deps:
+    - path: experiments/data/online_fa_results.parquet
+      md5: b0a23d2526f735d607bfd5e106ddeec6
+      size: 33677
+    - path: experiments/online_fa_analysis.py
+      md5: c9b52283ef20b4b894712b7f976f39e5
+      size: 7475
+    params:
+      params.yaml:
+        online_fa_analysis.metric_columns:
+        - covar_norm
+        - covar_distance_sklearn
+        - covar_distance_online_gradient
+        - covar_distance_online_em
+    outs:
+    - path: experiments/data/online_fa_analysis
+      md5: c1ff5536c235df88f827bf6a3824b36a.dir
+      size: 268918
+      nfiles: 12
