@@ -46,4 +46,4 @@ online_fa:
   n_trials: 10
 
 online_fa_analysis:
-  metric_columns: ['covar_norm', 'covar_distance_sklearn', 'covar_distance_online_gradient', 'covar_distance_online_em']
+  min_samples: 200

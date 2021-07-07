@@ -20,7 +20,5 @@ stages:
     deps:
       - experiments/online_fa_analysis.py
       - experiments/data/online_fa_results.parquet
-    params:
-      - online_fa_analysis.metric_columns
     outs:
       - experiments/data/online_fa_analysis
