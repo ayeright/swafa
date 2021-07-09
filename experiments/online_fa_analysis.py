@@ -143,7 +143,8 @@ def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.Da
         xscale: The type of scale to use on the x-axis.
         yscale: The type of scale to use on the y-axis.
     """
-    plt.figure(figsize=(18, 8))
+    plt.rcParams.update({'font.size': 20})
+    plt.figure(figsize=(12, 8))
     x = means.index
     for metric_name in means.columns:
         plt.errorbar(x, means[metric_name], standard_errors[metric_name], label=metric_name, marker='o')
