@@ -239,7 +239,7 @@ def generate_fa_model(observation_dim: int, latent_dim: int, spectrum_range: [fl
     A = torch.randn(observation_dim, observation_dim)
     M = A.mm(A.t())
     _, V = torch.linalg.eigh(M)
-    Vk = V[:, :latent_dim]
+    Vk = V[:, -latent_dim:].fliplr()  # torch.linalg.eigh returns eigenvalues in ascending order
     spectrum = torch.FloatTensor(observation_dim, 1).uniform_(*spectrum_range)
     F = Vk * torch.sqrt(spectrum)
 
