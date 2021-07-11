@@ -4,8 +4,8 @@ stages:
     cmd: python experiments/online_fa.py --results-output-path experiments/data/online_fa_results.parquet
     deps:
     - path: experiments/online_fa.py
-      md5: 4a3494e133bea04b53964d50de4021bf
-      size: 21693
+      md5: 4d0284491ba774b5e72c81327961f362
+      size: 21763
     - path: swafa/fa.py
       md5: cc1b7a6b51d948518febb978d5ecf7dc
       size: 15158
@@ -252,26 +252,146 @@ stages:
           - 1
           - 10
           n_samples: 100000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 100
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 200
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 500
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 1000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 2000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 5000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 10000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 20000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 50000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 100000
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 100
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 200
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 500
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 1000
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 2000
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 5000
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 10000
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 20000
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 50000
+        - observation_dim: 1000
+          latent_dim: 100
+          spectrum_range:
+          - 10
+          - 100
+          n_samples: 100000
         online_fa.gradient_optimiser_kwargs:
           lr: 0.001
         online_fa.init_factors_noise_std: 0.1
         online_fa.n_trials: 10
     outs:
     - path: experiments/data/online_fa_results.parquet
-      md5: b0a23d2526f735d607bfd5e106ddeec6
-      size: 33677
+      md5: 59e817f41e3e8b44651a81a57ff95fe0
+      size: 45045
   online_fa_analysis:
     cmd: python experiments/online_fa_analysis.py --results-input-path experiments/data/online_fa_results.parquet
       --analysis-output-dir experiments/data/online_fa_analysis
     deps:
     - path: experiments/data/online_fa_results.parquet
-      md5: b0a23d2526f735d607bfd5e106ddeec6
-      size: 33677
+      md5: 59e817f41e3e8b44651a81a57ff95fe0
+      size: 45045
     - path: experiments/online_fa_analysis.py
       md5: 62ccb8546a4240b15f32fa238cabf496
       size: 8950
     outs:
     - path: experiments/data/online_fa_analysis
-      md5: b987765086825056b86ea866f415f402.dir
-      size: 588640
-      nfiles: 16
+      md5: b6f2a14134bf293d4144fd5ca0ed750f.dir
+      size: 869425
+      nfiles: 24
