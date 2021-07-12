@@ -563,14 +563,18 @@ Having generated a FA model, observations were sampled according to Equation (\r
 	\begin{tabular}{cc}
 		 \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=10__spectrum_min=0__spectrum_max=1.png}
 		 & \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=100__spectrum_min=0__spectrum_max=1.png} \\
-		 (a) $d=1000$, $K=10$, $s^2 \sim \mathcal{U}(0, 1)$ 
-		 & (b) $d=1000$, $K=100$, $s^2 \sim \mathcal{U}(0, 1)$\\[6pt]
+		 (a) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(0, 1)$ 
+		 & (b) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(0, 1)$\\[6pt]
 		 \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10.png}
 		 & \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=100__spectrum_min=1__spectrum_max=10.png} \\
-		 (c) $d=1000$, $K=10$, $s^2 \sim \mathcal{U}(1, 10)$ 
-		 & (d) $d=1000$, $K=100$, $s^2 \sim \mathcal{U}(1, 10)$\\[6pt]
+		 (c) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
+		 & (d) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt]
+		 \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=10__spectrum_min=10__spectrum_max=100.png}
+		 & \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=100__spectrum_min=10__spectrum_max=100.png} \\
+		 (e) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$ 
+		 & (f) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$\\[6pt]
 	\end{tabular}
-	\caption{The distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue line shows the Frobenius norm of the true covariance matrix, while the orange, green and red lines shown the Frobenius norm of the difference between the true covariance matrix and the estimate covariance matrix for the scikit-learn batch algorithm, online gradient ascent and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. \textbf{(a)} The latent dimension of the FA model is equal to 10 and the spectrum, which controls the conditioning number of the true covariance matrix, is sampled from the uniform distribution with range $[0, 1]$. \textbf{(b)} The latent dimension is equal to 100 and the spectrum range is $[0, 1]$. \textbf{(c)} The latent dimension is equal to 10 and the spectrum range is $[1, 10]$. \textbf{(d)} The latent dimension is equal to 100 and the spectrum range is $[1, 10]$.}
+	\caption{The distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue line shows the Frobenius norm of the true covariance matrix, while the orange, green and red lines shown the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix for the scikit-learn batch algorithm, online stochastic gradient ascent and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. In all experiments the observation dimension was $d=1000$. The different plots correspond to different combinations of the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_covar_distance}
 \end{figure}
 
@@ -579,14 +583,18 @@ Having generated a FA model, observations were sampled according to Equation (\r
 	\begin{tabular}{cc}
 		\includegraphics[width=70mm]{plots/online_fa_log_likelihood__observation_dim=1000__latent_dim=10__spectrum_min=0__spectrum_max=1.png}
 		& \includegraphics[width=70mm]{plots/online_fa_log_likelihood__observation_dim=1000__latent_dim=100__spectrum_min=0__spectrum_max=1.png} \\
-		(a) $d=1000$, $K=10$, $s^2 \sim \mathcal{U}(0, 1)$ 
-		 & (b) $d=1000$, $K=100$, $s^2 \sim \mathcal{U}(0, 1)$\\[6pt] 
+		(a) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(0, 1)$ 
+		 & (b) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(0, 1)$\\[6pt] 
 		 \includegraphics[width=70mm]{plots/online_fa_log_likelihood__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10.png} 
 		 & \includegraphics[width=70mm]{plots/online_fa_log_likelihood__observation_dim=1000__latent_dim=100__spectrum_min=1__spectrum_max=10.png} \\
-		 (c) $d=1000$, $K=10$, $s^2 \sim \mathcal{U}(1, 10)$ 
-		 & (d) $d=1000$, $K=100$, $s^2 \sim \mathcal{U}(1, 10)$\\[6pt]
+		 (c) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
+		 & (d) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt]
+		 \includegraphics[width=70mm]{plots/online_fa_log_likelihood__observation_dim=1000__latent_dim=10__spectrum_min=10__spectrum_max=100.png} 
+		 & \includegraphics[width=70mm]{plots/online_fa_log_likelihood__observation_dim=1000__latent_dim=100__spectrum_min=10__spectrum_max=100.png} \\
+		 (e) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$ 
+		 & (f) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$\\[6pt]
 	\end{tabular}
-	\caption{The log-likelihood of the true and estimated FA models. The blue line shows the log-likelihood of the true FA model, while the orange, green and red lines shown the log-likelihood of the models estimated by the scikit-learn batch algorithm, online gradient ascent and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. \textbf{(a)} The latent dimension of the FA model is equal to 10 and the spectrum, which controls the conditioning number of the true covariance matrix, is sampled from the uniform distribution with range $[0, 1]$. \textbf{(b)} The latent dimension is equal to 100 and the spectrum range is $[0, 1]$. \textbf{(c)} The latent dimension is equal to 10 and the spectrum range is $[1, 10]$. \textbf{(d)} The latent dimension is equal to 100 and the spectrum range is $[1, 10]$.}
+	\caption{The log-likelihood of the true and estimated FA models. The blue line shows the log-likelihood of the true FA model, while the orange, green and red lines shown the log-likelihood of the models estimated by the scikit-learn batch algorithm, online stochastic gradient ascent and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. In all experiments the observation dimension was $d=1000$. The different plots correspond to different combinations of the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_log_likelihood}
 \end{figure}
 
