@@ -494,26 +494,25 @@ One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}
   		\end{bmatrix}
 	\in \R^{d \times K},
 \end{equation}
-where $\matr{I} \in \R^{K \times K}$ and $\matr{0} \in \R^{(d-K) \times K}$. Then for $\matr{h} \in \R^K$, the product $\matr{Fh}$ is just the vector formed by appending $d-K$ zeros onto the end of $\matr{h}$. 
-%To increase the variation, noise can be added to the off-diagonal entries of 
-%
-%
-%		
-%\begin{equation}
-%	D =
-%  \begin{bmatrix}
-%    1 & 0 & \cdots & 0\\
-%    0 & 1 &  & 0 \\
-%     \vdots &  & \ddots & \vdots  \\
-%     0 & 0 & 0 & 1 \\
-%     0 & 0 & 0 & 0 \\
-%     \vdots & \vdots & \vdots & \vdots \\
-%     0 & 0 & 0 & 0 \\
-%    %& \ddots & \\
-%    %& & d_{r}
-%  \end{bmatrix}
-%\end{equation}
+where $\matr{I} \in \R^{K \times K}$ and $\matr{0} \in \R^{(d-K) \times K}$. Then for $\matr{h} \in \R^K$, the product $\matr{Fh} \in \R^d$ is just the vector formed by appending $d-K$ zeros onto the end of $\matr{h}$. In order to increase the initial diversity of $\matr{Fh}$, noise is added to the off-diagonal entries of  $\matr{F}$. That is, $\matr{F}$ is initialised as
+\begin{equation}\label{eqn:F_init}
+	\matr{F} =
+  \begin{bmatrix}
+    1 & \nu_{1, 2} & \cdots & \nu_{1, K} \\
+    \nu_{2, 1} & 1 &  & \nu_{2, K} \\
+     \vdots &  & \ddots & \vdots  \\
+     \nu_{K, 1} & \nu_{K, 2} & \cdots & 1 \\
+     \nu_{K+1, 1} & \nu_{K+1, 2} & \cdots & \nu_{K+1, K} \\
+     \vdots & \vdots & \vdots & \vdots \\
+     \nu_{d, 1} & \nu_{d, 2} & \cdots & \nu_{d, K} \\
+  \end{bmatrix},
+\end{equation}
+where $\nu_{i, j} \sim \mathcal{N}(0, \sigma^2)$ for some small $\sigma$, which is a hyperparameter. 
 
+From Equation (\ref{eqn:fa_marginal_dist}), the full covariance matrix of a FA model is $\matr{FF}^\intercal + \Psi$, where $\Psi = \text{diag}(\psi)$. To ensure that neither $\matr{FF}^\intercal$ nor $\Psi$ dominates in the initial covariance matrix, the initial entries of $\psi$ are set equal to the maximum diagonal value of $\matr{FF}^\intercal$. That is, 
+\begin{equation}\label{eqn:psi_init}
+	\psi = (s, s, \dots, s)^\intercal \in \R^d, \quad s = \max\big(\text{diag}(\matr{F})\big).
+\end{equation}
 
 
 
@@ -523,15 +522,15 @@ where $\matr{I} \in \R^{K \times K}$ and $\matr{0} \in \R^{(d-K) \times K}$. The
 
 \subsection{Methodology}
 
-The aim of these experiments is to test how well the online FA algorithms from Section \ref{sec:fa} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both online FA algorithms (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}) by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any matrix $\matr{A}$ such that $\matr{A} \matr{A}^\intercal = \matr{I}$ will result in the exact same covariance \cite{barber2007}, since
+The aim of these experiments is to test how well the online FA algorithms from Section \ref{sec:fa} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both online FA algorithms (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}) by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
 \begin{equation}
 	(\matr{F} \matr{A}) (\matr{F} \matr{A})^\intercal + \Psi
 	= \matr{F} \matr{A} \matr{A}^\intercal \matr{F}^\intercal + \Psi
 	= \matr{F} \matr{F}^\intercal + \Psi.
 \end{equation}
-Hence, the maximum likelihood estimate of $\matr{F}$ is not unique. However, the maximum likelihood estimate of $\matr{F}\matr{F}^\intercal + \Psi$ (TODO: include citation) is unique. Therefore, the covariance matrices of the online FA models, fit to samples from the true FA model, can be directly compared to the true covariance matrix.  
+Hence, the maximum likelihood estimate of $\matr{F}$ is not unique. However, the maximum likelihood estimate of $\matr{F}\matr{F}^\intercal + \Psi$ (TODO: include citation) is unique. Therefore, a covariance matrix of an online FA model, fit to samples from the true FA model, can be directly compared to the true covariance matrix.  
 
-Since the covariance matrices have shape $d \times d$, memory requirements dictate that $d$, the observation dimension, cannot be too large. Therefore, a value of $d=1000$ was used in all experiments in this section. Two different latent dimensions were tested, namely $K=10$ and $K=100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^d$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that (1) its columns spanned the $K$-dimensional latent space, and (2) the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{d \times d}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^d$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number can be controlled by specifying the range of $\matr{s}$, or alternatively, the range of $\matr{s}^2$, which is called the \emph{spectrum}. In each experiment the spectrum was sampled from a uniform distribution with one of the following ranges: $[0, 1]$, $[1, 10]$ or $[10, 100]$. Finally, the diagonal entries of $\Psi$ were sampled from a uniform distribution with upper bound equal to the largest value of the spectrum. This is consistent with the FA assumption that an observation, $\theta = \matr{Fh} + \matr{c} + \epsilon$, is generated by corrupting the signal $\matr{Fh} + \matr{c}$ with some random noise $\epsilon \sim \mathcal{N}(\matr{0}, \Psi)$ (TODO: this paragraph is a bit wooly. Talk to Michael about what is going on here and maybe add some citations). The full details of how FA models were generated are given in Algorithm \ref{alg:generate_fa}.
+Since the covariance matrices have shape $d \times d$, memory requirements dictate that $d$, the observation dimension, cannot be too large. Therefore, a value of $d=1000$ was used in all experiments in this section. Two different latent dimensions were tested, namely $K=10$ and $K=100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^d$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that its columns spanned the $K$-dimensional latent space and the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{d \times d}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^d$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number can be controlled by specifying the range of $\matr{s}$, or alternatively, the range of $\matr{s}^2$, which is called the \emph{spectrum}. In each experiment the spectrum was sampled from a uniform distribution with one of the following ranges: $[0, 1]$, $[1, 10]$ or $[10, 100]$. Finally, the diagonal entries of $\Psi$ were sampled from a uniform distribution with upper bound equal to the maximum value of $\matr{s}^2$. This is consistent with the FA assumption that an observation, $\theta = \matr{Fh} + \matr{c} + \epsilon$, is generated by corrupting the signal $\matr{Fh} + \matr{c}$ with some random noise $\epsilon \sim \mathcal{N}(\matr{0}, \Psi)$ (TODO: this paragraph is a bit wooly. Talk to Michael about what is going on here and maybe add some citations). The full details of how FA models were generated are given in Algorithm \ref{alg:generate_fa}.
 
 \begin{algorithm}[!htbp] 
 	\caption{Generate a Factor Analysis Model}
@@ -553,7 +552,7 @@ Since the covariance matrices have shape $d \times d$, memory requirements dicta
 	\end{algorithmic}
 \end{algorithm}
 
-Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online stochastic gradient ascent (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007} and should in theory find the maximum likelihood parameters of the model, given the data. Each algorithm was tested on samples of varying size, from 200 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, the standard deviation of the noise in the off-diagonal entries of the initial factor loading matrix was set to 0.1, and online stochastic gradient ascent ran with a learning rate of 0.001. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
+Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online stochastic gradient ascent (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007} and should in theory find the maximum likelihood parameters of the model, given the data. Each algorithm was tested on samples of varying size, from 200 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ and $\Psi$ were initialised according to Equations (\ref{eqn:F_init}) and (\ref{eqn:psi_init}) with $\sigma=0.1$, and online stochastic gradient ascent ran with a learning rate of 0.001. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
 
 
 \subsection{Results}
