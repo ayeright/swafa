@@ -516,9 +516,9 @@ From Equation (\ref{eqn:fa_marginal_dist}), the full covariance matrix of a FA m
 
 
 
-\chapter{Experiments}
+\chapter{Online Factor Analysis Comparison}
 
-\section{Online Factor Analysis} 
+\section{Fitting True Factor Analysis Models} 
 
 \subsection{Methodology}
 
@@ -557,6 +557,13 @@ Having generated a FA model, observations were sampled according to Equation (\r
 
 \subsection{Results}
 
+Figure \ref{fig:fa_covar_distance} shows the distance between the true covariance matrix of each FA model and the corresponding estimated covariance matrix of each learning algorithm, as a function of the number of samples used to fit the approximate models. The distance between two matrices is measured by the Frobenius norm (also sometimes called the Euclidean norm) of the difference between the two matrices. To give a sense of the size of the distance, the Frobenius norm of the true covariance matrix is also show on each plot. 
+
+In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[0, 1]$. In this case, for both $K=10$ and $K=100$, online EM generally approximates the true covariance matrix better than online stochastic gradient ascent, except when the number of samples is less than 1000. When $K=10$, the scikit-learn approximation is best for all samples sizes. The same is true for $K=100$, except when the sample size is between 1000 and 2000.
+
+In the second row of the figure are the results corresponding to a spectrum range of $[1, 10]$. When $K=10$, online stochastic gradient ascent consistently gets closer to the true covariance matrix that online EM for all sample sizes. When $K=100$, online stochastic gradient ascent is better for sample sizes less than or equal to 500 and greater than or equal to 20,000, whereas online EM is better for the other intermediate sample sizes. The scikit-learn approximation is again always superior when $K=10$, and for $K=100$ except when the sample size is between 1000 and 2000. For a spectrum range of $[10, 100]$ the results are very similar, as shown in the third row of the figure.  
+
+Figure \ref{fig:fa_log_likelihood} shows the log-likelihood of the true and approximate FA models for the same combinations of observation dimension, latent dimension, spectrum range and sample size. In general, for sample sizes of 10,000 and above, the log-likelihood of all three approximate model is very similar to the log-likelihood of the true model. In the case of online EM, the log-likelihood is very close to that of the true model even for very small sample sizes. In contrast, online stochastic gradient ascent needs around 5,000 to 10,000 samples to increase the log-likelihood to a similar value. For small samples sizes, the model learned by the scikit-learn algorithm actually has greater log-likelihood than the true model. 
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
@@ -596,6 +603,10 @@ Having generated a FA model, observations were sampled according to Equation (\r
 	\caption{The log-likelihood of the true and estimated FA models. The blue line shows the log-likelihood of the true FA model, while the orange, green and red lines shown the log-likelihood of the models estimated by the scikit-learn batch algorithm, online stochastic gradient ascent and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. In all experiments the observation dimension was $d=1000$. The different plots correspond to different combinations of the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_log_likelihood}
 \end{figure}
+
+\section{Fitting the Linear Regression Posterior}
+
+\section{Recommendations}
 
 
 
