@@ -70,43 +70,43 @@ Any acknowledgements go here.
 
 \chapter{Introduction}
 
-%The preliminary material of your report should contain:
-%\begin{itemize}
-%\item
-%The title page.
-%\item
-%An abstract page.
-%\item
-%Optionally an acknowledgements page.
-%\item
-%The table of contents.
-%\end{itemize}
-%
-%As in this example \texttt{skeleton.tex}, the above material should be
-%included between:
-%\begin{verbatim}
-%\begin{preliminary}
-%    ...
-%\end{preliminary}
-%\end{verbatim}
-%This style file uses roman numeral page numbers for the preliminary material.
-%
-%The main content of the dissertation, starting with the first chapter,
-%starts with page~1. \emph{\textbf{The main content must not go beyond page~40.}}
-%
-%The report then contains a bibliography and any appendices, which may go beyond
-%page~40. The appendices are only for any supporting material that's important to
-%go on record. However, you cannot assume markers of dissertations will read them.
-%
-%You may not change the dissertation format (e.g., reduce the font
-%size, change the margins, or reduce the line spacing from the default
-%1.5 spacing). Over length or incorrectly-formatted dissertations will
-%not be accepted and you would have to modify your dissertation and
-%resubmit.  You cannot assume we will check your submission before the
-%final deadline and if it requires resubmission after the deadline to
-%conform to the page and style requirements you will be subject to the
-%usual late penalties based on your final submission time.
-%
+The preliminary material of your report should contain:
+\begin{itemize}
+\item
+The title page.
+\item
+An abstract page.
+\item
+Optionally an acknowledgements page.
+\item
+The table of contents.
+\end{itemize}
+
+As in this example \texttt{skeleton.tex}, the above material should be
+included between:
+\begin{verbatim}
+\begin{preliminary}
+    ...
+\end{preliminary}
+\end{verbatim}
+This style file uses roman numeral page numbers for the preliminary material.
+
+The main content of the dissertation, starting with the first chapter,
+starts with page~1. \emph{\textbf{The main content must not go beyond page~40.}}
+
+The report then contains a bibliography and any appendices, which may go beyond
+page~40. The appendices are only for any supporting material that's important to
+go on record. However, you cannot assume markers of dissertations will read them.
+
+You may not change the dissertation format (e.g., reduce the font
+size, change the margins, or reduce the line spacing from the default
+1.5 spacing). Over length or incorrectly-formatted dissertations will
+not be accepted and you would have to modify your dissertation and
+resubmit.  You cannot assume we will check your submission before the
+final deadline and if it requires resubmission after the deadline to
+conform to the page and style requirements you will be subject to the
+usual late penalties based on your final submission time.
+
 %\section{Using Sections}
 %
 %Divide your chapters into sub-parts as appropriate.
@@ -125,6 +125,8 @@ Any acknowledgements go here.
 %A dissertation usually contains several chapters.
 
 \chapter{Factor Analysis}\label{sec:fa}
+
+\section{Background}
 
 FA is a latent variable model which generates observations $\theta \in \R^d$ as follows. First, a latent vector $\matr{h} \in \R^K$, for some $K < d$, is sampled from $p(\matr{h}) = \mathcal{N}(\matr{0}, \matr{I})$. Next, $\matr{h}$ is transformed onto a $K$-dimensional linear subspace of $\R^d$ by left-multiplying it by a \emph{factor loading} matrix $\matr{F} \in \R^{d \times K}$. The origin of this subspace is then shifted by adding a bias term $\matr{c} \in \R^d$. Finally, the data is perturbed by adding some zero mean Gaussian noise $\epsilon \in \R^d$ sampled from $\mathcal{N}(\matr{0}, \Psi)$, where $\Psi$ is a $d\times d$ diagonal matrix \cite{barber2007}. Putting all this together, an observation $\theta \in \R^d$ is generated according to 
 \begin{equation}\label{eqn:fa_model}
@@ -145,7 +147,7 @@ where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, inte
 \end{equation}
 The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\theta_{\text{SWA}}$. 
 %By substituting $\matr{c} = \theta_{\text{SWA}}$ into $p(\theta)$, the distribution in (\ref{eqn:fa_dist}) is obtained. 
-Having set the bias term, an expectation maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Sections \ref{sec:gradient_fa} and \ref{sec:online_em}.
+Having set the bias term, an expectation-maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Sections \ref{sec:gradient_fa} and \ref{sec:online_em}.
 
 \section{Online Stochastic Gradient Ascent}\label{sec:gradient_fa}
 
@@ -343,10 +345,10 @@ One final point is that the elements of $\psi$ must be positive, since they repr
 \end{align} 
 where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\ref{eqn:efficient_derivatives_wrt_Psi}).
 
-Pseudo code for online stochastic gradient FA is given in Algorithm \ref{alg:gradient_fa}.
+Pseudo code for online stochastic gradient ascent (SGA) for FA is given in Algorithm \ref{alg:gradient_fa}.
 
 \begin{algorithm}[!htbp] 
-	\caption{Online Stochastic Gradient Factor Analysis}
+	\caption{Online Stochastic Gradient Ascent for Factor Analysis}
 	\label{alg:gradient_fa}
 	\begin{algorithmic}[1]
 		\Require{Observation dimension $d$, latent dimension $K$, learning rate $\alpha > 0$} 
@@ -374,7 +376,7 @@ Pseudo code for online stochastic gradient FA is given in Algorithm \ref{alg:gra
 \end{algorithm}
 
 
-\section{Online EM}\label{sec:online_em}
+\section{Online Expectation-Maximisation}\label{sec:online_em}
 
 The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
 \begin{equation}\label{eqn:EM_bound}
@@ -390,7 +392,7 @@ In the batch E-step, $\matr{F}$ and $\Psi$ are fixed and Equation (\ref{eqn:EM_b
 \begin{equation}
 	q(\matr{h}_t | \theta_t) = p(\matr{h}_t | \theta_t, \matr{F}, \Psi)  \propto \mathcal{N}(\matr{m}_t, \Sigma), 
 \end{equation}
-where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM all $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ will be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it will be replaced by the running average of the neural network's parameter vectors, as in the online gradient-based FA algorithm from Section \ref{sec:gradient_fa}.
+where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM all $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ will be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it will be replaced by the running average of the neural network's parameter vectors, as in the online SGA algorithm from Section \ref{sec:gradient_fa}.
 
 
 \subsection{M-step}
@@ -425,7 +427,7 @@ and
 \begin{equation}\label{eqn:em_Psi_incremental_update}
 	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{t} \sum_{i=1}^t \matr{d}_i \matr{d}_i^\intercal - 2 \matr{F}\overline{\matr{A}}_t^\intercal + \matr{F}\overline{\matr{H}}_t \matr{F}^\intercal \Bigg)\Bigg).
 \end{equation}
-As in the online gradient-based FA algorithm from Section \ref{sec:gradient_fa}, it suffices to work with $\psi = \diag(\Psi)$ instead of $\Psi$. 
+As in the online SGA algorithm from Section \ref{sec:gradient_fa}, it suffices to work with $\psi = \diag(\Psi)$ instead of $\Psi$. 
 The diagonal entries of Equation (\ref{eqn:em_Psi_incremental_update}) can be computed more efficiently as 
 \begin{align}
 \begin{split}\label{eqn:em_Psi_efficient_update}
@@ -454,7 +456,7 @@ All that remains to complete the online algorithm is to define the incremental u
 Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 
 \begin{algorithm}[!htbp] 
-	\caption{Online Expectation Maximisation for Factor Analysis}
+	\caption{Online Expectation-Maximisation for Factor Analysis}
 	\label{alg:online_em}
 	\begin{algorithmic}[1]
 		\Require{Observation dimension $d$, latent dimension $K$} 
@@ -514,11 +516,7 @@ From Equation (\ref{eqn:fa_marginal_dist}), the full covariance matrix of a FA m
 	\psi = (s, s, \dots, s)^\intercal \in \R^d, \quad s = \max\big(\text{diag}(\matr{F})\big).
 \end{equation}
 
-
-
-\chapter{Online Factor Analysis Comparison}
-
-\section{Fitting True Factor Analysis Models} 
+\section{Experiments} 
 
 \subsection{Methodology}
 
@@ -552,18 +550,18 @@ Since the covariance matrices have shape $d \times d$, memory requirements dicta
 	\end{algorithmic}
 \end{algorithm}
 
-Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online stochastic gradient ascent (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007} and should in theory find the maximum likelihood parameters of the model, given the data. Each algorithm was tested on samples of varying size, from 200 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ and $\Psi$ were initialised according to Equations (\ref{eqn:F_init}) and (\ref{eqn:psi_init}) with $\sigma=0.1$, and online stochastic gradient ascent ran with a learning rate of 0.001. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
+Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007} and should in theory find the maximum likelihood parameters of the model, given the data. Each algorithm was tested on samples of varying size, from 200 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ and $\Psi$ were initialised according to Equations (\ref{eqn:F_init}) and (\ref{eqn:psi_init}) with $\sigma=0.1$, and online SGA ran with a learning rate of 0.001. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
 
 
 \subsection{Results}
 
 Figure \ref{fig:fa_covar_distance} shows the distance between the true covariance matrix of each FA model and the corresponding estimated covariance matrix of each learning algorithm, as a function of the number of samples used to fit the approximate models. The distance between two matrices is measured by the Frobenius norm (also sometimes called the Euclidean norm) of the difference between the two matrices. To give a sense of the size of the distance, the Frobenius norm of the true covariance matrix is also show on each plot. 
 
-In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[0, 1]$. In this case, for both $K=10$ and $K=100$, online EM generally approximates the true covariance matrix better than online stochastic gradient ascent, except when the number of samples is less than 1000. When $K=10$, the scikit-learn approximation is best for all samples sizes. The same is true for $K=100$, except when the sample size is between 1000 and 2000.
+In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[0, 1]$. In this case, for both $K=10$ and $K=100$, online EM generally approximates the true covariance matrix better than online SGA, except when the number of samples is less than 1000. When $K=10$, the scikit-learn approximation is best for all samples sizes. The same is true for $K=100$, except when the sample size is between 1000 and 2000.
 
-In the second row of the figure are the results corresponding to a spectrum range of $[1, 10]$. When $K=10$, online stochastic gradient ascent consistently gets closer to the true covariance matrix that online EM for all sample sizes. When $K=100$, online stochastic gradient ascent is better for sample sizes less than or equal to 500 and greater than or equal to 20,000, whereas online EM is better for the other intermediate sample sizes. The scikit-learn approximation is again always superior when $K=10$, and for $K=100$ except when the sample size is between 1000 and 2000. For a spectrum range of $[10, 100]$ the results are very similar, as shown in the third row of the figure.  
+In the second row of the figure are the results corresponding to a spectrum range of $[1, 10]$. When $K=10$, online SGA consistently gets closer to the true covariance matrix that online EM for all sample sizes. When $K=100$, online SGA is better for sample sizes less than or equal to 500 and greater than or equal to 20,000, whereas online EM is better for the other intermediate sample sizes. The scikit-learn approximation is again always superior when $K=10$, and for $K=100$ except when the sample size is between 1000 and 2000. For a spectrum range of $[10, 100]$ the results are very similar, as shown in the third row of the figure.  
 
-Figure \ref{fig:fa_log_likelihood} shows the log-likelihood of the true and approximate FA models for the same combinations of observation dimension, latent dimension, spectrum range and sample size. In general, for sample sizes of 10,000 and above, the log-likelihood of all three approximate model is very similar to the log-likelihood of the true model. In the case of online EM, the log-likelihood is very close to that of the true model even for very small sample sizes. In contrast, online stochastic gradient ascent needs around 5,000 to 10,000 samples to increase the log-likelihood to a similar value. For small samples sizes, the model learned by the scikit-learn algorithm actually has greater log-likelihood than the true model. 
+Figure \ref{fig:fa_log_likelihood} shows the log-likelihood of the true and approximate FA models for the same combinations of observation dimension, latent dimension, spectrum range and sample size. In general, for sample sizes of 10,000 and above, the log-likelihood of all three approximate model is very similar to the log-likelihood of the true model. In the case of online EM, the log-likelihood is very close to that of the true model even for very small sample sizes. In contrast, online SGA needs around 5,000 to 10,000 samples to increase the log-likelihood to a similar value. For small samples sizes, the model learned by the scikit-learn algorithm actually has greater log-likelihood than the true model. 
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
@@ -580,7 +578,7 @@ Figure \ref{fig:fa_log_likelihood} shows the log-likelihood of the true and appr
 		 (e) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$ 
 		 & (f) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$\\[6pt]
 	\end{tabular}
-	\caption{The distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue line shows the Frobenius norm of the true covariance matrix, while the orange, green and red lines shown the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix for the scikit-learn batch algorithm, online stochastic gradient ascent and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. In all experiments the observation dimension was $d=1000$. The different plots correspond to different combinations of the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
+	\caption{The distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue line shows the Frobenius norm of the true covariance matrix, while the orange, green and red lines shown the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix for the scikit-learn batch algorithm, online SGA and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. In all experiments the observation dimension was $d=1000$. The different plots correspond to different combinations of the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_covar_distance}
 \end{figure}
 
@@ -600,32 +598,41 @@ Figure \ref{fig:fa_log_likelihood} shows the log-likelihood of the true and appr
 		 (e) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$ 
 		 & (f) $d=1000$, $K=100$, $\matr{s}^2 \sim \mathcal{U}(10, 100)$\\[6pt]
 	\end{tabular}
-	\caption{The log-likelihood of the true and estimated FA models. The blue line shows the log-likelihood of the true FA model, while the orange, green and red lines shown the log-likelihood of the models estimated by the scikit-learn batch algorithm, online stochastic gradient ascent and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. In all experiments the observation dimension was $d=1000$. The different plots correspond to different combinations of the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
+	\caption{The log-likelihood of the true and estimated FA models. The blue line shows the log-likelihood of the true FA model, while the orange, green and red lines shown the log-likelihood of the models estimated by the scikit-learn batch algorithm, online SGA and online EM, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. In all experiments the observation dimension was $d=1000$. The different plots correspond to different combinations of the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_log_likelihood}
 \end{figure}
 
-\section{Fitting the Linear Regression Posterior}
 
-\section{Recommendations}
+\chapter{Linear Regression}
 
+\section{Background}
+
+\cite{murphy2012}
+
+
+\section{Experiments}
+
+\subsection{Methodology}
+
+\subsection{Results}
 
 
 \chapter{Conclusions}
 
-%\section{Final Reminder}
-%
-%The body of your dissertation, before the references and any appendices,
-%\emph{must} finish by page~40. The introduction, after preliminary material,
-%should have started on page~1.
-%
-%You may not change the dissertation format (e.g., reduce the font
-%size, change the margins, or reduce the line spacing from the default
-%1.5 spacing). Over length or incorrectly-formatted dissertations will
-%not be accepted and you would have to modify your dissertation and
-%resubmit.  You cannot assume we will check your submission before the
-%final deadline and if it requires resubmission after the deadline to
-%conform to the page and style requirements you will be subject to the
-%usual late penalties based on your final submission time.
+\section{Final Reminder}
+
+The body of your dissertation, before the references and any appendices,
+\emph{must} finish by page~40. The introduction, after preliminary material,
+should have started on page~1.
+
+You may not change the dissertation format (e.g., reduce the font
+size, change the margins, or reduce the line spacing from the default
+1.5 spacing). Over length or incorrectly-formatted dissertations will
+not be accepted and you would have to modify your dissertation and
+resubmit.  You cannot assume we will check your submission before the
+final deadline and if it requires resubmission after the deadline to
+conform to the page and style requirements you will be subject to the
+usual late penalties based on your final submission time.
 
 \bibliographystyle{plain}
 \bibliography{main}
