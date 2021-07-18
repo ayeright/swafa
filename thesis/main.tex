@@ -29,6 +29,7 @@
 \newcommand{\bgreek}[1]{\boldsymbol{#1}}
 \newcommand{\R}{\mathbb R}
 \newcommand{\E}{\mathbb E}
+\newcommand{\V}{\mathbb V}
 \newcommand{\N}{\mathbb N}
 \newcommand{\diag}{\mathop{\mathrm{diag}}}
 
@@ -603,12 +604,132 @@ Figure \ref{fig:fa_log_likelihood} shows the log-likelihood of the true and appr
 \end{figure}
 
 
-\chapter{Linear Regression}
+\chapter{Bayesian Linear Regression} 
 
 \section{Background}
 
-\cite{murphy2012}
+A linear regression model is a mapping from inputs $\matr{x} \in \R^d$ to scalar outputs $y \in \R$ via an affine transformation. Given a set of observed input-output pairs, $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N} \subset \R^d \times \R$, it is assumed that each output is generated according to 
+\begin{equation}\label{eqn:linear_regression}
+	y_n = \theta^\intercal \matr{x}_n + \epsilon
+\end{equation}
+for some unknown $\theta \in \R^d$, where the underlying signal, $\theta^\intercal \matr{x}_n$, is corrupted by $\epsilon \sim \mathcal{N}(0, \sigma^2)$, $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}).
 
+Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}$ and $\theta$. Since $\epsilon$ is Gaussian distributed, the conditional pdf of $y_n$ is 
+\begin{equation}\label{eqn:linear_regression_pdf}
+	p(y_n | \theta, \matr{x}_n) 
+	= \mathcal{N}\big(\theta^\intercal \matr{x}_n, \sigma^2\big)
+	= \frac{1}{\sqrt{2\pi \sigma^2}} \exp\Big(-\frac{1}{2\sigma^2} \big(y_n - \theta^\intercal \matr{x}_n \big)^2\Big).
+\end{equation}
+Assuming that the observations in $\mathcal{D}$ are independent and identically distributed, the log-likelihood of $\theta$ given the data is 
+\begin{align}\label{eqn:linear_regression_log_likelihood}
+\begin{split}
+	\log p(\mathcal{D} | \theta) 
+	& = \sum_{n=1}^N \big[ \log p(y_n | \theta, \matr{x}_n)  + \log p(\matr{x}_n) \big] \\
+	& = \sum_{n=1}^N \Big[ -\frac{1}{2} \log 2\pi \sigma^2 - \frac{1}{2\sigma^2} \big(y_n - \theta^\intercal \matr{x}_n \big)^2 \Big]
+	+ \sum_{n=1}^N \log p(\matr{x}_n) \\
+	& = - \frac{1}{2 \sigma^2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	- \frac{N}{2} \log \sigma^2
+	- \frac{N}{2} \log 2\pi
+	+ \sum_{n=1}^N \log p(\matr{x}_n) \\
+	& = - \frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	+ \frac{N}{2} \log \beta
+	+ \text{constant},
+\end{split}
+\end{align}
+where $\beta = \frac{1}{\sigma^2}$ \cite{barber2007}. In Bayesian linear regression, a prior distribution for $\theta$ is also specified. A common choice  is 
+\begin{equation}\label{eqn:linear_regression_prior}
+	p(\theta) 
+	= \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)
+	= \Big(\frac{\alpha}{2\pi}\Big)^{\frac{d}{2}} \exp\Big(-\frac{\alpha}{2} \theta^\intercal \theta \Big)
+\end{equation}
+for some $\alpha > 0$, called the \emph{precision} \cite{barber2007}. Applying the logarithm, 
+\begin{align}\label{eqn:linear_regression_log_prior}
+\begin{split}
+	\log p(\theta) 
+	& = \frac{d}{2} \log \frac{\alpha}{2\pi} - \frac{\alpha}{2} \theta^\intercal \theta \\
+	& = -\frac{\alpha}{2} \theta^\intercal \theta + \frac{d}{2} \log \alpha + \text{constant}.
+\end{split}
+\end{align}
+Now, using Bayes' rules and Equation (\ref{eqn:linear_regression_log_likelihood}) and Equation (\ref{eqn:linear_regression_log_prior}), it follows that the log-posterior distribution of $\theta$ for fixed $\alpha$ and $\beta$ is 
+\begin{align}\label{eqn:linear_regression_log_posterior}
+\begin{split}
+	\log p(\theta | \mathcal{D}) 
+	& = \log \frac{p(\mathcal{D} | \theta) p(\theta)}{p(\mathcal{D})} \\
+	& = \log p(\mathcal{D} | \theta) + \log p(\theta) - \log p(\mathcal{D}) \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	-\frac{\alpha}{2} \theta^\intercal \theta 
+	+ \text{constant} \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N\big( y_n^2 - 2 y_n \theta^\intercal \matr{x}_n + (\theta^\intercal \matr{x}_n)^2 \big)
+	-\frac{\alpha}{2} \theta^\intercal \theta
+	+ \text{constant} \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N y_n^2
+	+ \beta \sum_{n=1}^N y_n \theta^\intercal \matr{x}_n
+	-\frac{\beta}{2} \sum_{n=1}^N \theta^\intercal \matr{x}_n \matr{x}_n^\intercal \theta
+	-\frac{\alpha}{2} \theta^\intercal \theta
+	+ \text{constant} \\
+	& = \Big(\beta \sum_{n=1}^N y_n \matr{x}_n \Big)^\intercal \theta 
+	-\frac{1}{2} \theta^\intercal \Big( \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal \Big) \theta 
+	+ \text{constant} \\
+	& = \matr{b}^\intercal \theta 
+	- \frac{1}{2} \theta^\intercal \matr{A} \theta 
+	+ \text{constant},
+\end{split}
+\end{align}
+where 
+\begin{equation}
+	\matr{A} = \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal
+	\quad \text{and} \quad 
+	\matr{b} = \beta \sum_{n=1}^N y_n \matr{x}_n.
+\end{equation}
+Now, using a result from \cite{barber2007} to complete the square of Equation (\ref{eqn:linear_regression_log_posterior}),
+\begin{align}
+\begin{split}
+	\log p(\theta | \mathcal{D}) 
+	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
+	+ \frac{1}{2} \matr{b}^\intercal \matr{A}^{-1} \matr{b}
+	+ \text{constant} \\
+	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
+	+ \text{constant} \\
+	& = -\frac{1}{2} \big(\theta - \matr{m} \big)^\intercal \matr{S}^{-1} \big(\theta - \matr{m} \big)
+	+ \text{constant},
+\end{split}
+\end{align}
+where
+\begin{equation}
+	\matr{m} = \matr{A}^{-1} \matr{b}
+	\quad \text{and} \quad 
+	\matr{S} = \matr{A}^{-1}.
+\end{equation}
+Hence, the posterior distribution of $\theta$ is 
+\begin{align}\label{eqn:linear_regression_posterior}
+\begin{split}
+	p(\theta | \mathcal{D}) 
+	%& = \exp \Big(-\frac{1}{2} \big(\theta - \matr{m} \big)^\intercal \matr{S}^{-1} \big(\theta - \matr{m} \big) \Big) \cdot \text{constant} \\
+	= \mathcal{N}(\matr{m}, \matr{S}).
+\end{split}
+\end{align}
+
+Since the posterior of the linear regression parameter vector can be computed in closed form, the ability of the online FA algorithms to learn the posterior can be evaluated in this case. For a linear regression model trained via SGD, Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} can both be used to fit a Gaussian distribution to the iterates, $\theta_1, \dots, \theta_T$, encountered along the SGD trajectory. The mean and covariance of the learned distributions can then be compared directly to the ground truth. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). This can be estimated by calculating the empirical standard deviation of $\{y_n\}_{n=1}^{N}$. 
+
+The precision $\alpha$ is a user-defined parameter which controls the complexity of the model. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
+\begin{align}
+\begin{split}
+	\log p(\theta | \mathcal{D}) 
+	& = -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	-\frac{\alpha}{2} \theta^\intercal \theta 
+	+ \text{constant} \\
+	& = - \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	-\frac{\alpha}{\beta} \theta^\intercal \theta 
+	+ \text{constant}
+\end{split}
+\end{align}
+Ignoring the constant, notice that $-\log p(\theta | \mathcal{D})$ is analogous to the L2-regularised training loss often used in non-Bayesian linear regression \cite{barber2007}, which is 
+\begin{equation}\label{eqn:regularised_linear_regression}
+	\sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	+ \lambda \theta^\intercal \theta 
+\end{equation}
+for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is exactly the same as the maximum \emph{a posteriori} (MAP) estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the posterior distribution of $\theta$ can be estimated by fitting the online FA models to the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$.
+ 
 
 \section{Experiments}
 
