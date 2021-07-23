@@ -18,11 +18,20 @@ from experiments.online_fa import (
 
 @pytest.mark.parametrize("n_experiments", [1, 3])
 @pytest.mark.parametrize("n_trials", [1, 4])
-def test_fa_results_rows_and_columns(n_experiments, n_trials):
-    config = dict(observation_dim=10, latent_dim=5, spectrum_range=[0, 1], n_samples=100)
+@pytest.mark.parametrize("n_sample_sizes", [1, 4])
+def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
+    config = dict(
+        observation_dim=10,
+        latent_dim=5,
+        spectrum_range=[0, 1],
+        n_samples=list((np.arange(n_sample_sizes) + 1) * 10),
+    )
     experiments_config = [config] * n_experiments
     results = run_all_fa_experiments(
-        experiments_config, n_trials, init_factors_noise_std=0.1, gradient_optimiser_kwargs=dict(lr=0.01),
+        experiments_config,
+        n_trials,
+        init_factors_noise_std=0.1,
+        gradient_optimiser_kwargs=dict(lr=0.01),
     )
     expected_columns = [
         'observation_dim',
@@ -45,9 +54,9 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials):
     assert len(actual_columns) == len(expected_columns)
     assert len(np.intersect1d(actual_columns, expected_columns)) == len(actual_columns)
 
-    assert len(results) == n_experiments * n_trials
+    assert len(results) == n_experiments * n_trials * n_sample_sizes
     for i in range(n_experiments):
-        assert (results['experiment'] == i + 1).sum() == n_trials
+        assert (results['experiment'] == i + 1).sum() == n_trials * n_sample_sizes
 
 
 @pytest.mark.parametrize("observation_dim", [10, 20])
@@ -119,7 +128,7 @@ def test_online_gradients_learned_params_shape(observation_dim, latent_dim, spec
     _, _, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
-    mean, covar = learn_fa_with_online_gradients(
+    _, mean, covar = learn_fa_with_online_gradients(
         observations, latent_dim, init_factors_noise_std=0.1, optimiser_kwargs=None, random_seed=0,
     )
     assert mean.shape == (observation_dim,)
@@ -134,7 +143,7 @@ def test_online_em_learned_params_shape(observation_dim, latent_dim, spectrum_ra
     _, _, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
-    mean, covar = learn_fa_with_online_em(
+    _, mean, covar = learn_fa_with_online_em(
         observations, latent_dim, init_factors_noise_std=0.1, random_seed=0,
     )
     assert mean.shape == (observation_dim,)

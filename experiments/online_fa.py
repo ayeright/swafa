@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -33,8 +33,11 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
                 - latent_dim: (int) The size of the latent variable space of the FA model.
                 - spectrum_range: ([float, float]) The end points of the "spectrum", which controls the conditioning of
                     the covariance matrix of the true FA model.
-                - n_samples: (int) The number of observations sampled from the true FA model. All FA learning algorithms
-                    will be fit to this data.
+                - n_samples: (List[int]) The number of observations sampled from the true FA model. All FA learning
+                    algorithms will be fit to this data. In the case of the batch algorithm, a separate model will be
+                    fit to each different sample size in the list. In the case of the online algorithms, training with
+                    n_samples[i] observations will begin from the model fit to n_samples[i - 1] observations. Sample
+                    sizes must come in increasing order.
         n_trials: The number of trials to run for each experiment, for different random seeds.
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix in the online FA learning algorithms.
@@ -42,12 +45,14 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
             learning algorithm.
 
     Returns:
-        The results of each experiment. Has len(experiments_config) * n_trials rows and the following columns:
+        The results of each experiment. The number of rows in the DataFrame is equal to
+        sum[len(config[n_samples]) * n_trials for config in experiments_config].
+        The DataFrame has the following columns:
             - observation_dim: (int) Same as above.
             - latent_dim: (int) Same as above.
             - spectrum_min: (float) The lower bound of the spectrum range.
             - spectrum_max: (float) The upper bound of the spectrum range.
-            - n_samples: (int) Same as above.
+            - n_samples: (int) The number of samples used to fit the model.
             - covar_norm: (float) The Frobenius norm of the the true covariance matrix of the FA model.
             - covar_distance_sklearn: (float) The Frobenius norm of the difference between the true covariance matrix
                 and the covariance matrix estimated by sklearn's `FactorAnalysis`.
@@ -87,12 +92,12 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
             print('-' * 100)
         print('-' * 100)
 
-    return pd.DataFrame(results)
+    return pd.concat(results)
 
 
-def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: int,
+def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: List[int],
                             init_factors_noise_std: float, gradient_optimiser_kwargs: dict, samples_random_seed: int,
-                            algorithms_random_seed: int) -> dict:
+                            algorithms_random_seed: int) -> pd.DataFrame:
     """
     Run a factor analysis (FA) experiment trial for the given parameters.
 
@@ -108,7 +113,9 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
         spectrum_range: The end points of the "spectrum", which controls the conditioning of the covariance matrix of
             the true FA model.
         n_samples: The number of observations sampled from the true FA model. All FA learning algorithms will be fit to
-            this data.
+            this data. In the case of the batch algorithm, a separate model will be fit to each different sample size in
+            the list. In the case of the online algorithms, training with n_samples[i] observations will begin from the
+            model fit to n_samples[i - 1] observations. Sample sizes must come in increasing order.
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix in the online FA learning algorithms.
         gradient_optimiser_kwargs: Keyword arguments for the PyTorch SGD optimiser used in the online gradient FA
@@ -117,12 +124,12 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
         algorithms_random_seed: The random seed used in all three learning algorithms.
 
     Returns:
-        The results of the trial. Has the following keys:
+        The results of each trial. Has len(n_samples) rows and the following columns:
             - observation_dim: (int) Same as input.
             - latent_dim: (int) Same as input.
             - spectrum_min: (float) The lower bound of the spectrum range.
             - spectrum_max: (float) The upper bound of the spectrum range.
-            - n_samples: (int) Same as input.
+            - n_samples: (int) The number of samples used to fit the models.
             - covar_norm: (float) The Frobenius norm of the the true covariance matrix of the FA model.
             - covar_distance_sklearn: (float) The Frobenius norm of the difference between the true covariance matrix
                 and the covariance matrix estimated by sklearn's `FactorAnalysis`.
@@ -135,41 +142,72 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             - ll_online_gradient: (float) The log-likelihood of the online gradient FA model.
             - ll_online_em: (float) The log-likelihood of the online EM FA model.
     """
-    results = dict(
-        observation_dim=observation_dim,
-        latent_dim=latent_dim,
-        spectrum_min=spectrum_range[0],
-        spectrum_max=spectrum_range[1],
-        n_samples=n_samples,
-    )
-
+    max_samples = n_samples[-1]
     mean_true, covar_true, observations = generate_and_sample_fa_model(
-        observation_dim, latent_dim, spectrum_range, n_samples, samples_random_seed,
+        observation_dim,
+        latent_dim,
+        spectrum_range,
+        max_samples,
+        samples_random_seed,
     )
 
-    mean_sklearn, covar_sklearn = learn_fa_with_sklearn(observations, latent_dim, algorithms_random_seed)
+    fa_online_gradient = None
+    fa_online_em = None
+    samples = Tensor([])
+    n_samples_iterator = [0] + n_samples
 
-    mean_online_gradient, covar_online_gradient = learn_fa_with_online_gradients(
-        observations, latent_dim, init_factors_noise_std, gradient_optimiser_kwargs, algorithms_random_seed,
-    )
+    all_results = []
+    for i, n_samples_first in enumerate(n_samples_iterator[:-1]):
+        n_samples_last = n_samples_iterator[i + 1]
+        new_samples = observations[n_samples_first:n_samples_last, :]
+        samples = torch.cat([samples, new_samples])
 
-    mean_online_em, covar_online_em = learn_fa_with_online_em(
-        observations, latent_dim, init_factors_noise_std, algorithms_random_seed,
-    )
+        print(f'Using {len(samples)} samples...')
 
-    results['covar_norm'] = compute_distance_between_matrices(covar_true, torch.zeros_like(covar_true))
-    results['covar_distance_sklearn'] = compute_distance_between_matrices(covar_true, covar_sklearn)
-    results['covar_distance_online_gradient'] = compute_distance_between_matrices(covar_true, covar_online_gradient)
-    results['covar_distance_online_em'] = compute_distance_between_matrices(covar_true, covar_online_em)
+        mean_sklearn, covar_sklearn = learn_fa_with_sklearn(
+            samples,
+            latent_dim,
+            algorithms_random_seed,
+        )
 
-    results['ll_true'] = compute_gaussian_log_likelihood(mean_true, covar_true, observations)
-    results['ll_sklearn'] = compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations)
-    results['ll_online_gradient'] = compute_gaussian_log_likelihood(
-        mean_online_gradient, covar_online_gradient, observations,
-    )
-    results['ll_online_em'] = compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations)
+        fa_online_gradient, mean_online_gradient, covar_online_gradient = learn_fa_with_online_gradients(
+            new_samples,
+            latent_dim,
+            init_factors_noise_std,
+            gradient_optimiser_kwargs,
+            algorithms_random_seed,
+            fa=fa_online_gradient,
+        )
 
-    return results
+        fa_online_em, mean_online_em, covar_online_em = learn_fa_with_online_em(
+            new_samples,
+            latent_dim,
+            init_factors_noise_std,
+            algorithms_random_seed,
+            fa=fa_online_em,
+        )
+
+        results = dict(
+            observation_dim=observation_dim,
+            latent_dim=latent_dim,
+            spectrum_min=spectrum_range[0],
+            spectrum_max=spectrum_range[1],
+            n_samples=n_samples_last,
+            covar_norm=compute_distance_between_matrices(covar_true, torch.zeros_like(covar_true)),
+            covar_distance_sklearn=compute_distance_between_matrices(covar_true, covar_sklearn),
+            covar_distance_online_gradient=compute_distance_between_matrices(covar_true, covar_online_gradient),
+            covar_distance_online_em=compute_distance_between_matrices(covar_true, covar_online_em),
+            ll_true=compute_gaussian_log_likelihood(mean_true, covar_true, observations),
+            ll_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations),
+            ll_online_gradient=compute_gaussian_log_likelihood(
+                mean_online_gradient, covar_online_gradient, observations,
+            ),
+            ll_online_em=compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations),
+        )
+
+        all_results.append(results)
+
+    return pd.DataFrame(all_results)
 
 
 def generate_and_sample_fa_model(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: int,
@@ -295,7 +333,8 @@ def learn_fa_with_sklearn(observations: Tensor, latent_dim: int, random_seed: in
 
 
 def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_factors_noise_std: float,
-                                   optimiser_kwargs: dict, random_seed: int) -> (Tensor, Tensor):
+                                   optimiser_kwargs: dict, random_seed: int,
+                                   fa: Optional[OnlineGradientFactorAnalysis] = None) -> (Tensor, Tensor):
     """
     Learn the parameters of a factor analysis (FA) model via online stochastic gradient ascent.
 
@@ -306,22 +345,26 @@ def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_f
             factor loading matrix.
         optimiser_kwargs: Keyword arguments for the PyTorch SGD optimiser used in the algorithm.
         random_seed: The random seed used in the algorithm.
+        fa: If a FA model is provided, the observations will be used to fit this model. Else a completely new model will
+            be initialised.
 
     Returns:
+        fa: The trained FA model.
         mean: The learned mean of the FA model.
         covar: The learned covariance matrix of the FA model.
     """
     print('Learning FA model via online stochastic gradient ascent...')
-    observation_dim = observations.shape[1]
-    fa = OnlineGradientFactorAnalysis(
-        observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, optimiser=SGD,
-        optimiser_kwargs=optimiser_kwargs, random_seed=random_seed,
-    )
+    if fa is None:
+        observation_dim = observations.shape[1]
+        fa = OnlineGradientFactorAnalysis(
+            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, optimiser=SGD,
+            optimiser_kwargs=optimiser_kwargs, random_seed=random_seed,
+        )
     return learn_fa_online(fa, observations)
 
 
 def learn_fa_with_online_em(observations: Tensor, latent_dim: int, init_factors_noise_std: float, random_seed: int,
-                            ) -> (Tensor, Tensor):
+                            fa: Optional[OnlineEMFactorAnalysis] = None) -> (Tensor, Tensor):
     """
     Learn the parameters of a factor analysis (FA) model via online expectation maximisation (EM).
 
@@ -331,20 +374,24 @@ def learn_fa_with_online_em(observations: Tensor, latent_dim: int, init_factors_
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix.
         random_seed: The random seed used in the algorithm.
+        fa: If a FA model is provided, the observations will be used to fit this model. Else a completely new model will
+            be initialised.
 
     Returns:
+        fa: The trained FA model.
         mean: The learned mean of the FA model.
         covar: The learned covariance matrix of the FA model.
     """
     print('Learning FA model via online expectation maximisation...')
-    observation_dim = observations.shape[1]
-    fa = OnlineEMFactorAnalysis(
-        observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, random_seed=random_seed,
-    )
+    if fa is None:
+        observation_dim = observations.shape[1]
+        fa = OnlineEMFactorAnalysis(
+            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, random_seed=random_seed,
+        )
     return learn_fa_online(fa, observations)
 
 
-def learn_fa_online(fa: OnlineFactorAnalysis, observations: Tensor) -> (Tensor, Tensor):
+def learn_fa_online(fa: OnlineFactorAnalysis, observations: Tensor) -> (OnlineFactorAnalysis, Tensor, Tensor):
     """
     Learn the parameters of a factor analysis (FA) model online.
 
@@ -355,6 +402,7 @@ def learn_fa_online(fa: OnlineFactorAnalysis, observations: Tensor) -> (Tensor, 
         observations: Sampled observations. Of shape (n_samples, observation_dim).
 
     Returns:
+        fa: The trained FA model.
         mean: The learned mean of the FA model.
         covar: The learned covariance matrix of the FA model.
     """
@@ -363,7 +411,7 @@ def learn_fa_online(fa: OnlineFactorAnalysis, observations: Tensor) -> (Tensor, 
     mean = fa.c.squeeze()
     psi = torch.diag(fa.diag_psi.squeeze())
     covar = compute_fa_covariance(fa.F, psi)
-    return mean, covar
+    return fa, mean, covar
 
 
 def compute_fa_covariance(F: Tensor, psi: Tensor) -> Tensor:
