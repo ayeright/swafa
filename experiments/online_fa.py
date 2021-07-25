@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import random
 from typing import List, Optional
 
 import numpy as np
@@ -7,16 +8,17 @@ import pandas as pd
 import torch
 from torch import Tensor
 from torch.distributions.multivariate_normal import MultivariateNormal
-from torch.optim import SGD
 from sklearn.decomposition import FactorAnalysis
 import yaml
 import click
 
 from swafa.fa import OnlineGradientFactorAnalysis, OnlineEMFactorAnalysis, OnlineFactorAnalysis
+from experiments.factory import OPTIMISER_FACTORY
 
 
 def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_factors_noise_std: float,
-                           gradient_optimiser_kwargs: dict) -> pd.DataFrame:
+                           gradient_optimiser: str, gradient_optimiser_kwargs: dict, n_test_samples: int,
+                           ) -> pd.DataFrame:
     """
     Run all factor analysis (FA) experiments specified in the given configuration.
 
@@ -41,8 +43,12 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
         n_trials: The number of trials to run for each experiment, for different random seeds.
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix in the online FA learning algorithms.
-        gradient_optimiser_kwargs: Keyword arguments for the PyTorch SGD optimiser used in the online gradient FA
-            learning algorithm.
+        gradient_optimiser: The name of the PyTorch optimiser used in the online gradient learning algorithm. Options
+            are 'sgd' and 'adam'.
+        gradient_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the online gradient FA learning
+            algorithm.
+        n_test_samples: The number of observations to sample for a hold-out set to compute the test log-likelihood of
+            the models.
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
@@ -60,10 +66,20 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
                 matrix and the covariance matrix estimated by `OnlineGradientFactorAnalysis`.
             - covar_distance_online_em: (float) The Frobenius norm of the difference between the true covariance
                 matrix and the covariance matrix estimated by `OnlineEMFactorAnalysis`.
-            - ll_true: (float) The log-likelihood of the true FA model, given the data sampled from the model.
-            - ll_sklearn: (float) The log-likelihood of the sklearn FA model.
-            - ll_online_gradient: (float) The log-likelihood of the online gradient FA model.
-            - ll_online_em: (float) The log-likelihood of the online EM FA model.
+            - ll_train_true: (float) The training log-likelihood of the true FA model.
+            - ll_train_sklearn: (float) The training log-likelihood of the sklearn FA model.
+            - ll_train_online_gradient: (float) The training log-likelihood of the online gradient FA model.
+            - ll_train_online_em: (float) The training log-likelihood of the online EM FA model.
+            - ll_test_true: (float) The hold-out log-likelihood of the true FA model.
+            - ll_test_sklearn: (float) The hold-out log-likelihood of the sklearn FA model.
+            - ll_test_online_gradient: (float) The hold-out log-likelihood of the online gradient FA model.
+            - ll_test_online_em: (float) The hold-out log-likelihood of the online EM FA model.
+            - wasserstein_sklearn: (float) The Wasserstein distance between the Gaussian distribution defined by the
+                true FA model and the Gaussian distribution defined by the sklearn FA model.
+            - wasserstein_online_gradient: (float) The Wasserstein distance between the Gaussian distribution defined by
+                the true FA model and the Gaussian distribution defined by the online gradient FA model.
+            - wasserstein_online_em: (float) The Wasserstein distance between the Gaussian distribution defined by the
+                true FA model and the Gaussian distribution defined by the online EM FA model.
             - experiment: (int) The index of the experiment.
             - trial: (int) The index of the trial within the experiment.
     """
@@ -80,7 +96,9 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
                 config['spectrum_range'],
                 config['n_samples'],
                 init_factors_noise_std,
+                gradient_optimiser,
                 gradient_optimiser_kwargs,
+                n_test_samples,
                 samples_random_seed=i_trial,
                 algorithms_random_seed=i_trial + 1,
             )
@@ -96,8 +114,8 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
 
 
 def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: List[int],
-                            init_factors_noise_std: float, gradient_optimiser_kwargs: dict, samples_random_seed: int,
-                            algorithms_random_seed: int) -> pd.DataFrame:
+                            init_factors_noise_std: float, gradient_optimiser: str, gradient_optimiser_kwargs: dict,
+                            n_test_samples: int, samples_random_seed: int, algorithms_random_seed: int) -> pd.DataFrame:
     """
     Run a factor analysis (FA) experiment trial for the given parameters.
 
@@ -118,8 +136,12 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             model fit to n_samples[i - 1] observations. Sample sizes must come in increasing order.
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix in the online FA learning algorithms.
-        gradient_optimiser_kwargs: Keyword arguments for the PyTorch SGD optimiser used in the online gradient FA
-            learning algorithm.
+        gradient_optimiser: The name of the PyTorch optimiser used in the online gradient learning algorithm. Options
+            are 'sgd' and 'adam'.
+        gradient_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the online gradient FA learning
+            algorithm.
+        n_test_samples: The number of observations to sample for a hold-out set to compute the test log-likelihood of
+            the models.
         samples_random_seed: The random seed used to construct the true FA model and generate samples from it.
         algorithms_random_seed: The random seed used in all three learning algorithms.
 
@@ -137,18 +159,36 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
                 matrix and the covariance matrix estimated by `OnlineGradientFactorAnalysis`.
             - covar_distance_online_em: (float) The Frobenius norm of the difference between the true covariance
                 matrix and the covariance matrix estimated by `OnlineEMFactorAnalysis`.
-            - ll_true: (float) The log-likelihood of the true FA model, given the data sampled from the model.
-            - ll_sklearn: (float) The log-likelihood of the sklearn FA model.
-            - ll_online_gradient: (float) The log-likelihood of the online gradient FA model.
-            - ll_online_em: (float) The log-likelihood of the online EM FA model.
+            - ll_train_true: (float) The training log-likelihood of the true FA model.
+            - ll_train_sklearn: (float) The training log-likelihood of the sklearn FA model.
+            - ll_train_online_gradient: (float) The training log-likelihood of the online gradient FA model.
+            - ll_train_online_em: (float) The training log-likelihood of the online EM FA model.
+            - ll_test_true: (float) The hold-out log-likelihood of the true FA model.
+            - ll_test_sklearn: (float) The hold-out log-likelihood of the sklearn FA model.
+            - ll_test_online_gradient: (float) The hold-out log-likelihood of the online gradient FA model.
+            - ll_test_online_em: (float) The hold-out log-likelihood of the online EM FA model.
+            - wasserstein_sklearn: (float) The Wasserstein distance between the Gaussian distribution defined by the
+                true FA model and the Gaussian distribution defined by the sklearn FA model.
+            - wasserstein_online_gradient: (float) The Wasserstein distance between the Gaussian distribution defined by
+                the true FA model and the Gaussian distribution defined by the online gradient FA model.
+            - wasserstein_online_em: (float) The Wasserstein distance between the Gaussian distribution defined by the
+                true FA model and the Gaussian distribution defined by the online EM FA model.
     """
     max_samples = n_samples[-1]
-    mean_true, covar_true, observations = generate_and_sample_fa_model(
+    mean_true, F_true, psi_true, covar_true, observations_train = generate_and_sample_fa_model(
         observation_dim,
         latent_dim,
         spectrum_range,
         max_samples,
         samples_random_seed,
+    )
+
+    observations_test = sample_fa_observations(
+        mean_true,
+        F_true,
+        psi_true,
+        n_test_samples,
+        random_seed=random.randint(0, 1000000),
     )
 
     fa_online_gradient = None
@@ -159,7 +199,7 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
     all_results = []
     for i, n_samples_first in enumerate(n_samples_iterator[:-1]):
         n_samples_last = n_samples_iterator[i + 1]
-        new_samples = observations[n_samples_first:n_samples_last, :]
+        new_samples = observations_train[n_samples_first:n_samples_last, :]
         samples = torch.cat([samples, new_samples])
 
         print(f'Using {len(samples)} samples...')
@@ -174,6 +214,7 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             new_samples,
             latent_dim,
             init_factors_noise_std,
+            gradient_optimiser,
             gradient_optimiser_kwargs,
             algorithms_random_seed,
             fa=fa_online_gradient,
@@ -187,6 +228,8 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             fa=fa_online_em,
         )
 
+        print('Computing metrics...')
+
         results = dict(
             observation_dim=observation_dim,
             latent_dim=latent_dim,
@@ -197,12 +240,27 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             covar_distance_sklearn=compute_distance_between_matrices(covar_true, covar_sklearn),
             covar_distance_online_gradient=compute_distance_between_matrices(covar_true, covar_online_gradient),
             covar_distance_online_em=compute_distance_between_matrices(covar_true, covar_online_em),
-            ll_true=compute_gaussian_log_likelihood(mean_true, covar_true, observations),
-            ll_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations),
-            ll_online_gradient=compute_gaussian_log_likelihood(
-                mean_online_gradient, covar_online_gradient, observations,
+            ll_train_true=compute_gaussian_log_likelihood(mean_true, covar_true, observations_train),
+            ll_train_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations_train),
+            ll_train_online_gradient=compute_gaussian_log_likelihood(
+                mean_online_gradient, covar_online_gradient, observations_train,
             ),
-            ll_online_em=compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations),
+            ll_train_online_em=compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations_train),
+            ll_test_true=compute_gaussian_log_likelihood(mean_true, covar_true, observations_test),
+            ll_test_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations_test),
+            ll_test_online_gradient=compute_gaussian_log_likelihood(
+                mean_online_gradient, covar_online_gradient, observations_test,
+            ),
+            ll_test_online_em=compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations_test),
+            wasserstein_sklearn=compute_gaussian_wasserstein_distance(
+                mean_true, covar_true, mean_sklearn, covar_sklearn,
+            ),
+            wasserstein_online_gradient=compute_gaussian_wasserstein_distance(
+                mean_true, covar_true, mean_online_gradient, covar_online_gradient,
+            ),
+            wasserstein_online_em=compute_gaussian_wasserstein_distance(
+                mean_true, covar_true, mean_online_em, covar_online_em,
+            ),
         )
 
         all_results.append(results)
@@ -211,7 +269,7 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
 
 
 def generate_and_sample_fa_model(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: int,
-                                 random_seed: int) -> (Tensor, Tensor, Tensor):
+                                 random_seed: int) -> (Tensor, Tensor, Tensor, Tensor, Tensor):
     """
     Generate a factor analysis (FA) model and sample observations from it.
 
@@ -226,17 +284,19 @@ def generate_and_sample_fa_model(observation_dim: int, latent_dim: int, spectrum
 
     Returns:
         c: The mean of the FA model. Of shape (observation_dim,).
-        covar: The covariance of the FA model. Of shape (observation_dim, observation_dim).
+        F: The factor loading matrix. Of shape (observation_dim, latent_dim).
+        psi: The Gaussian noise covariance matrix. Of shape (observation_dim, observation_dim).
+        covar: The full covariance of the FA model. Of shape (observation_dim, observation_dim).
         observations: The observations sampled from the FA model. Of shape (n_samples, observation_dim).
     """
-    torch.manual_seed(random_seed)
-    c, F, psi = generate_fa_model(observation_dim, latent_dim, spectrum_range)
+    print('Generating and sampling FA model...')
+    c, F, psi = generate_fa_model(observation_dim, latent_dim, spectrum_range, random_seed)
     covar = compute_fa_covariance(F, psi)
-    observations = sample_fa_observations(c, F, psi, n_samples)
-    return c, covar, observations
+    observations = sample_fa_observations(c, F, psi, n_samples, random_seed)
+    return c, F, psi, covar, observations
 
 
-def generate_fa_model(observation_dim: int, latent_dim: int, spectrum_range: [float, float],
+def generate_fa_model(observation_dim: int, latent_dim: int, spectrum_range: [float, float], random_seed: int,
                       ) -> (Tensor, Tensor, Tensor):
     """
     Generate a factor analysis (FA) model.
@@ -266,12 +326,15 @@ def generate_fa_model(observation_dim: int, latent_dim: int, spectrum_range: [fl
         latent_dim: The size of the latent variable space of the FA model.
         spectrum_range: The end points of the "spectrum", which controls the conditioning of the covariance matrix of
             the FA model.
+        random_seed: The random seed to use for generating the mean and covariance of the FA model.
 
     Returns:
         c: The mean of the FA model. Of shape (observation_dim,).
         F: The factor loading matrix. Of shape (observation_dim, latent_dim).
         psi: The Gaussian noise covariance matrix. Of shape (observation_dim, observation_dim).
     """
+    torch.manual_seed(random_seed)
+
     c = torch.randn(observation_dim)
 
     A = torch.randn(observation_dim, observation_dim)
@@ -287,7 +350,7 @@ def generate_fa_model(observation_dim: int, latent_dim: int, spectrum_range: [fl
     return c, F, psi
 
 
-def sample_fa_observations(c: Tensor, F: Tensor, psi: Tensor, n_samples: int) -> Tensor:
+def sample_fa_observations(c: Tensor, F: Tensor, psi: Tensor, n_samples: int, random_seed: int) -> Tensor:
     """
     Sample observations from a factor analysis (FA) model.
 
@@ -299,10 +362,13 @@ def sample_fa_observations(c: Tensor, F: Tensor, psi: Tensor, n_samples: int) ->
         F: The factor loading matrix. Of shape (observation_dim, latent_dim).
         psi: The Gaussian noise covariance matrix. Of shape (observation_dim, observation_dim).
         n_samples: The number of observations sampled from the FA model.
+        random_seed: The random seed to use for sampling the observations.
 
     Returns:
         Sampled observations. Of shape (n_samples, observation_dim).
     """
+    torch.manual_seed(random_seed)
+
     observation_dim, latent_dim = F.shape
     p_h = MultivariateNormal(loc=torch.zeros(latent_dim), covariance_matrix=torch.eye(latent_dim))
     p_noise = MultivariateNormal(loc=torch.zeros(observation_dim), covariance_matrix=psi)
@@ -327,13 +393,13 @@ def learn_fa_with_sklearn(observations: Tensor, latent_dim: int, random_seed: in
     print('Learning FA model via sklearn (randomised) SVD method...')
     fa = FactorAnalysis(n_components=latent_dim, svd_method='randomized', random_state=random_seed)
     fa.fit(observations.numpy())
-    mean = torch.from_numpy(fa.mean_)
-    covar = torch.from_numpy(fa.get_covariance())
+    mean = torch.from_numpy(fa.mean_).float()
+    covar = torch.from_numpy(fa.get_covariance()).float()
     return mean, covar
 
 
 def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_factors_noise_std: float,
-                                   optimiser_kwargs: dict, random_seed: int,
+                                   optimiser_name: str, optimiser_kwargs: dict, random_seed: int,
                                    fa: Optional[OnlineGradientFactorAnalysis] = None) -> (Tensor, Tensor):
     """
     Learn the parameters of a factor analysis (FA) model via online stochastic gradient ascent.
@@ -343,7 +409,8 @@ def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_f
         latent_dim: The size of the latent variable space of the FA model.
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix.
-        optimiser_kwargs: Keyword arguments for the PyTorch SGD optimiser used in the algorithm.
+        optimiser_name: The name of the PyTorch optimiser used in the learning algorithm. Options are 'sgd' and 'adam'.
+        optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the learning algorithm.
         random_seed: The random seed used in the algorithm.
         fa: If a FA model is provided, the observations will be used to fit this model. Else a completely new model will
             be initialised.
@@ -356,8 +423,9 @@ def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_f
     print('Learning FA model via online stochastic gradient ascent...')
     if fa is None:
         observation_dim = observations.shape[1]
+        optimiser = OPTIMISER_FACTORY[optimiser_name]
         fa = OnlineGradientFactorAnalysis(
-            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, optimiser=SGD,
+            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, optimiser=optimiser,
             optimiser_kwargs=optimiser_kwargs, random_seed=random_seed,
         )
     return learn_fa_online(fa, observations)
@@ -466,6 +534,49 @@ def compute_gaussian_log_likelihood(mean: Tensor, covar: Tensor, X: Tensor) -> f
     return (unnormalised_log_likelihood + log_normalising_factor).item()
 
 
+def compute_gaussian_wasserstein_distance(mean1: Tensor, covar1: Tensor, mean2: Tensor, covar2: Tensor) -> float:
+    """
+    Compute the 2-Wasserstein distance between two non-degenerate Gaussian distributions with respect to the Frobenius
+    norm [1].
+
+    Args:
+        mean1: The mean of the first distribution. Of shape (observation_dim,).
+        covar1: The covariance matrix of the first distribution. Of shape (observation_dim, observation_dim).
+        mean2: The mean of the second distribution. Of shape (observation_dim,).
+        covar2: The covariance matrix of the second distribution. Of shape (observation_dim, observation_dim).
+
+    Returns:
+        The 2-Wasserstein distance between the two distributions.
+
+    References:
+        [1] https://en.wikipedia.org/wiki/Wasserstein_metric#Normal_distributions
+    """
+    contribution_from_mean = compute_distance_between_matrices(mean1, mean2) ** 2
+    sqrt_covar2 = matrix_sqrt(covar2)
+    contribution_from_covar = torch.trace(
+        covar1 + covar2 - 2 * matrix_sqrt(sqrt_covar2.mm(covar1).mm(sqrt_covar2))
+    )
+    return (contribution_from_mean + contribution_from_covar).item()
+
+
+def matrix_sqrt(A: Tensor) -> Tensor:
+    """
+    Compute the square root of a symmetric positive semi-definite matrix.
+
+    Args:
+        A: Symmetric positive semi-definite matrix. Of shape (n, n).
+
+    Returns
+        Matrix B such that B.mm(B) = A. Of shape (n, n).
+    """
+    conditioning = 1e3 * 1.1920929e-07  # for float
+    eigenvalues, eigenvectors = torch.linalg.eigh(A.float())
+    above_cutoff = torch.abs(eigenvalues) > conditioning * torch.max(torch.abs(eigenvalues))
+    psigma_diag = torch.sqrt(eigenvalues[above_cutoff])
+    eigenvectors = eigenvectors[:, above_cutoff]
+    return eigenvectors.mm(torch.diag(psigma_diag)).mm(eigenvectors.t()).type(A.dtype)
+
+
 @click.command()
 @click.option('--results-output-path', type=str, help='The parquet file path to save the experiment results')
 def main(results_output_path: str):
@@ -482,7 +593,9 @@ def main(results_output_path: str):
         params['online_fa']['experiments'],
         params['online_fa']['n_trials'],
         params['online_fa']['init_factors_noise_std'],
+        params['online_fa']['gradient_optimiser'],
         params['online_fa']['gradient_optimiser_kwargs'],
+        params['online_fa']['n_test_samples'],
     )
 
     print('Results:\n')

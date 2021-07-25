@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -11,15 +11,18 @@ import yaml
 
 def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: int):
     """
-    Aggregate the experiment results and generate plots for covariance distance and log-likelihood.
+    Aggregate the experiment results and generate plots for covariance distance, log-likelihood and Wasserstein
+    distance.
 
     For each experiment, defined by the parameters observation_dim, latent_dim, spectrum_min and spectrum_max, group by
     n_samples and compute the mean and standard error of the metrics in the experiment results. Save these statistics
     to csv files.
 
-    Also, for each experiment generate two plots, one showing the distance between the true covariance matrix and the
-    estimated covariance matrix and another showing the log-likelihood of the model, for each factor analysis (FA)
-    learning algorithm. Save these plots to png files.
+    Also, for each experiment generate four plots, one showing the distance between the true covariance matrix and the
+    estimated covariance matrix, one showing the training log-likelihood, one showing the hold-out log-likelihood, and
+    one showing the Wasserstein distance between the Gaussian distribution define by the true factor analysis (FA) model
+    and the Gaussian distribution defined by the learned FA model, for each FA learning algorithm. Save these plots to
+    png files.
 
     Args:
         results: The results of each experiment. Has len(experiments_config) * n_trials rows and the following columns:
@@ -35,10 +38,20 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
                 matrix and the covariance matrix estimated by `OnlineGradientFactorAnalysis`.
             - covar_distance_online_em: (float) The Frobenius norm of the difference between the true covariance
                 matrix and the covariance matrix estimated by `OnlineEMFactorAnalysis`.
-            - ll_true: (float) The log-likelihood of the true FA model, given the data sampled from the model.
-            - ll_sklearn: (float) The log-likelihood of the sklearn FA model.
-            - ll_online_gradient: (float) The log-likelihood of the online gradient FA model.
-            - ll_online_em: (float) The log-likelihood of the online EM FA model.
+            - ll_train_true: (float) The training log-likelihood of the true FA model.
+            - ll_train_sklearn: (float) The training log-likelihood of the sklearn FA model.
+            - ll_train_online_gradient: (float) The training log-likelihood of the online gradient FA model.
+            - ll_train_online_em: (float) The training log-likelihood of the online EM FA model.
+            - ll_test_true: (float) The hold-out log-likelihood of the true FA model.
+            - ll_test_sklearn: (float) The hold-out log-likelihood of the sklearn FA model.
+            - ll_test_online_gradient: (float) The hold-out log-likelihood of the online gradient FA model.
+            - ll_test_online_em: (float) The hold-out log-likelihood of the online EM FA model.
+            - wasserstein_sklearn: (float) The Wasserstein distance between the Gaussian distribution defined by the
+                true FA model and the Gaussian distribution defined by the sklearn FA model.
+            - wasserstein_online_gradient: (float) The Wasserstein distance between the Gaussian distribution defined by
+                the true FA model and the Gaussian distribution defined by the online gradient FA model.
+            - wasserstein_online_em: (float) The Wasserstein distance between the Gaussian distribution defined by the
+                true FA model and the Gaussian distribution defined by the online EM FA model.
             - experiment: (int) The index of the experiment.
             - trial: (int) The index of the trial within the experiment.
         analysis_output_dir: The directory path to save the output of the analysis.
@@ -46,17 +59,25 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
     """
     param_columns = ['observation_dim', 'latent_dim', 'spectrum_min', 'spectrum_max']
     group_by_column = 'n_samples'
-    covar_columns = [
-        'covar_norm', 'covar_distance_sklearn', 'covar_distance_online_gradient', 'covar_distance_online_em'
-    ]
-    ll_columns = ['ll_true', 'll_sklearn', 'll_online_gradient', 'll_online_em']
+    metric_suffixes = ['sklearn', 'online_gradient', 'online_em']
+
+    covar_columns = [f'covar_distance_{x}' for x in metric_suffixes]
+    ll_train_columns = [f'll_train_{x}' for x in metric_suffixes] + ['ll_train_true']
+    ll_test_columns = [f'll_test_{x}' for x in metric_suffixes] + ['ll_test_true']
+    wasserstein_columns = [f'wasserstein_{x}' for x in metric_suffixes]
+
+    plot_line_labels = ['batch_svd', 'online_sga', 'online_em']
 
     results = results[results['n_samples'] >= min_samples]
+    results[covar_columns] = results[covar_columns].values / results[['covar_norm']].values
 
     param_combinations = results[param_columns].drop_duplicates()
     for _, params in param_combinations.iterrows():
         group_means, group_standard_errors = aggregate_experiment_results(
-            results, params, group_by_column, covar_columns + ll_columns,
+            results,
+            params,
+            group_by_column,
+            metric_columns=covar_columns + ll_train_columns + ll_test_columns + wasserstein_columns,
         )
 
         params_str = params_to_string(params)
@@ -73,20 +94,44 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
             group_means[covar_columns],
             group_standard_errors[covar_columns],
             png_path=os.path.join(analysis_output_dir, f'online_fa_covar_distance__{params_str}.png'),
-            xlabel='Number of samples',
-            ylabel='Frobenius norm',
+            xlabel='Number of training samples',
+            ylabel='Relative covariance distance',
             xscale='log',
             yscale='log',
+            line_labels=plot_line_labels,
         )
 
         generate_and_save_error_bar_plot(
-            group_means[ll_columns],
-            group_standard_errors[ll_columns],
-            png_path=os.path.join(analysis_output_dir, f'online_fa_log_likelihood__{params_str}.png'),
-            xlabel='Number of samples',
-            ylabel='Log-likelihood',
+            group_means[ll_train_columns],
+            group_standard_errors[ll_train_columns],
+            png_path=os.path.join(analysis_output_dir, f'online_fa_log_likelihood_train__{params_str}.png'),
+            xlabel='Number of training samples',
+            ylabel='Training log-likelihood',
             xscale='log',
             yscale='linear',
+            line_labels=plot_line_labels + ['true'],
+        )
+
+        generate_and_save_error_bar_plot(
+            group_means[ll_test_columns],
+            group_standard_errors[ll_test_columns],
+            png_path=os.path.join(analysis_output_dir, f'online_fa_log_likelihood_test__{params_str}.png'),
+            xlabel='Number of training samples',
+            ylabel='Test log-likelihood',
+            xscale='log',
+            yscale='linear',
+            line_labels=plot_line_labels + ['true'],
+        )
+
+        generate_and_save_error_bar_plot(
+            group_means[wasserstein_columns],
+            group_standard_errors[wasserstein_columns],
+            png_path=os.path.join(analysis_output_dir, f'online_fa_wasserstein__{params_str}.png'),
+            xlabel='Number of training samples',
+            ylabel='2-Wasserstein distance',
+            xscale='log',
+            yscale='log',
+            line_labels=plot_line_labels,
         )
 
 
@@ -125,7 +170,8 @@ def aggregate_experiment_results(results: pd.DataFrame, experiment_params: Union
 
 
 def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.DataFrame, png_path: str, xlabel: str,
-                                     ylabel: str, xscale: str = 'linear', yscale: str = 'linear'):
+                                     ylabel: str, xscale: str = 'linear', yscale: str = 'linear',
+                                     line_labels: Optional[List[str]] = None):
     """
     Plot the means with standard error bars.
 
@@ -143,11 +189,12 @@ def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.Da
         xscale: The type of scale to use on the x-axis.
         yscale: The type of scale to use on the y-axis.
     """
+    line_labels = line_labels or means.columns
     plt.rcParams.update({'font.size': 20})
     plt.figure(figsize=(12, 8))
     x = means.index
-    for metric_name in means.columns:
-        plt.errorbar(x, means[metric_name], standard_errors[metric_name], label=metric_name, marker='o')
+    for i, metric_name in enumerate(means.columns):
+        plt.errorbar(x, means[metric_name], standard_errors[metric_name], label=line_labels[i], marker='o')
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)

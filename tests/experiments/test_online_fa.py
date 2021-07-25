@@ -13,6 +13,7 @@ from experiments.online_fa import (
     compute_gaussian_log_likelihood,
     compute_fa_covariance,
     compute_distance_between_matrices,
+    matrix_sqrt,
 )
 
 
@@ -47,6 +48,9 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
         'll_sklearn',
         'll_online_gradient',
         'll_online_em',
+        'wasserstein_sklearn',
+        'wasserstein_online_gradient',
+        'wasserstein_online_em',
         'experiment',
         'trial'
     ]
@@ -215,3 +219,13 @@ def test_gaussian_log_likelihood(observation_dim, latent_dim, spectrum_range, n_
     expected_ll = expected_ll_observations.mean().item()
     actual_ll = compute_gaussian_log_likelihood(mean, covar, observations)
     assert np.isclose(actual_ll, expected_ll, atol=1e-5)
+
+
+@pytest.mark.parametrize("dim", [2, 5, 10, 20, 50, 100])
+def test_matrix_sqrt(dim):
+    torch.manual_seed(0)
+    B = torch.randn(dim, dim)
+    A = B.mm(B.t())
+    sqrt_A = matrix_sqrt(A)
+    A_rebuilt = sqrt_A.mm(sqrt_A)
+    assert torch.isclose(A_rebuilt, A, atol=1e-4 * dim).all()

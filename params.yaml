@@ -1,5 +1,6 @@
 online_fa:
   init_factors_noise_std: 0.1
+  gradient_optimiser: 'sgd'
   gradient_optimiser_kwargs:
     lr: 0.001
   experiments:
@@ -8,8 +9,9 @@ online_fa:
     - {observation_dim: 100, latent_dim: 10, spectrum_range: [1, 10000], n_samples: [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]}
     - {observation_dim: 1000, latent_dim: 10, spectrum_range: [1, 10], n_samples: [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]}
     - {observation_dim: 1000, latent_dim: 10, spectrum_range: [1, 100], n_samples: [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]}
-    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [1, 1000], n_samples: [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]}
+    - {observation_dim: 1000, latent_dim: 10, spectrum_range: [1, 10000], n_samples: [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]}
   n_trials: 2
+  n_test_samples: 100000
 
 online_fa_analysis:
-  min_samples: 200
+  min_samples: 100
