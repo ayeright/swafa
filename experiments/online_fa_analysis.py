@@ -59,14 +59,14 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
     """
     param_columns = ['observation_dim', 'latent_dim', 'spectrum_min', 'spectrum_max']
     group_by_column = 'n_samples'
-    metric_suffixes = ['sklearn', 'online_gradient', 'online_em']
+    metric_suffixes = ['sklearn', 'online_em', 'online_gradient']
 
     covar_columns = [f'covar_distance_{x}' for x in metric_suffixes]
     ll_train_columns = [f'll_train_{x}' for x in metric_suffixes] + ['ll_train_true']
     ll_test_columns = [f'll_test_{x}' for x in metric_suffixes] + ['ll_test_true']
     wasserstein_columns = [f'wasserstein_{x}' for x in metric_suffixes]
 
-    plot_line_labels = ['batch_svd', 'online_sga', 'online_em']
+    plot_line_labels = ['batch_svd', 'online_em', 'online_sga']
 
     results = results[results['n_samples'] >= min_samples]
     results[covar_columns] = results[covar_columns].values / results[['covar_norm']].values
