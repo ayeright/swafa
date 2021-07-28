@@ -291,6 +291,9 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         latent_dim: The size of the latent variable space.
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix.
+        n_warm_up_time_steps: The number of time steps on which to update the running averages used in the algorithm
+            before starting to update `F` and `Psi`. This should be at least 1 to avoid inverting a zero matrix on the
+            first time step.
         device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
             tensor type.
         random_seed: The random seed for reproducibility.
@@ -301,9 +304,10 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
     """
 
     def __init__(self, observation_dim: int, latent_dim: int, init_factors_noise_std: float = 1e-3,
-                 device: Optional[torch.device] = None, random_seed: int = 0):
+                 n_warm_up_time_steps: int = 1, device: Optional[torch.device] = None, random_seed: int = 0):
         super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
                          random_seed=random_seed)
+        self.n_warm_up_time_steps = max(n_warm_up_time_steps, 1)
         self._A_hat = torch.zeros(observation_dim, latent_dim, device=device)
         self._B_hat = torch.zeros(latent_dim, latent_dim, device=device)
         self._H_hat = None
@@ -319,7 +323,7 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         self._update_commons(theta)
         self._update_H_hat()
         self._update_A_hat()
-        if self.t > 1:  # to avoid computing the inverse of H_hat, which is zero on the first iteration
+        if self.t > self.n_warm_up_time_steps:
             self._update_F()
             self._update_psi()
 
