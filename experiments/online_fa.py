@@ -425,8 +425,12 @@ def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_f
         observation_dim = observations.shape[1]
         optimiser = OPTIMISER_FACTORY[optimiser_name]
         fa = OnlineGradientFactorAnalysis(
-            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, optimiser=optimiser,
-            optimiser_kwargs=optimiser_kwargs, random_seed=random_seed,
+            observation_dim,
+            latent_dim,
+            init_factors_noise_std=init_factors_noise_std,
+            optimiser=optimiser,
+            optimiser_kwargs=optimiser_kwargs,
+            random_seed=random_seed,
         )
     return learn_fa_online(fa, observations)
 
@@ -454,7 +458,10 @@ def learn_fa_with_online_em(observations: Tensor, latent_dim: int, init_factors_
     if fa is None:
         observation_dim = observations.shape[1]
         fa = OnlineEMFactorAnalysis(
-            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, random_seed=random_seed,
+            observation_dim,
+            latent_dim,
+            init_factors_noise_std=init_factors_noise_std,
+            random_seed=random_seed,
         )
     return learn_fa_online(fa, observations)
 

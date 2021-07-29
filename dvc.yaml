@@ -7,9 +7,11 @@ stages:
       - swafa/fa.py
     params:
       - online_fa.init_factors_noise_std
+      - online_fa.gradient_optimiser
       - online_fa.gradient_optimiser_kwargs
       - online_fa.experiments
       - online_fa.n_trials
+      - online_fa.n_test_samples
     outs:
       - experiments/data/online_fa_results.parquet
 
@@ -20,5 +22,7 @@ stages:
     deps:
       - experiments/online_fa_analysis.py
       - experiments/data/online_fa_results.parquet
+    params:
+      - online_fa_analysis.min_samples
     outs:
       - experiments/data/online_fa_analysis
