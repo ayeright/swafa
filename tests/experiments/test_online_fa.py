@@ -32,7 +32,9 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
         experiments_config,
         n_trials,
         init_factors_noise_std=0.1,
+        gradient_optimiser='sgd',
         gradient_optimiser_kwargs=dict(lr=0.01),
+        n_test_samples=1000,
     )
     expected_columns = [
         'observation_dim',
@@ -44,10 +46,14 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
         'covar_distance_sklearn',
         'covar_distance_online_gradient',
         'covar_distance_online_em',
-        'll_true',
-        'll_sklearn',
-        'll_online_gradient',
-        'll_online_em',
+        'll_train_true',
+        'll_train_sklearn',
+        'll_train_online_gradient',
+        'll_train_online_em',
+        'll_test_true',
+        'll_test_sklearn',
+        'll_test_online_gradient',
+        'll_test_online_em',
         'wasserstein_sklearn',
         'wasserstein_online_gradient',
         'wasserstein_online_em',
@@ -68,7 +74,7 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 @pytest.mark.parametrize('n_samples', [10, 100])
 def test_true_params_shape(observation_dim, latent_dim, spectrum_range, n_samples):
-    mean, covar, observations = generate_and_sample_fa_model(
+    mean, F, psi, covar, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     assert mean.shape == (observation_dim,)
@@ -80,7 +86,7 @@ def test_true_params_shape(observation_dim, latent_dim, spectrum_range, n_sample
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 def test_model_mean_matches_sample_mean(observation_dim, latent_dim, spectrum_range):
     n_samples = 100000
-    c, _, observations = generate_and_sample_fa_model(
+    c, F, psi, covar, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     sample_mean = observations.mean(dim=0)
@@ -93,7 +99,7 @@ def test_model_mean_matches_sample_mean(observation_dim, latent_dim, spectrum_ra
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 def test_model_covariance_matches_sample_covariance(observation_dim, latent_dim, spectrum_range):
     n_samples = 100000
-    _, covar, observations = generate_and_sample_fa_model(
+    c, F, psi, covar, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     sample_covar = torch.from_numpy(np.cov(observations.t().numpy())).float()
@@ -106,8 +112,8 @@ def test_model_covariance_matches_sample_covariance(observation_dim, latent_dim,
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 @pytest.mark.parametrize('n_samples', [10, 100])
 def test_sampled_fa_observations_shape(observation_dim, latent_dim, spectrum_range, n_samples):
-    c, F, psi = generate_fa_model(observation_dim, latent_dim, spectrum_range)
-    observations = sample_fa_observations(c, F, psi, n_samples)
+    c, F, psi = generate_fa_model(observation_dim, latent_dim, spectrum_range, random_seed=0)
+    observations = sample_fa_observations(c, F, psi, n_samples, random_seed=0)
     assert observations.shape == (n_samples, observation_dim)
 
 
@@ -116,7 +122,7 @@ def test_sampled_fa_observations_shape(observation_dim, latent_dim, spectrum_ran
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 @pytest.mark.parametrize('n_samples', [10, 100])
 def test_sklearn_learned_params_shape(observation_dim, latent_dim, spectrum_range, n_samples):
-    _, _, observations = generate_and_sample_fa_model(
+    c, F, psi, covar, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     mean, covar = learn_fa_with_sklearn(observations, latent_dim, random_seed=0)
@@ -129,11 +135,12 @@ def test_sklearn_learned_params_shape(observation_dim, latent_dim, spectrum_rang
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 @pytest.mark.parametrize('n_samples', [10, 100])
 def test_online_gradients_learned_params_shape(observation_dim, latent_dim, spectrum_range, n_samples):
-    _, _, observations = generate_and_sample_fa_model(
+    c, F, psi, covar, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     _, mean, covar = learn_fa_with_online_gradients(
-        observations, latent_dim, init_factors_noise_std=0.1, optimiser_kwargs=None, random_seed=0,
+        observations, latent_dim, init_factors_noise_std=0.1, optimiser_name='sgd', optimiser_kwargs=None,
+        random_seed=0,
     )
     assert mean.shape == (observation_dim,)
     assert covar.shape == (observation_dim, observation_dim)
@@ -144,7 +151,7 @@ def test_online_gradients_learned_params_shape(observation_dim, latent_dim, spec
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 @pytest.mark.parametrize('n_samples', [10, 100])
 def test_online_em_learned_params_shape(observation_dim, latent_dim, spectrum_range, n_samples):
-    _, _, observations = generate_and_sample_fa_model(
+    c, F, psi, covar, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     _, mean, covar = learn_fa_with_online_em(
@@ -203,7 +210,7 @@ def test_compute_distance_between_matrices():
 @pytest.mark.parametrize("spectrum_range", [[0, 1], [0, 10]])
 @pytest.mark.parametrize('n_samples', [10, 100])
 def test_gaussian_log_likelihood(observation_dim, latent_dim, spectrum_range, n_samples):
-    mean, covar, observations = generate_and_sample_fa_model(
+    mean, F, psi, covar, observations = generate_and_sample_fa_model(
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     inv_cov = torch.linalg.inv(covar)
