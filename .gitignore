@@ -15,3 +15,4 @@ venv
 
 experiments/data/
 experiments/notebooks/.ipynb_checkpoints/
+lightning_logs/
