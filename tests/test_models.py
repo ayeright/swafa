@@ -29,23 +29,31 @@ class TestFeedForwardNet:
 
     @pytest.mark.parametrize("input_dim", [3, 5])
     @pytest.mark.parametrize("hidden_dims", [None, [4], [8, 4]])
-    @pytest.mark.parametrize("activation_fn", [None, nn.ReLU()])
+    @pytest.mark.parametrize("hidden_activation_fn", [None, nn.ReLU()])
     @pytest.mark.parametrize("n_samples", [1, 4])
-    def test_forward(self, input_dim, hidden_dims, activation_fn, n_samples):
-        net = FeedForwardNet(input_dim, hidden_dims, activation_fn=activation_fn)
+    @pytest.mark.parametrize("activate_output", [True, False])
+    def test_forward(self, input_dim, hidden_dims, hidden_activation_fn, n_samples, activate_output):
+
+        def zero_activation_fn(x):
+            return x * 0
+
+        net = FeedForwardNet(input_dim, hidden_dims, hidden_activation_fn=hidden_activation_fn,
+                             output_activation_fn=zero_activation_fn)
+
         X = torch.rand(n_samples, input_dim)
-        y = net(X)
+        y = net(X, activate_output=activate_output)
 
         assert y.shape == (n_samples,)
+        assert (y == 0).all() == activate_output
 
     @pytest.mark.parametrize("input_dim", [5])
     @pytest.mark.parametrize("hidden_dims", [None, [4]])
-    @pytest.mark.parametrize("activation_fn", [None, nn.ReLU()])
+    @pytest.mark.parametrize("hidden_activation_fn", [None, nn.ReLU()])
     @pytest.mark.parametrize("loss_fn", [nn.MSELoss(), nn.BCEWithLogitsLoss()])
     @pytest.mark.parametrize("n_samples", [32, 33])
-    def test_fit_with_validation(self, input_dim, hidden_dims, activation_fn, loss_fn, n_samples):
+    def test_fit_with_validation(self, input_dim, hidden_dims, hidden_activation_fn, loss_fn, n_samples):
         seed_everything(42, workers=True)
-        net = FeedForwardNet(input_dim, hidden_dims, activation_fn=activation_fn, loss_fn=loss_fn)
+        net = FeedForwardNet(input_dim, hidden_dims, hidden_activation_fn=hidden_activation_fn, loss_fn=loss_fn)
         original_weights = [torch.clone(w) for w in net.parameters()]
 
         trainer = Trainer(deterministic=True, max_epochs=5, check_val_every_n_epoch=1)
