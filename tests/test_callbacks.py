@@ -82,3 +82,27 @@ class TestWeightPosteriorUpdate:
                 posterior=model_posterior.weight_posterior,
                 update_epoch_start=bad_update_epoch_start,
             )
+
+    def test_raises_error_if_model_and_posterior_do_not_match(self):
+        n_samples = 32
+        input_dim = 10
+        net = FeedForwardNet(input_dim=input_dim, hidden_dims=[10])
+
+        model_posterior = ModelPosterior(
+            model=FeedForwardNet(input_dim=input_dim, hidden_dims=[5]),
+            weight_posterior_class=OnlineGradientFactorAnalysis,
+            weight_posterior_kwargs=dict(latent_dim=3),
+        )
+
+        callback = WeightPosteriorCallback(
+            posterior=model_posterior.weight_posterior,
+            update_epoch_start=1,
+        )
+
+        trainer = Trainer(max_epochs=10, callbacks=[callback])
+
+        dataset = TensorDataset(torch.randn(n_samples, input_dim), torch.empty(n_samples).random_(2))
+        dataloader = DataLoader(dataset, batch_size=4, drop_last=True)
+
+        with pytest.raises(RuntimeError):
+            trainer.fit(net, train_dataloader=dataloader)
