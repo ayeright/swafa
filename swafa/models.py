@@ -45,10 +45,10 @@ class FeedForwardNet(LightningModule):
 
         self.input_dim = input_dim
         self.hidden_dims = hidden_dims or []
-        self.hidden_activation_fn = hidden_activation_fn or self._identity_activation_fn
-        self.output_activation_fn = output_activation_fn or self._identity_activation_fn
+        self.hidden_activation_fn = hidden_activation_fn or self._identity_fn
+        self.output_activation_fn = output_activation_fn or self._identity_fn
         self.optimiser_class = optimiser_class
-        self.optimiser_kwargs = optimiser_kwargs or dict(lr=0.001)
+        self.optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
         self.loss_fn = loss_fn
 
         self.hidden_layers = nn.ModuleList()
@@ -59,10 +59,30 @@ class FeedForwardNet(LightningModule):
 
         self.output_layer = nn.Linear(d_in, 1)
 
-    def _identity_activation_fn(self, X: Tensor) -> Tensor:
+    @staticmethod
+    def _identity_fn(X: Tensor) -> Tensor:
+        """
+        An function which returns the input unchanged.
+
+        Args:
+            X: A Tensor of any shape.
+
+        Returns:
+            Exactly the same as the unput.
+        """
         return X
 
     def forward(self, X: Tensor, activate_output: bool = False) -> Tensor:
+        """
+        Run the forward pass of the neural network.
+
+        Args:
+            X: Input features. Of shape (n_samples, n_features).
+            activate_output: Whether or not to apply the activation function to the outputs.
+
+        Returns:
+            Neural network outputs. Of shape (n_samples,).
+        """
         for layer in self.hidden_layers:
             X = self.hidden_activation_fn(layer(X))
 
@@ -71,38 +91,131 @@ class FeedForwardNet(LightningModule):
             return self.output_activation_fn(y_hat)
         return y_hat
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Optimizer:
+        """
+        Initialise the optimiser which will be used to train the neural network.
+
+        Returns:
+            The initialised optimiser
+        """
         return self.optimiser_class(self.parameters(), **self.optimiser_kwargs)
 
     def training_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        """
+        Compute the training loss for a single batch of data.
+
+        Args:
+            batch: (X, y), where X is the input features of shape (batch_size, n_features) and y is the outputs of shape
+                (batch_size,).
+            batch_idx: The index of the batch relative to the current epoch.
+
+        Returns:
+            The batch training loss. Of shape (1,).
+        """
         return self._step(batch, batch_idx)
 
     def validation_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        """
+        Compute the validation loss for a single batch of data.
+
+        Args:
+            batch: (X, y), where X is the input features of shape (batch_size, n_features) and y is the outputs of shape
+                (batch_size,).
+            batch_idx: The index of the batch relative to the current epoch.
+
+        Returns:
+            The batch validation loss. Of shape (1,).
+        """
         return self._step(batch, batch_idx)
 
     def test_step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        """
+        Compute the test loss for a single batch of data.
+
+        Args:
+            batch: (X, y), where X is the input features of shape (batch_size, n_features) and y is the outputs of shape
+                (batch_size,).
+            batch_idx: The index of the batch relative to the current epoch.
+
+        Returns:
+            The batch test loss. Of shape (1,).
+        """
         return self._step(batch, batch_idx)
 
     def _step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        """
+        Compute the loss for a single batch of data.
+
+        Args:
+            batch: (X, y), where X is the input features of shape (batch_size, n_features) and y is the outputs of shape
+                (batch_size,).
+            batch_idx: The index of the batch relative to the current epoch.
+
+        Returns:
+            The batch loss. Of shape (1,).
+        """
         X, y = batch
         y_hat = self(X)
         return self.loss_fn(y_hat, y)
 
     def predict_step(self, batch: Tensor, batch_idx: int, dataloader_idx: Optional[int] = None) -> Tensor:
+        """
+        Predict the outputs for a single batch of data.
+
+        Args:
+            batch: (X, y), where X is the input features of shape (batch_size, n_features) and y is the outputs of shape
+                (batch_size,).
+            batch_idx: The index of the batch relative to the current epoch.
+            dataloader_idx: The index of the dataloader (may be more than one) from which the batch was sampled.
+
+        Returns:
+            The activated outputs. Of shape (batch_size,).
+        """
         return self(batch[0], activate_output=True)
 
     def validation_epoch_end(self, step_losses: List[Tensor]) -> Dict[str, Tensor]:
-        loss = self._aggregate_losses(step_losses)
+        """
+        Compute the average validation loss over all batches.
+
+        Log the loss under the name 'epoch_val_loss'.
+
+        Args:
+            step_losses: The validation loss for each individual batch. Each one of shape (1,).
+
+        Returns:
+            A dict of the form {'epoch_val_loss': loss}, where loss is the average validation loss, of shape (1,).
+        """
+        loss = self._average_loss(step_losses)
         metrics = dict(epoch_val_loss=loss)
         self.log_dict(metrics)
         return metrics
 
     def test_epoch_end(self, step_losses: List[Tensor]) -> Dict[str, Tensor]:
-        loss = self._aggregate_losses(step_losses)
+        """
+        Compute the average test loss over all batches.
+
+        Log the loss under the name 'epoch_test_loss'.
+
+        Args:
+            step_losses: The test loss for each individual batch. Each one of shape (1,).
+
+        Returns:
+            A dict of the form {'epoch_test_loss': loss}, where loss is the average test loss, of shape (1,).
+        """
+        loss = self._average_loss(step_losses)
         metrics = dict(epoch_test_loss=loss)
         self.log_dict(metrics)
         return metrics
 
     @staticmethod
-    def _aggregate_losses(step_losses: List[Tensor]) -> Tensor:
+    def _average_loss(step_losses: List[Tensor]) -> Tensor:
+        """
+        Compute the average of all losses.
+
+        Args:
+            step_losses: Individual losses. Each one of shape (1,).
+
+        Returns:
+            The average loss. Of shape (1,).
+        """
         return torch.stack(step_losses).mean()
