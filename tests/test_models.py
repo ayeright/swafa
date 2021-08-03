@@ -109,3 +109,17 @@ class TestFeedForwardNet:
         result = trainer.predict(net, dataloaders=dataloader)
 
         assert len(torch.cat(result)) == n_samples
+
+    @pytest.mark.parametrize("input_dim", [5])
+    @pytest.mark.parametrize("hidden_dims", [None, [4]])
+    @pytest.mark.parametrize("n_samples", [32, 33])
+    def test_predict_with_sigmoid_activation(self, input_dim, hidden_dims, n_samples):
+        net = FeedForwardNet(input_dim, hidden_dims, output_activation_fn=torch.sigmoid)
+        trainer = Trainer()
+        dataset = TensorDataset(torch.randn(n_samples, input_dim))
+        dataloader = DataLoader(dataset, shuffle=False, batch_size=4, drop_last=False)
+
+        result = trainer.predict(net, dataloaders=dataloader)
+
+        for batch_predictions in result:
+            assert ((batch_predictions >= 0) & (batch_predictions <= 1)).all()
