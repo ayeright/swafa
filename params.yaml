@@ -3,6 +3,8 @@ online_fa:
   gradient_optimiser: 'sgd'
   gradient_optimiser_kwargs:
     lr: 0.001
+  gradient_warm_up_time_steps: 100
+  em_warm_up_time_steps: 100
   experiments:
     - {observation_dim: 100, latent_dim: 10, spectrum_range: [1, 10], n_samples: [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]}
     - {observation_dim: 100, latent_dim: 10, spectrum_range: [1, 100], n_samples: [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]}

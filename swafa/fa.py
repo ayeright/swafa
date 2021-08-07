@@ -198,6 +198,8 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         optimiser_kwargs: Keyword arguments for the optimiser. If not given, will default to dict(lr=1e-3).
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix.
+        n_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model before
+            updating the other parameters.
         device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
             tensor type.
         random_seed: The random seed for reproducibility.
@@ -209,7 +211,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
 
     def __init__(self, observation_dim: int, latent_dim: int, optimiser: Optimizer = Adam,
                  optimiser_kwargs: Optional[dict] = None, init_factors_noise_std: float = 1e-3,
-                 device: Optional[torch.device] = None, random_seed: int = 0):
+                 n_warm_up_time_steps: int = 0, device: Optional[torch.device] = None, random_seed: int = 0):
         super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
                          random_seed=random_seed)
         optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
@@ -220,6 +222,7 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         self._gradient_wrt_diag_psi = None
         self._gradient_wrt_log_diag_psi = None
         self._optimiser = optimiser([self.F, self._log_diag_psi], **optimiser_kwargs)
+        self._n_warm_up_time_steps = n_warm_up_time_steps
 
     def update(self, theta: Tensor):
         """
@@ -229,11 +232,12 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
             theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
         """
         self._update_commons(theta)
-        self._update_F_times_sigma_plus_m_mt()
-        self._update_gradient_wrt_F()
-        self._update_gradient_wrt_log_psi()
-        self._gradient_step()
-        self.diag_psi = torch.exp(self._log_diag_psi)
+        if self.t > self._n_warm_up_time_steps:
+            self._update_F_times_sigma_plus_m_mt()
+            self._update_gradient_wrt_F()
+            self._update_gradient_wrt_log_psi()
+            self._gradient_step()
+            self.diag_psi = torch.exp(self._log_diag_psi)
 
     def _update_F_times_sigma_plus_m_mt(self):
         """
@@ -291,6 +295,9 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         latent_dim: The size of the latent variable space.
         init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
             factor loading matrix.
+        n_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model before
+            updating the other parameters. This will be set to at least 1 to avoid inverting a zero matrix on the first
+            iteration.
         device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
             tensor type.
         random_seed: The random seed for reproducibility.
@@ -301,20 +308,18 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
     """
 
     def __init__(self, observation_dim: int, latent_dim: int, init_factors_noise_std: float = 1e-3,
-                 device: Optional[torch.device] = None, random_seed: int = 0):
+                 n_warm_up_time_steps: int = 1, device: Optional[torch.device] = None, random_seed: int = 0):
         super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
                          random_seed=random_seed)
         self._A_hat = torch.zeros(observation_dim, latent_dim, device=device)
         self._B_hat = torch.zeros(latent_dim, latent_dim, device=device)
         self._H_hat = None
         self._d_squared_hat = torch.zeros(observation_dim, 1, device=device)
+        self._n_warm_up_time_steps = max(n_warm_up_time_steps, 1)
 
     def update(self, theta: Tensor):
         """
         Given a new observation, update the running averages and the parameters of the FA model.
-
-        Note: the first time this method is called, `F` and `Psi` will not be updated as this would lead to inverting a
-        zero matrix.
 
         Args:
             theta: A single observation of shape (observation_dim,) or (observation_dim, 1).
@@ -322,7 +327,7 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         self._update_commons(theta)
         self._update_H_hat()
         self._update_A_hat()
-        if self.t > 1:  # to avoid computing the inverse of H_hat, which is zero on the first iteration
+        if self.t > self._n_warm_up_time_steps:
             self._update_F()
             self._update_psi()
 

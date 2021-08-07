@@ -9,6 +9,8 @@ stages:
       - online_fa.init_factors_noise_std
       - online_fa.gradient_optimiser
       - online_fa.gradient_optimiser_kwargs
+      - online_fa.gradient_warm_up_time_steps
+      - online_fa.em_warm_up_time_steps
       - online_fa.experiments
       - online_fa.n_trials
       - online_fa.n_test_samples
