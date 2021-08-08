@@ -203,6 +203,10 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
         random_seed=random.randint(0, 1000000),
     )
 
+    covar_norm = compute_distance_between_matrices(covar_true, torch.zeros_like(covar_true))
+    ll_train_true = compute_gaussian_log_likelihood(mean_true, covar_true, observations_train)
+    ll_test_true = compute_gaussian_log_likelihood(mean_true, covar_true, observations_test)
+
     fa_online_gradient = None
     fa_online_em = None
     samples = Tensor([])
@@ -250,17 +254,17 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             spectrum_min=spectrum_range[0],
             spectrum_max=spectrum_range[1],
             n_samples=n_samples_last,
-            covar_norm=compute_distance_between_matrices(covar_true, torch.zeros_like(covar_true)),
+            covar_norm=covar_norm,
             covar_distance_sklearn=compute_distance_between_matrices(covar_true, covar_sklearn),
             covar_distance_online_gradient=compute_distance_between_matrices(covar_true, covar_online_gradient),
             covar_distance_online_em=compute_distance_between_matrices(covar_true, covar_online_em),
-            ll_train_true=compute_gaussian_log_likelihood(mean_true, covar_true, observations_train),
+            ll_train_true=ll_train_true,
             ll_train_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations_train),
             ll_train_online_gradient=compute_gaussian_log_likelihood(
                 mean_online_gradient, covar_online_gradient, observations_train,
             ),
             ll_train_online_em=compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations_train),
-            ll_test_true=compute_gaussian_log_likelihood(mean_true, covar_true, observations_test),
+            ll_test_true=ll_test_true,
             ll_test_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations_test),
             ll_test_online_gradient=compute_gaussian_log_likelihood(
                 mean_online_gradient, covar_online_gradient, observations_test,
