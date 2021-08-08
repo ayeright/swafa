@@ -28,3 +28,14 @@ stages:
       - online_fa_analysis.min_samples
     outs:
       - experiments/data/online_fa_analysis
+
+  download_uci_datasets:
+    cmd: python experiments/uci_datasets.py
+      --boston-housing-output-path experiments/data/uci_datasets/boston_housing.parquet
+      --yacht-hydrodynamics-output-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
+      --concrete-strength-output-path experiments/data/uci_datasets/concrete_strength.parquet
+      --energy-efficiency-output-path experiments/data/uci_datasets/energy_efficiency.parquet
+    deps:
+      - experiments/uci_datasets.py
+    outs:
+      - experiments/data/uci_datasets
