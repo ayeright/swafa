@@ -327,6 +327,7 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         self._update_commons(theta)
         self._update_H_hat()
         self._update_A_hat()
+        self._update_d_squared_hat()
         if self.t > self._n_warm_up_time_steps:
             self._update_F()
             self._update_psi()
@@ -350,6 +351,12 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         """
         self._A_hat = self._update_running_average(self._A_hat, self._d.mm(self._m.t()))
 
+    def _update_d_squared_hat(self):
+        """
+        Update the running average of `d^2`.
+        """
+        self._d_squared_hat = self._update_running_average(self._d_squared_hat, self._d ** 2)
+
     def _update_F(self):
         """
         Update the factor loading matrix.
@@ -360,12 +367,5 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
         """
         Update the diagonal entries of the Gaussian noise covariance matrix.
         """
-        self._update_d_squared_hat()
         self.diag_psi = self._d_squared_hat \
             + torch.sum(self.F.mm(self._H_hat) * self.F - 2 * self.F * self._A_hat, dim=1, keepdim=True)
-
-    def _update_d_squared_hat(self):
-        """
-        Update the running average of `d^2`.
-        """
-        self._d_squared_hat = self._update_running_average(self._d_squared_hat, self._d ** 2)
