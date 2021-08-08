@@ -657,7 +657,7 @@ where $\beta = \frac{1}{\sigma^2}$ \cite{barber2007}. In Bayesian linear regress
 	= \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)
 	= \Big(\frac{\alpha}{2\pi}\Big)^{\frac{d}{2}} \exp\Big(-\frac{\alpha}{2} \theta^\intercal \theta \Big)
 \end{equation}
-for some $\alpha > 0$, called the \emph{precision} \cite{barber2007}. Applying the logarithm, 
+for some $\alpha > 0$, which is a hyperparameter known as the \emph{precision} \cite{barber2007}. Applying the logarithm, 
 \begin{align}\label{eqn:linear_regression_log_prior}
 \begin{split}
 	\log p(\theta) 
@@ -728,7 +728,7 @@ Hence, the posterior distribution of $\theta$ is
 
 Since the posterior of the linear regression parameter vector can be computed in closed form, the ability of the online FA algorithms to learn the posterior can be evaluated in this case. For a linear regression model trained via SGD, Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} can both be used to fit a Gaussian posterior distribution to the iterates, $\theta_1, \dots, \theta_T$, encountered along the SGD trajectory. The mean and covariance of the learned distributions can then be compared directly to the ground truth. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). This can be estimated by calculating the empirical standard deviation of $\{y_n\}_{n=1}^{N}$. 
 
-The precision $\alpha$ is a user-defined parameter which controls the complexity of the model. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
+The precision $\alpha$ is a hyperparameter which controls the width of the prior $p(\theta)$. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
 \begin{equation}
 	\log p(\theta | \mathcal{D}) 
 	= -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
