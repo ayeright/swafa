@@ -515,8 +515,7 @@ def learn_fa_online(fa: OnlineFactorAnalysis, observations: Tensor) -> (OnlineFa
     for theta in observations:
         fa.update(theta)
     mean = fa.c.squeeze()
-    psi = torch.diag(fa.diag_psi.squeeze())
-    covar = compute_fa_covariance(fa.F, psi)
+    covar = fa.get_covariance()
     return fa, mean, covar
 
 

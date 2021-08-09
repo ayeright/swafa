@@ -126,3 +126,19 @@ class TestOnlineFactorAnalysis:
         inv_psi = torch.diag(fa._diag_inv_psi.squeeze())
         expected_sigma = torch.linalg.inv(torch.eye(latent_dim) + F.t().mm(inv_psi).mm(F))
         assert torch.isclose(fa._sigma, expected_sigma, atol=1e-05).all()
+
+    def test_get_covariance(self):
+        fa = OnlineFactorAnalysis(observation_dim=3, latent_dim=2)
+        fa.F = torch.Tensor([
+            [1, 2],
+            [-3, 4],
+            [-1, 2],
+        ])
+        fa.diag_psi = torch.Tensor([1, 2, 3])
+        expected_covariance = torch.Tensor([
+            [6, 5, 3],
+            [5, 27, 11],
+            [3, 11, 8],
+        ])
+        actual_covariance = fa.get_covariance()
+        assert torch.isclose(actual_covariance, expected_covariance, atol=1e-05).all()

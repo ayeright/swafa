@@ -184,6 +184,18 @@ class OnlineFactorAnalysis(ABC):
         """
         ...
 
+    def get_covariance(self):
+        """
+        Get the full covariance matrix of the FA model.
+
+        Note: if the observation dimension is large, this may result in a memory error.
+
+        Returns:
+            The covariance matrix. Of shape (observation_dim, observation_dim).
+        """
+        psi = torch.diag(self.diag_psi.squeeze())
+        return self.F.mm(self.F.t()) + psi
+
 
 class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
     """
