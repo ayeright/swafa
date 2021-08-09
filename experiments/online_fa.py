@@ -514,7 +514,7 @@ def learn_fa_online(fa: OnlineFactorAnalysis, observations: Tensor) -> (OnlineFa
     """
     for theta in observations:
         fa.update(theta)
-    mean = fa.c.squeeze()
+    mean = fa.get_mean()
     covar = fa.get_covariance()
     return fa, mean, covar
 

@@ -184,6 +184,15 @@ class OnlineFactorAnalysis(ABC):
         """
         ...
 
+    def get_mean(self):
+        """
+        Get the mean of the FA model.
+
+        Returns:
+            The mean. Of shape (observation_dim,).
+        """
+        return self.c.squeeze()
+
     def get_covariance(self):
         """
         Get the full covariance matrix of the FA model.
