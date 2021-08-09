@@ -5,6 +5,8 @@ stages:
     deps:
       - experiments/online_fa.py
       - swafa/fa.py
+      - experiments/utils/factory.py
+      - experiments/utils/metrics.py
     params:
       - online_fa.init_factors_noise_std
       - online_fa.gradient_optimiser
