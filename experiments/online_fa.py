@@ -529,17 +529,17 @@ def main(results_output_path: str):
         results_output_path: The parquet file path to save the experiment results:
     """
     with open("params.yaml", 'r') as fd:
-        params = yaml.safe_load(fd)
+        params = yaml.safe_load(fd)['online_fa']
 
     results = run_all_fa_experiments(
-        experiments_config=params['online_fa']['experiments'],
-        n_trials=params['online_fa']['n_trials'],
-        init_factors_noise_std=params['online_fa']['init_factors_noise_std'],
-        gradient_optimiser=params['online_fa']['gradient_optimiser'],
-        gradient_optimiser_kwargs=params['online_fa']['gradient_optimiser_kwargs'],
-        gradient_warm_up_time_steps=params['online_fa']['gradient_warm_up_time_steps'],
-        em_warm_up_time_steps=params['online_fa']['em_warm_up_time_steps'],
-        n_test_samples=params['online_fa']['n_test_samples'],
+        experiments_config=params['experiments'],
+        n_trials=params['n_trials'],
+        init_factors_noise_std=params['init_factors_noise_std'],
+        gradient_optimiser=params['gradient_optimiser'],
+        gradient_optimiser_kwargs=params['gradient_optimiser_kwargs'],
+        gradient_warm_up_time_steps=params['gradient_warm_up_time_steps'],
+        em_warm_up_time_steps=params['em_warm_up_time_steps'],
+        n_test_samples=params['n_test_samples'],
     )
 
     print('Results:\n')
