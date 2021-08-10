@@ -43,8 +43,10 @@ class OnlineFactorAnalysis(ABC):
     """
 
     def __init__(self, observation_dim: int, latent_dim: int, init_factors_noise_std: float = 1e-3,
-                 device: Optional[torch.device] = None, random_seed: int = 0):
-        torch.manual_seed(random_seed)
+                 device: Optional[torch.device] = None, random_seed: Optional[int] = None):
+        if random_seed is not None:
+            torch.manual_seed(random_seed)
+
         self.observation_dim = observation_dim
         self.latent_dim = latent_dim
         self.t = 0
