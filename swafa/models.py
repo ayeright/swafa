@@ -23,6 +23,7 @@ class FeedForwardNet(LightningModule):
         output_activation_fn: The activation function to apply to the final output when predicting. When training,
             validating or testing, no activation will be applied to the output. Hence, the loss function should take the
             un-activated outputs as input. If None, will be set to the identity activation function.
+        bias: Whether or not to include a bias term in the linear layers.
         optimiser_class: The class of the PyTorch optimiser to use for training the neural network.
         optimiser_kwargs: Keyword arguments for the optimiser class.
         loss_fn: The PyTorch loss function to use for training the model. Will be applied to the un-activated outputs
@@ -37,7 +38,7 @@ class FeedForwardNet(LightningModule):
 
     def __init__(self, input_dim: int, hidden_dims: Optional[List[int]] = None,
                  hidden_activation_fn: Optional[nn.Module] = None, output_activation_fn: Optional[nn.Module] = None,
-                 optimiser_class: Optimizer = Adam, optimiser_kwargs: Optional[dict] = None,
+                 bias: bool = True, optimiser_class: Optimizer = Adam, optimiser_kwargs: Optional[dict] = None,
                  loss_fn: nn.Module = nn.MSELoss(), random_seed: Optional[int] = None):
         super().__init__()
         if random_seed is not None:
@@ -54,10 +55,10 @@ class FeedForwardNet(LightningModule):
         self.hidden_layers = nn.ModuleList()
         d_in = deepcopy(input_dim)
         for d_out in self.hidden_dims:
-            self.hidden_layers.append(nn.Linear(d_in, d_out))
+            self.hidden_layers.append(nn.Linear(d_in, d_out, bias=bias))
             d_in = d_out
 
-        self.output_layer = nn.Linear(d_in, 1)
+        self.output_layer = nn.Linear(d_in, 1, bias=bias)
 
     @staticmethod
     def _identity_fn(X: Tensor) -> Tensor:
