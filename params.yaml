@@ -17,3 +17,19 @@ online_fa:
 
 online_fa_analysis:
   min_samples: 100
+
+linear_models:
+  model_optimiser: 'sgd'
+  model_optimiser_kwargs:
+    lr: 0.001
+  n_epochs: 100
+  batch_size: 32
+  init_factors_noise_std: 0.1
+  gradient_optimiser: 'sgd'
+  gradient_optimiser_kwargs:
+    lr: 0.001
+  gradient_warm_up_time_steps: 100
+  em_warm_up_time_steps: 100
+  posterior_update_epoch_start: 10
+  posterior_eval_epoch_frequency: 10
+  n_trials: 10
