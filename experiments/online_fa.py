@@ -122,7 +122,7 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
             print('-' * 100)
         print('-' * 100)
 
-    return pd.concat(results)
+    return pd.concat(results, ignore_index=True)
 
 
 def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: List[int],
