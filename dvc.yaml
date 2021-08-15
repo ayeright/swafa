@@ -74,3 +74,13 @@ stages:
       - linear_models.n_trials
     outs:
       - experiments/data/linear_models_results.parquet
+
+  linear_models_analysis:
+    cmd: python experiments/linear_models_analysis.py
+      --results-input-path experiments/data/linear_models_results.parquet
+      --analysis-output-dir experiments/data/linear_models_analysis
+    deps:
+      - experiments/linear_models_analysis.py
+      - experiments/data/linear_models_results.parquet
+    outs:
+      - experiments/data/linear_models_analysis
