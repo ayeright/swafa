@@ -184,10 +184,12 @@ def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.Da
             x-axis values.
         standard_errors: The standard error for each value in means. Has the same shape as means.
         png_path: The file path to save the plot as a png file.
-        ylabel: The x-axis label.
+        xlabel: The x-axis label.
         ylabel: The y-axis label.
         xscale: The type of scale to use on the x-axis.
         yscale: The type of scale to use on the y-axis.
+        line_labels: A label for each line that will be plotted. Should be the same length as the number of columns in
+            means. If None, means.columns will be used.
     """
     line_labels = line_labels or means.columns
     plt.rcParams.update({'font.size': 20})
