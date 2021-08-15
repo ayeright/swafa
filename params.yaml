@@ -22,7 +22,7 @@ linear_models:
   model_optimiser: 'sgd'
   model_optimiser_kwargs:
     lr: 0.001
-  n_epochs: 100
+  n_epochs: 500
   batch_size: 32
   init_factors_noise_std: 0.1
   gradient_optimiser: 'sgd'
