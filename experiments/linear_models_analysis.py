@@ -147,7 +147,7 @@ def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.Da
     """
     axes_titles = axes_titles or axes_columns
     plt.rcParams.update({'font.size': 15})
-    fig, axes = plt.subplots(1, len(axes_columns), sharey=True, figsize=(12, 6))
+    fig, axes = plt.subplots(1, len(axes_columns), sharey=True, figsize=(18, 6))
 
     for latent_dim in means['latent_dim'].unique():
         group_means = means[means['latent_dim'] == latent_dim]
