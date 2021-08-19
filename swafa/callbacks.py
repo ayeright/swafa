@@ -7,6 +7,7 @@ import torch
 from torch import Tensor
 
 from swafa.custom_types import POSTERIOR_TYPE
+from swafa.utils import get_callback_epoch_range, vectorise_weights
 
 
 class WeightPosteriorCallback(Callback):
@@ -53,23 +54,10 @@ class WeightPosteriorCallback(Callback):
             trainer: A PyTorch Lightning Trainer which trains the model.
             pl_module: The model being trained.
         """
-        self._init_epoch_range(trainer)
+        self.first_update_epoch, self.last_update_epoch = get_callback_epoch_range(
+            trainer, epoch_start=self._update_epoch_start,
+        )
         self._check_weight_dimension(pl_module)
-
-    def _init_epoch_range(self, trainer: Trainer):
-        """
-        Initialise the range of epochs on which the posterior will be updated.
-
-        Convert the epoch start from float if necessary and converts to zero-indexing.
-
-        Args:
-            trainer: A PyTorch Lightning Trainer which trains the model.
-        """
-        if isinstance(self._update_epoch_start, float):
-            self._update_epoch_start = int(trainer.max_epochs * self._update_epoch_start)
-
-        self.first_update_epoch = max(self._update_epoch_start - 1, 0)
-        self.last_update_epoch = trainer.max_epochs - 1
 
     def _check_weight_dimension(self, pl_module: LightningModule):
         """
@@ -80,7 +68,7 @@ class WeightPosteriorCallback(Callback):
         Args:
             pl_module: The model being trained.
         """
-        weight_dim = len(self._vectorise_weights(pl_module))
+        weight_dim = len(vectorise_weights(pl_module))
         if weight_dim != self.posterior.observation_dim:
             raise RuntimeError(f"The dimension of the model and the posterior weight distribution must match, but they "
                                f"are {weight_dim} and {self.posterior.observation_dim}, respectively")
@@ -102,22 +90,5 @@ class WeightPosteriorCallback(Callback):
             dataloader_idx: Not used.
         """
         if self.first_update_epoch <= trainer.current_epoch <= self.last_update_epoch:
-            weights = self._vectorise_weights(pl_module)
+            weights = vectorise_weights(pl_module)
             self.posterior.update(weights)
-
-    @staticmethod
-    def _vectorise_weights(pl_module: LightningModule) -> Tensor:
-        """
-        Concatenate all weights of the given model into a single vector.
-
-        Each individual set of weights is reshaped into a single vector and then these vectors are stacked together.
-
-        The weights are stacked in the order that they are returned by pl_module.parameters().
-
-        Args:
-            pl_module: A model.
-
-        Returns:
-            All the model's weights stacked together. Of shape (n_weights,).
-        """
-        return torch.cat([w.data.reshape(-1) for w in pl_module.parameters()])

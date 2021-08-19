@@ -12,28 +12,6 @@ from swafa.posterior import ModelPosterior
 class TestWeightPosteriorUpdate:
 
     @pytest.mark.parametrize(
-        "input_dim, hidden_dims, expected_n_weights",
-        [
-            (5, None, 5 + 1),
-            (6, [4], (6 + 1) * 4 + (4 + 1)),
-            (7, [6, 9], (7 + 1) * 6 + (6 + 1) * 9 + (9 + 1)),
-        ]
-    )
-    def test_vectorise_weights(self, input_dim, hidden_dims, expected_n_weights):
-        net = FeedForwardNet(input_dim, hidden_dims)
-
-        model_posterior = ModelPosterior(
-            model=net,
-            weight_posterior_class=OnlineGradientFactorAnalysis,
-            weight_posterior_kwargs=dict(latent_dim=3),
-        )
-
-        callback = WeightPosteriorCallback(posterior=model_posterior.weight_posterior)
-        weights = callback._vectorise_weights(net)
-
-        assert len(weights) == expected_n_weights
-
-    @pytest.mark.parametrize(
         "n_samples, batch_size, n_epochs, update_epoch_start, expected_n_updates",
         [
             (32, 4, 5, 1, int(32 / 4) * 5),
