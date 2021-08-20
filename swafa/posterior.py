@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer, LightningModule
 
 from swafa.custom_types import POSTERIOR_TYPE
+from swafa.utils import get_weight_dimension
 
 
 class ModelPosterior:
@@ -42,7 +43,7 @@ class ModelPosterior:
             The initialised posterior distribution.
         """
         posterior_kwargs = posterior_kwargs or dict()
-        return posterior_class(self._get_weight_dimension(), **posterior_kwargs)
+        return posterior_class(get_weight_dimension(self.model), **posterior_kwargs)
 
     def _get_weight_dimension(self) -> int:
         """

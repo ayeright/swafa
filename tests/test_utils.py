@@ -2,7 +2,7 @@ import pytest
 from pytorch_lightning import Trainer
 
 from swafa.models import FeedForwardNet
-from swafa.utils import vectorise_weights, get_callback_epoch_range
+from swafa.utils import vectorise_weights, get_callback_epoch_range, get_weight_dimension
 
 
 @pytest.mark.parametrize(
@@ -37,3 +37,17 @@ def test_get_callback_epoch_range(max_epochs, epoch_start, epoch_stop, expected_
 
     assert first_epoch == expected_first_epoch
     assert last_epoch == expected_last_epoch
+
+
+@pytest.mark.parametrize(
+    "input_dim, hidden_dims, expected_weight_dim",
+    [
+        (5, None, 5 + 1),
+        (6, [4], (6 + 1) * 4 + (4 + 1)),
+        (7, [6, 9], (7 + 1) * 6 + (6 + 1) * 9 + (9 + 1)),
+    ]
+)
+def test_get_weight_dimension(input_dim, hidden_dims, expected_weight_dim):
+    net = FeedForwardNet(input_dim, hidden_dims)
+
+    assert get_weight_dimension(net) == expected_weight_dim

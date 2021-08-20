@@ -52,3 +52,13 @@ def vectorise_weights(model: nn.Module) -> Tensor:
         All the model's weights stacked together. Of shape (n_weights,).
     """
     return torch.cat([w.data.reshape(-1) for w in model.parameters()])
+
+
+def get_weight_dimension(model: nn.Module) -> int:
+    """
+    Get the total combined dimension of all the weights in the model.
+
+    Returns:
+        The total dimension of the model's weights.
+    """
+    return sum([w.numel() for w in model.parameters()])
