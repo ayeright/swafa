@@ -186,7 +186,7 @@ class OnlineFactorAnalysis(ABC):
         """
         ...
 
-    def get_mean(self):
+    def get_mean(self) -> Tensor:
         """
         Get the mean of the FA model.
 
@@ -195,7 +195,7 @@ class OnlineFactorAnalysis(ABC):
         """
         return self.c.squeeze()
 
-    def get_covariance(self):
+    def get_covariance(self) -> Tensor:
         """
         Get the full covariance matrix of the FA model.
 
