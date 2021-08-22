@@ -48,6 +48,9 @@ def test_all_experiments_results_rows_and_columns(n_datasets, n_trials, n_featur
 
     expected_columns = [
         'epoch',
+        'mean_distance_sklearn',
+        'covar_distance_sklearn',
+        'wasserstein_sklearn',
         'mean_distance_online_gradient',
         'covar_distance_online_gradient',
         'wasserstein_online_gradient',

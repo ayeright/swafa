@@ -17,7 +17,10 @@ from swafa.models import FeedForwardNet
 from swafa.callbacks import WeightPosteriorCallback
 from swafa.fa import OnlineGradientFactorAnalysis, OnlineEMFactorAnalysis
 from swafa.posterior import ModelPosterior
-from experiments.utils.callbacks import PosteriorEvaluationCallback
+from experiments.utils.callbacks import (
+    OnlinePosteriorEvaluationCallback,
+    BatchFactorAnalysisPosteriorEvaluationCallback,
+)
 from experiments.utils.metrics import compute_distance_between_matrices
 from experiments.utils.factory import OPTIMISER_FACTORY
 
@@ -42,10 +45,10 @@ def run_all_experiments(
     Run experiments on the given datasets.
 
     For each dataset, train a linear model to predict the target variable via SGD. Use the model weight vectors sampled
-    during SGD to estimate the posterior distribution of the weights via online gradient factor analysis (FA) and online
-    expectation-maximisation (EM) FA. For each method, compute the distance between the true and estimated posterior.
-    For each dataset, run experiments with the latent dimension of the FA models equal to 1 to d - 1, where d is the
-    number of features in the dataset.
+    during SGD to estimate the posterior distribution of the weights via the sklearn batch factor analysis (FA)
+    algorithm, online gradient FA and online expectation-maximisation (EM) FA. For each method, compute the distance
+    between the true and estimated posterior. For each dataset, run experiments with the latent dimension of the FA
+    models equal to 1 to d - 1, where d is the number of features in the dataset.
 
     Note: the posterior distribution depends on the reciprocal of the variance of the target variable and the precision
     of the prior on the weights. These are referred to as beta and alpha respectively. See [1] for more details on how
@@ -80,6 +83,12 @@ def run_all_experiments(
         sum[(n_features_in_dataset - 1) * n_trials for dataset in datasets] * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
+            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the posterior
+                estimated via the batch sklearn FA algorithm.
+            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true posterior and
+                the posterior estimated via the batch sklearn FA algorithm.
+            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the posterior
+                estimated via the batch sklearn FA algorithm.
             - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
                 posterior estimated via online gradient FA.
             - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
@@ -154,10 +163,10 @@ def run_dataset_experiments(
     Run experiments on the given dataset.
 
     Train a linear model to predict the target variable via SGD. Use the model weight vectors sampled
-    during SGD to estimate the posterior distribution of the weights via online gradient factor analysis (FA) and online
-    expectation-maximisation (EM) FA. For each method, compute the distance between the true and estimated posterior.
-    Run experiments with the latent dimension of the FA models equal to 1 to d - 1, where d is the number of features in
-    the dataset.
+    during SGD to estimate the posterior distribution of the weights via the sklearn batch factor analysis (FA)
+    algorithm, online gradient FA and online expectation-maximisation (EM) FA. For each method, compute the distance
+    between the true and estimated posterior. Run experiments with the latent dimension of the FA models equal to 1 to
+    d - 1, where d is the number of features in the dataset.
 
     Note: the posterior distribution depends on the reciprocal of the variance of the target variable and the precision
     of the prior on the weights. These are referred to as beta and alpha respectively. See [1] for more details on how
@@ -191,6 +200,12 @@ def run_dataset_experiments(
         (n_features_in_dataset - 1) * n_trials * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
+            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the posterior
+                estimated via the batch sklearn FA algorithm.
+            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true posterior and
+                the posterior estimated via the batch sklearn FA algorithm.
+            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the posterior
+                estimated via the batch sklearn FA algorithm.
             - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
                 posterior estimated via online gradient FA.
             - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
@@ -302,8 +317,9 @@ def run_experiment_trial(
     Run a single experiment trial on the given data with the given parameters.
 
     Train a linear model to predict the target variable via SGD. Use the model weight vectors sampled
-    during SGD to estimate the posterior distribution of the weights via online gradient factor analysis (FA) and online
-    expectation-maximisation (EM) FA. For each method, compute the distance between the true and estimated posterior.
+    during SGD to estimate the posterior distribution of the weights via the sklearn batch factor analysis (FA)
+    algorithm, online gradient FA and online expectation-maximisation (EM) FA. For each method, compute the distance
+    between the true and estimated posterior.
 
     Args:
         X: The features. Of shape (n_samples, n_features).
@@ -338,6 +354,12 @@ def run_experiment_trial(
         n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
+            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via the batch sklearn FA algorithm.
+            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
             - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
                 posterior estimated via online gradient FA.
             - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
@@ -374,6 +396,7 @@ def run_experiment_trial(
         model,
         gradient_posterior_update_callback,
         em_posterior_update_callback,
+        sklearn_posterior_eval_callback,
         gradient_posterior_eval_callback,
         em_posterior_eval_callback,
     ) = build_model_and_callbacks(
@@ -382,6 +405,7 @@ def run_experiment_trial(
         true_posterior_covar=true_posterior_covar,
         model_optimiser_class=OPTIMISER_FACTORY[model_optimiser],
         model_optimiser_kwargs=model_optimiser_kwargs,
+        posterior_latent_dim=posterior_latent_dim,
         gradient_weight_posterior_kwargs=gradient_weight_posterior_kwargs,
         em_weight_posterior_kwargs=em_weight_posterior_kwargs,
         posterior_update_epoch_start=posterior_update_epoch_start,
@@ -392,6 +416,7 @@ def run_experiment_trial(
     callbacks = [
         gradient_posterior_update_callback,
         em_posterior_update_callback,
+        sklearn_posterior_eval_callback,
         gradient_posterior_eval_callback,
         em_posterior_eval_callback,
     ]
@@ -405,9 +430,11 @@ def run_experiment_trial(
         batch_size=batch_size,
     )
 
-    results = collate_callback_results(gradient_posterior_eval_callback, em_posterior_eval_callback)
-
-    return results
+    return collate_callback_results(
+        sklearn_posterior_eval_callback,
+        gradient_posterior_eval_callback,
+        em_posterior_eval_callback,
+    )
 
 
 def get_features_and_targets(dataset: pd.DataFrame) -> (Tensor, Tensor):
@@ -530,13 +557,14 @@ def build_model_and_callbacks(
         true_posterior_covar: Tensor,
         model_optimiser_class: Optimizer,
         model_optimiser_kwargs: dict,
+        posterior_latent_dim: int,
         gradient_weight_posterior_kwargs: dict,
         em_weight_posterior_kwargs: dict,
         posterior_update_epoch_start: int,
         posterior_eval_epoch_frequency: int,
         model_random_seed: int,
-) -> (FeedForwardNet, WeightPosteriorCallback, WeightPosteriorCallback, PosteriorEvaluationCallback,
-      PosteriorEvaluationCallback):
+) -> (FeedForwardNet, WeightPosteriorCallback, WeightPosteriorCallback, BatchFactorAnalysisPosteriorEvaluationCallback,
+      OnlinePosteriorEvaluationCallback, OnlinePosteriorEvaluationCallback):
     """
     Build a linear model and callbacks which should be called during training to update and evaluate the weight
     posteriors.
@@ -547,6 +575,7 @@ def build_model_and_callbacks(
         true_posterior_covar: The covariance matrix of the true posterior. Of shape (n_features, n_features).
         model_optimiser_class: The class of the PyTorch optimiser used to train the linear model.
         model_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used to train the linear model.
+        posterior_latent_dim: The latent dimension of the estimated posterior distributions.
         gradient_weight_posterior_kwargs: Keyword arguments for the instance of OnlineGradientFactorAnalysis used to
             estimate the posterior.
         em_weight_posterior_kwargs: Keyword arguments for the instance of OnlineEMFactorAnalysis used to estimate the
@@ -561,6 +590,7 @@ def build_model_and_callbacks(
             model.
         gradient_posterior_update_callback: Callbacks used to update the OnlineGradientFactorAnalysis weight posterior.
         em_posterior_update_callback: Callbacks used to update the OnlineEMFactorAnalysis weight posterior.
+        sklearn_posterior_eval_callback: Callback used to evaluate the sklearn FactorAnalysis weight posterior.
         gradient_posterior_eval_callback: Callback used to evaluate the OnlineGradientFactorAnalysis weight posterior.
         em_posterior_eval_callback: Callback used to evaluate the OnlineEMFactorAnalysis weight posterior.
     """
@@ -594,14 +624,23 @@ def build_model_and_callbacks(
         update_epoch_start=posterior_update_epoch_start,
     )
 
-    gradient_posterior_eval_callback = PosteriorEvaluationCallback(
+    sklearn_posterior_eval_callback = BatchFactorAnalysisPosteriorEvaluationCallback(
+        latent_dim=posterior_latent_dim,
+        true_mean=true_posterior_mean,
+        true_covar=true_posterior_covar,
+        collect_epoch_start=posterior_update_epoch_start,
+        eval_epoch_frequency=posterior_eval_epoch_frequency,
+        random_seed=model_random_seed,
+    )
+
+    gradient_posterior_eval_callback = OnlinePosteriorEvaluationCallback(
         posterior=gradient_posterior.weight_posterior,
         true_mean=true_posterior_mean,
         true_covar=true_posterior_covar,
         eval_epoch_frequency=posterior_eval_epoch_frequency,
     )
 
-    em_posterior_eval_callback = PosteriorEvaluationCallback(
+    em_posterior_eval_callback = OnlinePosteriorEvaluationCallback(
         posterior=em_posterior.weight_posterior,
         true_mean=true_posterior_mean,
         true_covar=true_posterior_covar,
@@ -612,6 +651,7 @@ def build_model_and_callbacks(
         model,
         gradient_posterior_update_callback,
         em_posterior_update_callback,
+        sklearn_posterior_eval_callback,
         gradient_posterior_eval_callback,
         em_posterior_eval_callback,
     )
@@ -636,12 +676,14 @@ def fit_model(X: Tensor, y: Tensor, model: FeedForwardNet, callbacks: List[Callb
     trainer.fit(model, train_dataloader=dataloader)
 
 
-def collate_callback_results(gradient_posterior_eval_callback: PosteriorEvaluationCallback,
-                             em_posterior_eval_callback: PosteriorEvaluationCallback) -> pd.DataFrame:
+def collate_callback_results(sklearn_posterior_eval_callback: BatchFactorAnalysisPosteriorEvaluationCallback,
+                             gradient_posterior_eval_callback: OnlinePosteriorEvaluationCallback,
+                             em_posterior_eval_callback: OnlinePosteriorEvaluationCallback) -> pd.DataFrame:
     """
     Collate the results from the posterior evaluations callbacks into a single DataFrame.
 
     Args:
+        sklearn_posterior_eval_callback: Callback used to evaluate the sklearn FactorAnalysis weight posterior.
         gradient_posterior_eval_callback: Callback used to evaluate the OnlineGradientFactorAnalysis weight posterior.
         em_posterior_eval_callback: Callback used to evaluate the OnlineEMFactorAnalysis weight posterior.
 
@@ -650,6 +692,12 @@ def collate_callback_results(gradient_posterior_eval_callback: PosteriorEvaluati
         n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
+            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via the batch sklearn FA algorithm.
+            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
             - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
                 posterior estimated via online gradient FA.
             - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
@@ -664,14 +712,18 @@ def collate_callback_results(gradient_posterior_eval_callback: PosteriorEvaluati
                 estimated via online EM FA.
     """
     results = []
-    for i, (epoch_gradient, epoch_em) in enumerate(zip(gradient_posterior_eval_callback.eval_epochs,
-                                                       em_posterior_eval_callback.eval_epochs)):
-        if epoch_gradient != epoch_em:
-            raise RuntimeError(f'The evaluation epochs of the two evaluation callbacks must be equal, not '
-                               f'{epoch_gradient} and {epoch_em}')
+    for i, (epoch_sklearn, epoch_gradient, epoch_em) in enumerate(zip(sklearn_posterior_eval_callback.eval_epochs,
+                                                                      gradient_posterior_eval_callback.eval_epochs,
+                                                                      em_posterior_eval_callback.eval_epochs)):
+        if (epoch_sklearn != epoch_gradient) or (epoch_sklearn != epoch_gradient):
+            raise RuntimeError(f'The evaluation epochs of the three evaluation callbacks must be equal, not '
+                               f'{epoch_sklearn}, {epoch_gradient} and {epoch_em}')
 
         results.append(dict(
-            epoch=epoch_gradient,
+            epoch=epoch_sklearn,
+            mean_distance_sklearn=sklearn_posterior_eval_callback.distances_from_mean[i],
+            covar_distance_sklearn=sklearn_posterior_eval_callback.distances_from_covar[i],
+            wasserstein_sklearn=sklearn_posterior_eval_callback.wasserstein_distances[i],
             mean_distance_online_gradient=gradient_posterior_eval_callback.distances_from_mean[i],
             covar_distance_online_gradient=gradient_posterior_eval_callback.distances_from_covar[i],
             wasserstein_online_gradient=gradient_posterior_eval_callback.wasserstein_distances[i],
