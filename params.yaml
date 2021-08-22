@@ -29,6 +29,6 @@ linear_models:
   gradient_warm_up_time_steps: 100
   em_warm_up_time_steps: 100
   posterior_update_epoch_start: 10
-  posterior_eval_epoch_frequency: 10
+  posterior_eval_epoch_frequency: 25
   precision_scaling_factor: 0.1
   n_trials: 10
