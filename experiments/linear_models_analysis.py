@@ -24,6 +24,12 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             sum[(n_features_in_dataset - 1) * n_trials for dataset in datasets] * n_epochs / posterior_eval_epoch_frequency.
             The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
+            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the posterior
+                estimated via the batch sklearn FA algorithm.
+            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true posterior and
+                the posterior estimated via the batch sklearn FA algorithm.
+            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the posterior
+                estimated via the batch sklearn FA algorithm.
             - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
                 posterior estimated via online gradient FA.
             - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
@@ -47,7 +53,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             - observation_dim: (int) The number of features in the dataset.
         analysis_output_dir: The directory path to save the output of the analysis.
     """
-    metric_suffixes = ['online_gradient', 'online_em']
+    metric_suffixes = ['sklearn', 'online_gradient', 'online_em']
     mean_columns = [f'mean_distance_{x}' for x in metric_suffixes]
     covar_columns = [f'covar_distance_{x}' for x in metric_suffixes]
     wasserstein_columns = [f'wasserstein_{x}' for x in metric_suffixes]
@@ -55,7 +61,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
     results[mean_columns] = results[mean_columns].values / results[['mean_norm']].values
     results[covar_columns] = results[covar_columns].values / results[['covar_norm']].values
 
-    axis_titles = ['Online SGA', 'Online EM']
+    axis_titles = ['Batch SVD', 'Online SGA', 'Online EM']
 
     for dataset_label in results['dataset'].unique():
         dataset_means, dataset_standard_errors = aggregate_experiment_results(
