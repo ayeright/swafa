@@ -111,3 +111,25 @@ class TestOnlineGradientFactorAnalysis:
         fa._update_F_times_sigma_plus_m_mt()
         inv_psi = torch.diag(fa._diag_inv_psi.squeeze())
         return fa, theta, inv_psi
+
+    @pytest.mark.parametrize("n_warm_up_time_steps", [0, 1, 5])
+    def test_warm_up_time_steps(self, n_warm_up_time_steps):
+        observation_dim = 3
+        latent_dim = 2
+        fa = OnlineGradientFactorAnalysis(observation_dim, latent_dim, n_warm_up_time_steps=n_warm_up_time_steps)
+
+        c = fa.c.clone()
+        F = fa.F.clone()
+        diag_psi = fa.diag_psi.clone()
+
+        for t in range(n_warm_up_time_steps + 2):
+            fa.update(torch.randn(observation_dim, 1))
+            assert not torch.isclose(fa.c, c).all()
+
+            should_not_change = t < n_warm_up_time_steps
+            assert torch.isclose(fa.F, F).all() == should_not_change
+            assert torch.isclose(fa.diag_psi, diag_psi).all() == should_not_change
+
+            c = fa.c.clone()
+            F = fa.F.clone()
+            diag_psi = fa.diag_psi.clone()

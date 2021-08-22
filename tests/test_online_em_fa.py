@@ -85,3 +85,35 @@ class TestOnlineEMFactorAnalysis:
 
                 assert torch.isclose(fa.diag_psi, expected_diag_psi, atol=1e-05).all()
                 assert not torch.isclose(fa.diag_psi, old_diag_psi, atol=1e-05).all()
+
+    @pytest.mark.parametrize("n_warm_up_time_steps", [0, 1, 5])
+    def test_warm_up_time_steps(self, n_warm_up_time_steps):
+        observation_dim = 3
+        latent_dim = 2
+        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, n_warm_up_time_steps=n_warm_up_time_steps)
+
+        c = fa.c.clone()
+        F = fa.F.clone()
+        diag_psi = fa.diag_psi.clone()
+        A_hat = fa._A_hat.clone()
+        B_hat = fa._B_hat.clone()
+        d_squared_hat = fa._d_squared_hat.clone()
+
+        for t in range(0, n_warm_up_time_steps + 2):
+            fa.update(torch.randn(observation_dim, 1))
+            if t > 0:
+                assert not torch.isclose(fa.c, c).all()
+                assert not torch.isclose(fa._A_hat, A_hat).all()
+                assert not torch.isclose(fa._B_hat, B_hat).all()
+                assert not torch.isclose(fa._d_squared_hat, d_squared_hat).all()
+
+                should_not_change = t < n_warm_up_time_steps
+                assert torch.isclose(fa.F, F).all() == should_not_change
+                assert torch.isclose(fa.diag_psi, diag_psi).all() == should_not_change
+
+            c = fa.c.clone()
+            F = fa.F.clone()
+            diag_psi = fa.diag_psi.clone()
+            A_hat = fa._A_hat.clone()
+            B_hat = fa._B_hat.clone()
+            d_squared_hat = fa._d_squared_hat.clone()
