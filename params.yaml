@@ -32,4 +32,5 @@ linear_models:
   em_warm_up_time_steps: 100
   posterior_update_epoch_start: 10
   posterior_eval_epoch_frequency: 10
+  precision_scaling_factor: 0.1
   n_trials: 10

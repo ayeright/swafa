@@ -71,6 +71,7 @@ stages:
       - linear_models.em_warm_up_time_steps
       - linear_models.posterior_update_epoch_start
       - linear_models.posterior_eval_epoch_frequency
+      - linear_models.precision_scaling_factor
       - linear_models.n_trials
     outs:
       - experiments/data/linear_models_results.parquet

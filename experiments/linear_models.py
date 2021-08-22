@@ -40,6 +40,7 @@ def run_all_experiments(
         em_warm_up_time_steps: int,
         posterior_update_epoch_start: int,
         posterior_eval_epoch_frequency: int,
+        precision_scaling_factor: float,
 ) -> pd.DataFrame:
     """
     Run experiments on the given datasets.
@@ -77,6 +78,8 @@ def run_all_experiments(
         posterior_update_epoch_start: The epoch on which to begin updating the estimated posterior distributions of the
             weights of the linear models.
         posterior_eval_epoch_frequency: The number of epochs between each evaluation of the estimated posteriors.
+        precision_scaling_factor: The scaling factor used to compute the precision of the prior of the weights of the
+            linear model. Full details in [1].
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
@@ -135,6 +138,7 @@ def run_all_experiments(
             em_warm_up_time_steps=em_warm_up_time_steps,
             posterior_update_epoch_start=posterior_update_epoch_start,
             posterior_eval_epoch_frequency=posterior_eval_epoch_frequency,
+            precision_scaling_factor=precision_scaling_factor,
         )
 
         results.append(dataset_results)
@@ -158,6 +162,7 @@ def run_dataset_experiments(
         em_warm_up_time_steps: int,
         posterior_update_epoch_start: int,
         posterior_eval_epoch_frequency: int,
+        precision_scaling_factor: float,
 ) -> pd.DataFrame:
     """
     Run experiments on the given dataset.
@@ -194,6 +199,8 @@ def run_dataset_experiments(
         posterior_update_epoch_start: The epoch on which to begin updating the estimated posterior distributions of the
             weights of the linear models.
         posterior_eval_epoch_frequency: The number of epochs between each evaluation of the estimated posteriors.
+        precision_scaling_factor: The scaling factor used to compute the precision of the prior of the weights of the
+            linear model. Full details in [1].
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
@@ -233,7 +240,9 @@ def run_dataset_experiments(
             2021.
     """
     X, y = get_features_and_targets(dataset)
-    true_posterior_mean, true_posterior_covar, alpha, beta = compute_true_posterior(X, y)
+    true_posterior_mean, true_posterior_covar, alpha, beta = compute_true_posterior(
+        X, y, alpha_scaling_factor=precision_scaling_factor,
+    )
     observation_dim = X.shape[1]
 
     results = []
@@ -458,7 +467,7 @@ def get_features_and_targets(dataset: pd.DataFrame) -> (Tensor, Tensor):
 
 
 def compute_true_posterior(X: Tensor, y: Tensor, alpha: Optional[float] = None, beta: Optional[float] = None,
-                           ) -> (Tensor, Tensor, float, float):
+                           alpha_scaling_factor: float = 0.1) -> (Tensor, Tensor, float, float):
     """
     Compute mean and covariance of the true posterior distribution of the weights of a linear model, given the data.
 
@@ -467,10 +476,11 @@ def compute_true_posterior(X: Tensor, y: Tensor, alpha: Optional[float] = None, 
     Args:
         X: The features. Of shape (n_samples, n_features).
         y: The targets. Of shape (n_samples,).
-        alpha: The precision of the prior of the weights of the linear model. If None, will be constructed such that the
-            prior has as much an effect on the posterior as the observed data. More details in [1].
+        alpha: The precision of the prior of the weights of the linear model. If None, will be set automatically
+            according to [1].
         beta: The reciprocal of the variance of the dataset's target variable. If None, will be computed from the
             observed data.
+        alpha_scaling_factor: The factor used to compute alpha, if alpha is None.
 
     Returns:
         mu: The mean of the true posterior. Of shape (n_features,).
@@ -483,7 +493,7 @@ def compute_true_posterior(X: Tensor, y: Tensor, alpha: Optional[float] = None, 
             2021.
     """
     beta = beta or compute_beta(y)
-    S, alpha = compute_true_posterior_covar(X, beta, alpha)
+    S, alpha = compute_true_posterior_covar(X, beta, alpha=alpha, alpha_scaling_factor=alpha_scaling_factor)
     m = compute_true_posterior_mean(X, y, beta, S)
     return m, S, alpha, beta
 
@@ -501,17 +511,27 @@ def compute_beta(y: Tensor) -> float:
     return (1 / torch.var(y)).item()
 
 
-def compute_true_posterior_covar(X: Tensor, beta: float, alpha: Optional[float] = None) -> (Tensor, float):
+def compute_true_posterior_covar(X: Tensor, beta: float, alpha: Optional[float] = None,
+                                 alpha_scaling_factor: float = 0.1) -> (Tensor, float):
     """
     Compute the covariance of the true posterior distribution of the weights of a linear model, given the data.
+
+    This is the inverse of
+
+        alpha * I + beta * sum_n(X[n] * X[n]^T).
+
+    If alpha is None, it will be set to
+
+        alpha_scaling_factor * mean(diag(beta * sum_n(X[n] * X[n]^T))).
 
     Full derivation given in [1].
 
     Args:
         X: The features. Of shape (n_samples, n_features).
         beta: The reciprocal of the variance of the dataset's target variable.
-        alpha: The precision of the prior of the weights of the linear model. If None, will be constructed such that the
-            prior has as much an effect on the posterior as the observed data. More details in [1].
+        alpha: The precision of the prior of the weights of the linear model. If None, will be computed according to the
+            equation above.
+        alpha_scaling_factor: The factor used to compute alpha in the equation above. Only used if alpha is None.
 
     Returns:
         S: The covariance matrix of the true posterior. Of shape (n_features, n_features).
@@ -522,7 +542,7 @@ def compute_true_posterior_covar(X: Tensor, beta: float, alpha: Optional[float] 
             2021.
     """
     B = beta * torch.einsum('ij,ik->jk', X, X)
-    alpha = alpha or torch.diag(B).max().item()
+    alpha = alpha or alpha_scaling_factor * torch.diag(B).mean().item()
     A = alpha * torch.eye(len(B)) + B
     S = torch.linalg.inv(A)
     return S, alpha
@@ -788,6 +808,7 @@ def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, co
         em_warm_up_time_steps=params['em_warm_up_time_steps'],
         posterior_update_epoch_start=params['posterior_update_epoch_start'],
         posterior_eval_epoch_frequency=params['posterior_eval_epoch_frequency'],
+        precision_scaling_factor=params['precision_scaling_factor'],
     )
 
     print('Results:\n')
