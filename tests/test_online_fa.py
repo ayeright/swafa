@@ -22,29 +22,16 @@ class TestOnlineFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_init_F_diagonal(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
-        x = torch.diag(fa.F)
-        assert torch.isclose(x, torch.ones(latent_dim)).all()
-
-    @pytest.mark.parametrize("observation_dim", [10, 20])
-    @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_init_F_off_diagonal(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
-        for i in range(observation_dim):
-            for j in range(latent_dim):
-                if i != j:
-                    assert abs(fa.F[i, j]) < init_factors_noise_std * 10
+    def test_init_F_orthogonal_columns(self, observation_dim, latent_dim):
+        fa = OnlineFactorAnalysis(observation_dim, latent_dim)
+        Q = fa.F.t().mm(fa.F)
+        assert torch.isclose(Q, torch.eye(latent_dim), atol=1e5, rtol=1).all()
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
     def test_init_diag_psi(self, observation_dim, latent_dim):
         fa = OnlineFactorAnalysis(observation_dim, latent_dim)
-        max_diag_FFt = torch.diag(fa.F.mm(fa.F.t())).max()
-        expected_diag_psi = max_diag_FFt * torch.ones(fa.observation_dim, 1)
-        assert (fa.diag_psi == expected_diag_psi).all()
+        assert (fa.diag_psi == torch.ones(fa.observation_dim, 1)).all()
 
     def test_init_t(self):
         observation_dim = 4
@@ -54,9 +41,8 @@ class TestOnlineFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_commons_t(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_commons_t(self, observation_dim, latent_dim):
+        fa = OnlineFactorAnalysis(observation_dim, latent_dim)
         fa._update_commons(torch.randn(observation_dim, 1))
         assert fa.t == 1
         fa._update_commons(torch.randn(observation_dim))
@@ -64,9 +50,8 @@ class TestOnlineFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_commons_c(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_commons_c(self, observation_dim, latent_dim):
+        fa = OnlineFactorAnalysis(observation_dim, latent_dim)
         theta1 = torch.randn(observation_dim, 1)
         fa._update_commons(theta1)
         assert torch.isclose(fa.c, theta1, atol=1e-05).all()
@@ -76,9 +61,8 @@ class TestOnlineFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_commons_centred_observation(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_commons_centred_observation(self, observation_dim, latent_dim):
+        fa = OnlineFactorAnalysis(observation_dim, latent_dim)
         theta1 = torch.randn(observation_dim, 1)
         fa._update_commons(theta1)
         assert torch.isclose(fa._d, torch.zeros(observation_dim), atol=1e-05).all()
@@ -88,9 +72,8 @@ class TestOnlineFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_commons_inv_psi(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_commons_inv_psi(self, observation_dim, latent_dim):
+        fa = OnlineFactorAnalysis(observation_dim, latent_dim)
         theta1 = torch.randn(observation_dim, 1)
         fa._update_commons(theta1)
         assert torch.isclose(fa._diag_inv_psi, 1 / fa.diag_psi, atol=1e-05).all()
@@ -100,9 +83,8 @@ class TestOnlineFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_commons_m(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_commons_m(self, observation_dim, latent_dim):
+        fa = OnlineFactorAnalysis(observation_dim, latent_dim)
         theta1 = torch.randn(observation_dim, 1)
         fa._update_commons(theta1)
         assert torch.isclose(fa._m, torch.zeros(latent_dim), atol=1e-05).all()
@@ -115,9 +97,8 @@ class TestOnlineFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_commons_sigma(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_commons_sigma(self, observation_dim, latent_dim):
+        fa = OnlineFactorAnalysis(observation_dim, latent_dim)
         theta1 = torch.randn(observation_dim, 1)
         fa._update_commons(theta1)
         theta2 = torch.randn(observation_dim)

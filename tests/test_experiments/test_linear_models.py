@@ -37,7 +37,6 @@ def test_all_experiments_results_rows_and_columns(n_datasets, n_trials, n_featur
         model_optimiser_kwargs=dict(lr=0.01),
         n_epochs=n_epochs,
         batch_size=32,
-        init_factors_noise_std=0.1,
         gradient_optimiser='adam',
         gradient_optimiser_kwargs=dict(lr=0.01),
         gradient_warm_up_time_steps=1,

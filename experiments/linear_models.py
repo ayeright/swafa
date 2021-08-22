@@ -33,7 +33,6 @@ def run_all_experiments(
         model_optimiser_kwargs: dict,
         n_epochs: int,
         batch_size: int,
-        init_factors_noise_std: float,
         gradient_optimiser: str,
         gradient_optimiser_kwargs: dict,
         gradient_warm_up_time_steps: int,
@@ -65,8 +64,6 @@ def run_all_experiments(
         model_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used to train the linear models.
         n_epochs: The number of epochs for which to train the linear models.
         batch_size: The batch size to use when training the linear models.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix in the online FA learning algorithms.
         gradient_optimiser: The name of the PyTorch optimiser used in the online gradient FA learning algorithm. Options
             are 'sgd' and 'adam'.
         gradient_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the online gradient FA learning
@@ -131,7 +128,6 @@ def run_all_experiments(
             model_optimiser_kwargs=model_optimiser_kwargs,
             n_epochs=n_epochs,
             batch_size=batch_size,
-            init_factors_noise_std=init_factors_noise_std,
             gradient_optimiser=gradient_optimiser,
             gradient_optimiser_kwargs=gradient_optimiser_kwargs,
             gradient_warm_up_time_steps=gradient_warm_up_time_steps,
@@ -155,7 +151,6 @@ def run_dataset_experiments(
         model_optimiser_kwargs: dict,
         n_epochs: int,
         batch_size: int,
-        init_factors_noise_std: float,
         gradient_optimiser: str,
         gradient_optimiser_kwargs: dict,
         gradient_warm_up_time_steps: int,
@@ -186,8 +181,6 @@ def run_dataset_experiments(
         model_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used to train the linear models.
         n_epochs: The number of epochs for which to train the linear models.
         batch_size: The batch size to use when training the linear models.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix in the online FA learning algorithms.
         gradient_optimiser: The name of the PyTorch optimiser used in the online gradient FA learning algorithm. Options
             are 'sgd' and 'adam'.
         gradient_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the online gradient FA learning
@@ -265,7 +258,6 @@ def run_dataset_experiments(
                 n_epochs=n_epochs,
                 batch_size=batch_size,
                 posterior_latent_dim=latent_dim,
-                init_factors_noise_std=init_factors_noise_std,
                 gradient_optimiser=gradient_optimiser,
                 gradient_optimiser_kwargs=gradient_optimiser_kwargs,
                 gradient_warm_up_time_steps=gradient_warm_up_time_steps,
@@ -312,7 +304,6 @@ def run_experiment_trial(
         n_epochs: int,
         batch_size: int,
         posterior_latent_dim: int,
-        init_factors_noise_std: float,
         gradient_optimiser: str,
         gradient_optimiser_kwargs: dict,
         gradient_warm_up_time_steps: int,
@@ -342,8 +333,6 @@ def run_experiment_trial(
         n_epochs: The number of epochs for which to train the linear model.
         batch_size: The batch size to use when training the linear model.
         posterior_latent_dim: The latent dimension of the estimated posterior distributions.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix in the online FA learning algorithms.
         gradient_optimiser: The name of the PyTorch optimiser used in the online gradient FA learning algorithm. Options
             are 'sgd' and 'adam'.
         gradient_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the online gradient FA learning
@@ -389,14 +378,12 @@ def run_experiment_trial(
         latent_dim=posterior_latent_dim,
         optimiser=OPTIMISER_FACTORY[gradient_optimiser],
         optimiser_kwargs=gradient_optimiser_kwargs,
-        init_factors_noise_std=init_factors_noise_std,
         n_warm_up_time_steps=gradient_warm_up_time_steps,
         random_seed=posterior_random_seed,
     )
 
     em_weight_posterior_kwargs = dict(
         latent_dim=posterior_latent_dim,
-        init_factors_noise_std=init_factors_noise_std,
         n_warm_up_time_steps=em_warm_up_time_steps,
         random_seed=posterior_random_seed,
     )
@@ -801,7 +788,6 @@ def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, co
         model_optimiser_kwargs=params['model_optimiser_kwargs'],
         n_epochs=params['n_epochs'],
         batch_size=params['batch_size'],
-        init_factors_noise_std=params['init_factors_noise_std'],
         gradient_optimiser=params['gradient_optimiser'],
         gradient_optimiser_kwargs=params['gradient_optimiser_kwargs'],
         gradient_warm_up_time_steps=params['gradient_warm_up_time_steps'],

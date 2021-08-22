@@ -21,10 +21,9 @@ from experiments.utils.metrics import (
 )
 
 
-def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_factors_noise_std: float,
-                           gradient_optimiser: str, gradient_optimiser_kwargs: dict,
-                           gradient_warm_up_time_steps: int, em_warm_up_time_steps: int, n_test_samples: int,
-                           ) -> pd.DataFrame:
+def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, gradient_optimiser: str,
+                           gradient_optimiser_kwargs: dict, gradient_warm_up_time_steps: int,
+                           em_warm_up_time_steps: int, n_test_samples: int) -> pd.DataFrame:
     """
     Run all factor analysis (FA) experiments specified in the given configuration.
 
@@ -47,8 +46,6 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
                     n_samples[i] observations will begin from the model fit to n_samples[i - 1] observations. Sample
                     sizes must come in increasing order.
         n_trials: The number of trials to run for each experiment, for different random seeds.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix in the online FA learning algorithms.
         gradient_optimiser: The name of the PyTorch optimiser used in the online gradient learning algorithm. Options
             are 'sgd' and 'adam'.
         gradient_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the online gradient FA learning
@@ -105,7 +102,6 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
                 latent_dim=config['latent_dim'],
                 spectrum_range=config['spectrum_range'],
                 n_samples=config['n_samples'],
-                init_factors_noise_std=init_factors_noise_std,
                 gradient_optimiser=gradient_optimiser,
                 gradient_optimiser_kwargs=gradient_optimiser_kwargs,
                 gradient_warm_up_time_steps=gradient_warm_up_time_steps,
@@ -126,7 +122,7 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, init_f
 
 
 def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: List[int],
-                            init_factors_noise_std: float, gradient_optimiser: str, gradient_optimiser_kwargs: dict,
+                            gradient_optimiser: str, gradient_optimiser_kwargs: dict,
                             gradient_warm_up_time_steps: int, em_warm_up_time_steps: int, n_test_samples: int,
                             samples_random_seed: int, algorithms_random_seed: int) -> pd.DataFrame:
     """
@@ -147,8 +143,6 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             this data. In the case of the batch algorithm, a separate model will be fit to each different sample size in
             the list. In the case of the online algorithms, training with n_samples[i] observations will begin from the
             model fit to n_samples[i - 1] observations. Sample sizes must come in increasing order.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix in the online FA learning algorithms.
         gradient_optimiser: The name of the PyTorch optimiser used in the online gradient learning algorithm. Options
             are 'sgd' and 'adam'.
         gradient_optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the online gradient FA learning
@@ -234,7 +228,6 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
         fa_online_gradient, mean_online_gradient, covar_online_gradient = learn_fa_with_online_gradients(
             observations=new_samples,
             latent_dim=latent_dim,
-            init_factors_noise_std=init_factors_noise_std,
             optimiser_name=gradient_optimiser,
             optimiser_kwargs=gradient_optimiser_kwargs,
             n_warm_up_time_steps=gradient_warm_up_time_steps,
@@ -245,7 +238,6 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
         fa_online_em, mean_online_em, covar_online_em = learn_fa_with_online_em(
             observations=new_samples,
             latent_dim=latent_dim,
-            init_factors_noise_std=init_factors_noise_std,
             n_warm_up_time_steps=em_warm_up_time_steps,
             random_seed=algorithms_random_seed,
             fa=fa_online_em,
@@ -421,18 +413,15 @@ def learn_fa_with_sklearn(observations: Tensor, latent_dim: int, random_seed: in
     return mean, covar
 
 
-def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_factors_noise_std: float,
-                                   optimiser_name: str, optimiser_kwargs: dict, n_warm_up_time_steps: int,
-                                   random_seed: int, fa: Optional[OnlineGradientFactorAnalysis] = None,
-                                   ) -> (Tensor, Tensor):
+def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, optimiser_name: str, optimiser_kwargs: dict,
+                                   n_warm_up_time_steps: int, random_seed: int,
+                                   fa: Optional[OnlineGradientFactorAnalysis] = None) -> (Tensor, Tensor):
     """
     Learn the parameters of a factor analysis (FA) model via online stochastic gradient ascent.
 
     Args:
         observations: Sampled observations. Of shape (n_samples, observation_dim).
         latent_dim: The size of the latent variable space of the FA model.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix.
         optimiser_name: The name of the PyTorch optimiser used in the learning algorithm. Options are 'sgd' and 'adam'.
         optimiser_kwargs: Keyword arguments for the PyTorch optimiser used in the learning algorithm.
         n_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model before
@@ -453,7 +442,6 @@ def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_f
         fa = OnlineGradientFactorAnalysis(
             observation_dim=observation_dim,
             latent_dim=latent_dim,
-            init_factors_noise_std=init_factors_noise_std,
             optimiser=optimiser,
             optimiser_kwargs=optimiser_kwargs,
             n_warm_up_time_steps=n_warm_up_time_steps,
@@ -462,17 +450,14 @@ def learn_fa_with_online_gradients(observations: Tensor, latent_dim: int, init_f
     return learn_fa_online(fa, observations)
 
 
-def learn_fa_with_online_em(observations: Tensor, latent_dim: int, init_factors_noise_std: float,
-                            n_warm_up_time_steps: int, random_seed: int, fa: Optional[OnlineEMFactorAnalysis] = None,
-                            ) -> (Tensor, Tensor):
+def learn_fa_with_online_em(observations: Tensor, latent_dim: int, n_warm_up_time_steps: int, random_seed: int,
+                            fa: Optional[OnlineEMFactorAnalysis] = None) -> (Tensor, Tensor):
     """
     Learn the parameters of a factor analysis (FA) model via online expectation maximisation (EM).
 
     Args:
         observations: Sampled observations. Of shape (n_samples, observation_dim).
         latent_dim: The size of the latent variable space of the FA model.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix.
         n_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model before
             updating the other parameters.
         random_seed: The random seed used in the algorithm.
@@ -490,7 +475,6 @@ def learn_fa_with_online_em(observations: Tensor, latent_dim: int, init_factors_
         fa = OnlineEMFactorAnalysis(
             observation_dim=observation_dim,
             latent_dim=latent_dim,
-            init_factors_noise_std=init_factors_noise_std,
             n_warm_up_time_steps=n_warm_up_time_steps,
             random_seed=random_seed,
         )
@@ -534,7 +518,6 @@ def main(results_output_path: str):
     results = run_all_fa_experiments(
         experiments_config=params['experiments'],
         n_trials=params['n_trials'],
-        init_factors_noise_std=params['init_factors_noise_std'],
         gradient_optimiser=params['gradient_optimiser'],
         gradient_optimiser_kwargs=params['gradient_optimiser_kwargs'],
         gradient_warm_up_time_steps=params['gradient_warm_up_time_steps'],

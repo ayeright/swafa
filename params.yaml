@@ -1,5 +1,4 @@
 online_fa:
-  init_factors_noise_std: 0.1
   gradient_optimiser: 'sgd'
   gradient_optimiser_kwargs:
     lr: 0.001
@@ -24,7 +23,6 @@ linear_models:
     lr: 0.001
   n_epochs: 500
   batch_size: 32
-  init_factors_noise_std: 0.1
   gradient_optimiser: 'sgd'
   gradient_optimiser_kwargs:
     lr: 0.001

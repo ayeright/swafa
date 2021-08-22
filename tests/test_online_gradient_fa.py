@@ -18,11 +18,8 @@ class TestOnlineGradientFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_gradient_wrt_F(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa, theta, inv_psi = self._update_commons(
-            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std
-        )
+    def test_update_gradient_wrt_F(self, observation_dim, latent_dim):
+        fa, theta, inv_psi = self._update_commons(observation_dim, latent_dim)
 
         expected_gradient = inv_psi.mm(fa._d.mm(fa._m.t()) - fa.F.mm(fa._sigma + fa._m.mm(fa._m.t())))
 
@@ -31,11 +28,8 @@ class TestOnlineGradientFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_gradient_wrt_psi(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa, theta, inv_psi = self._update_commons(
-            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std
-        )
+    def test_update_gradient_wrt_psi(self, observation_dim, latent_dim):
+        fa, theta, inv_psi = self._update_commons(observation_dim, latent_dim)
 
         expected_gradient = torch.diag(
             0.5 * (
@@ -55,23 +49,18 @@ class TestOnlineGradientFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_gradient_wrt_log_psi(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa, theta, inv_psi = self._update_commons(
-            observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std
-        )
+    def test_update_gradient_wrt_log_psi(self, observation_dim, latent_dim):
+        fa, theta, inv_psi = self._update_commons(observation_dim, latent_dim)
         fa._update_gradient_wrt_log_psi()
         expected_gradient = fa._gradient_wrt_diag_psi * fa.diag_psi
         assert torch.isclose(fa._gradient_wrt_log_diag_psi, expected_gradient, atol=1e-05).all()
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
     @pytest.mark.parametrize("learning_rate", [1e-3, 1e-1])
-    def test_sgd_update_F(self, observation_dim, latent_dim, init_factors_noise_std, learning_rate):
+    def test_sgd_update_F(self, observation_dim, latent_dim, learning_rate):
         fa = OnlineGradientFactorAnalysis(
             observation_dim, latent_dim, optimiser=SGD, optimiser_kwargs=dict(lr=learning_rate),
-            init_factors_noise_std=init_factors_noise_std
         )
         for _ in range(10):
             old_F = fa.F.clone()
@@ -82,12 +71,10 @@ class TestOnlineGradientFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
     @pytest.mark.parametrize("learning_rate", [1e-3, 1e-1])
-    def test_sgd_update_log_diag_psi(self, observation_dim, latent_dim, init_factors_noise_std, learning_rate):
+    def test_sgd_update_log_diag_psi(self, observation_dim, latent_dim, learning_rate):
         fa = OnlineGradientFactorAnalysis(
             observation_dim, latent_dim, optimiser=SGD, optimiser_kwargs=dict(lr=learning_rate),
-            init_factors_noise_std=init_factors_noise_std
         )
         for _ in range(10):
             old_log_diag_psi = fa._log_diag_psi.clone()
@@ -98,12 +85,10 @@ class TestOnlineGradientFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
     @pytest.mark.parametrize("learning_rate", [1e-3, 1e-1])
-    def test_updated_diag_psi(self, observation_dim, latent_dim, init_factors_noise_std, learning_rate):
+    def test_updated_diag_psi(self, observation_dim, latent_dim, learning_rate):
         fa = OnlineGradientFactorAnalysis(
             observation_dim, latent_dim, optimiser_kwargs=dict(lr=learning_rate),
-            init_factors_noise_std=init_factors_noise_std
         )
         for _ in range(10):
             old_diag_psi = fa.diag_psi.clone()
@@ -113,12 +98,11 @@ class TestOnlineGradientFactorAnalysis:
             assert not torch.isclose(fa.diag_psi, old_diag_psi, atol=1e-05).all()
 
     @staticmethod
-    def _update_commons(observation_dim: int, latent_dim: int, optimiser: Optimizer = SGD, optimiser_kwargs: dict = None,
-                        init_factors_noise_std: float = 1e-3):
+    def _update_commons(observation_dim: int, latent_dim: int, optimiser: Optimizer = SGD,
+                        optimiser_kwargs: dict = None):
         optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
         fa = OnlineGradientFactorAnalysis(
             observation_dim, latent_dim, optimiser=optimiser, optimiser_kwargs=optimiser_kwargs,
-            init_factors_noise_std=init_factors_noise_std
         )
         fa.c = torch.randn(observation_dim, 1)
         fa.diag_psi = torch.randn(observation_dim, 1)

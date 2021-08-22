@@ -15,16 +15,13 @@ class OnlineFactorAnalysis(ABC):
 
     The variable names used in this class generally match those used in [1].
 
-    Factor loading matrix `F` is initialised to be a matrix with 1s on the diagonal and zero mean Gaussian noise
-    everywhere else.
+    Factor loading matrix `F` is initialised to have orthogonal columns.
 
     Diagonal covariance matrix `Psi` is initialised to be the identity matrix.
 
     Args:
         observation_dim: The size of the observed variable space.
         latent_dim: The size of the latent variable space.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix.
         device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
             tensor type.
         random_seed: The random seed for reproducibility.
@@ -42,8 +39,8 @@ class OnlineFactorAnalysis(ABC):
         [1] David Barber. Bayesian Reasoning and Machine Learning. Cambridge University Press, 2012.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int, init_factors_noise_std: float = 1e-3,
-                 device: Optional[torch.device] = None, random_seed: Optional[int] = None):
+    def __init__(self, observation_dim: int, latent_dim: int, device: Optional[torch.device] = None,
+                 random_seed: Optional[int] = None):
         if random_seed is not None:
             torch.manual_seed(random_seed)
 
@@ -51,7 +48,7 @@ class OnlineFactorAnalysis(ABC):
         self.latent_dim = latent_dim
         self.t = 0
         self.c = torch.zeros(observation_dim, 1, device=device)
-        self.F = self._init_F(init_factors_noise_std, device)
+        self.F = self._init_F(device=device)
         self.diag_psi = self._init_psi(device=device)
         self._diag_inv_psi = None
         self._d = None
@@ -59,29 +56,28 @@ class OnlineFactorAnalysis(ABC):
         self._sigma = None
         self._I = torch.eye(latent_dim, device=device)
 
-    def _init_F(self, noise_std: float, device: Optional[torch.device] = None) -> Tensor:
+    def _init_F(self, device: Optional[torch.device] = None) -> Tensor:
         """
         Initialise the factor loading matrix.
 
-        Initialised to be a matrix with 1s on the diagonal and zero mean Gaussian noise everywhere else.
+        Initialised to have orthogonal columns.
 
         Args:
-            noise_std: The standard deviation of the noise in the off-diagonal entries.
             device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
                 default tensor type.
 
         Returns:
             The initial factor loading matrix. Of shape (observation_dim, latent_dim).
         """
-        I = torch.eye(self.observation_dim, self.latent_dim, device=device)
-        off_diagonal_noise = torch.normal(0, noise_std, (self.observation_dim, self.latent_dim)).to(device)
-        return I + (1 - I) * off_diagonal_noise
+        A = torch.randn(self.observation_dim, self.latent_dim, device=device)
+        F, _ = torch.linalg.qr(A, mode='reduced')
+        return F
 
     def _init_psi(self, device: Optional[torch.device] = None) -> Tensor:
         """
         Initialise the diagonal entries of the Gaussian noise covariance matrix.
 
-        Set all entries to the maximum of the diagonal of the factor loading matrix multiplied by its transpose.
+        Set all entries to 1.
 
         Args:
             device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
@@ -90,8 +86,7 @@ class OnlineFactorAnalysis(ABC):
         Returns:
             The initial diagonal entries of the Gaussian noise covariance matrix. Of shape (observation_dim, 1).
         """
-        max_diag_FFt = torch.sum(self.F ** 2, dim=1).max()
-        return max_diag_FFt * torch.ones(self.observation_dim, 1, device=device)
+        return torch.ones(self.observation_dim, 1, device=device)
 
     def _update_commons(self, theta: Tensor):
         """
@@ -219,8 +214,6 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
         latent_dim: The size of the latent variable space.
         optimiser: The class of the optimiser to use for gradient updates.
         optimiser_kwargs: Keyword arguments for the optimiser. If not given, will default to dict(lr=1e-3).
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix.
         n_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model before
             updating the other parameters.
         device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the default
@@ -233,10 +226,9 @@ class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
     """
 
     def __init__(self, observation_dim: int, latent_dim: int, optimiser: Optimizer = Adam,
-                 optimiser_kwargs: Optional[dict] = None, init_factors_noise_std: float = 1e-3,
-                 n_warm_up_time_steps: int = 0, device: Optional[torch.device] = None, random_seed: int = 0):
-        super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
-                         random_seed=random_seed)
+                 optimiser_kwargs: Optional[dict] = None, n_warm_up_time_steps: int = 0,
+                 device: Optional[torch.device] = None, random_seed: int = 0):
+        super().__init__(observation_dim, latent_dim, device=device, random_seed=random_seed)
         optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
         self.F = Variable(self.F, requires_grad=False)  # we will compute our own gradients
         self._log_diag_psi = Variable(torch.log(self.diag_psi), requires_grad=False)
@@ -316,8 +308,6 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
     Args:
         observation_dim: The size of the observed variable space.
         latent_dim: The size of the latent variable space.
-        init_factors_noise_std: The standard deviation of the noise used to initialise the off-diagonal entries of the
-            factor loading matrix.
         n_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model before
             updating the other parameters. This will be set to at least 1 to avoid inverting a zero matrix on the first
             iteration.
@@ -330,10 +320,9 @@ class OnlineEMFactorAnalysis(OnlineFactorAnalysis):
             2021.
     """
 
-    def __init__(self, observation_dim: int, latent_dim: int, init_factors_noise_std: float = 1e-3,
-                 n_warm_up_time_steps: int = 1, device: Optional[torch.device] = None, random_seed: int = 0):
-        super().__init__(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std, device=device,
-                         random_seed=random_seed)
+    def __init__(self, observation_dim: int, latent_dim: int, n_warm_up_time_steps: int = 1,
+                 device: Optional[torch.device] = None, random_seed: int = 0):
+        super().__init__(observation_dim, latent_dim, device=device, random_seed=random_seed)
         self._A_hat = torch.zeros(observation_dim, latent_dim, device=device)
         self._B_hat = torch.zeros(latent_dim, latent_dim, device=device)
         self._H_hat = None

@@ -8,9 +8,8 @@ class TestOnlineEMFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_B_hat(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_B_hat(self, observation_dim, latent_dim):
+        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim)
         m_times_mt = []
         for _ in range(10):
             fa.update(torch.randn(observation_dim))
@@ -21,9 +20,8 @@ class TestOnlineEMFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_H_hat(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_H_hat(self, observation_dim, latent_dim):
+        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim)
         for _ in range(10):
             fa.update(torch.randn(observation_dim, 1))
             expected_H_hat = fa._sigma + fa._B_hat
@@ -31,9 +29,8 @@ class TestOnlineEMFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_A_hat(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_A_hat(self, observation_dim, latent_dim):
+        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim)
         d_times_mt = []
         for _ in range(10):
             fa.update(torch.randn(observation_dim))
@@ -44,9 +41,8 @@ class TestOnlineEMFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_d_squared_hat(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_d_squared_hat(self, observation_dim, latent_dim):
+        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim)
         d_squared = []
         for _ in range(10):
             fa.update(torch.randn(observation_dim))
@@ -57,9 +53,8 @@ class TestOnlineEMFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_F(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_F(self, observation_dim, latent_dim):
+        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim)
         for i in range(10):
             old_F = fa.F.clone()
             fa.update(torch.randn(observation_dim))
@@ -72,9 +67,8 @@ class TestOnlineEMFactorAnalysis:
 
     @pytest.mark.parametrize("observation_dim", [10, 20])
     @pytest.mark.parametrize("latent_dim", [5, 8])
-    @pytest.mark.parametrize("init_factors_noise_std", [1e-3, 1e-2])
-    def test_update_psi(self, observation_dim, latent_dim, init_factors_noise_std):
-        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim, init_factors_noise_std=init_factors_noise_std)
+    def test_update_psi(self, observation_dim, latent_dim):
+        fa = OnlineEMFactorAnalysis(observation_dim, latent_dim)
         d_times_dt = []
         for i in range(10):
             old_diag_psi = fa.diag_psi.clone()

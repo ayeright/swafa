@@ -27,7 +27,6 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
     results = run_all_fa_experiments(
         experiments_config,
         n_trials,
-        init_factors_noise_std=0.1,
         gradient_optimiser='sgd',
         gradient_optimiser_kwargs=dict(lr=0.01),
         gradient_warm_up_time_steps=1,
@@ -137,8 +136,7 @@ def test_online_gradients_learned_params_shape(observation_dim, latent_dim, spec
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     _, mean, covar = learn_fa_with_online_gradients(
-        observations, latent_dim, init_factors_noise_std=0.1, optimiser_name='sgd', optimiser_kwargs=None,
-        n_warm_up_time_steps=1, random_seed=0,
+        observations, latent_dim, optimiser_name='sgd', optimiser_kwargs=None, n_warm_up_time_steps=1, random_seed=0,
     )
     assert mean.shape == (observation_dim,)
     assert covar.shape == (observation_dim, observation_dim)
@@ -153,7 +151,7 @@ def test_online_em_learned_params_shape(observation_dim, latent_dim, spectrum_ra
         observation_dim, latent_dim, spectrum_range, n_samples, random_seed=0,
     )
     _, mean, covar = learn_fa_with_online_em(
-        observations, latent_dim, init_factors_noise_std=0.1, n_warm_up_time_steps=1, random_seed=0,
+        observations, latent_dim, n_warm_up_time_steps=1, random_seed=0,
     )
     assert mean.shape == (observation_dim,)
     assert covar.shape == (observation_dim, observation_dim)

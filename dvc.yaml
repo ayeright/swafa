@@ -8,7 +8,6 @@ stages:
       - experiments/utils/factory.py
       - experiments/utils/metrics.py
     params:
-      - online_fa.init_factors_noise_std
       - online_fa.gradient_optimiser
       - online_fa.gradient_optimiser_kwargs
       - online_fa.gradient_warm_up_time_steps
@@ -64,7 +63,6 @@ stages:
       - linear_models.model_optimiser_kwargs
       - linear_models.n_epochs
       - linear_models.batch_size
-      - linear_models.init_factors_noise_std
       - linear_models.gradient_optimiser
       - linear_models.gradient_optimiser_kwargs
       - linear_models.gradient_warm_up_time_steps
