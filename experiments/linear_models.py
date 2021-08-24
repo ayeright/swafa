@@ -479,7 +479,7 @@ def compute_true_posterior(X: Tensor, y: Tensor, alpha: Optional[float] = None, 
         [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
             2021.
     """
-    beta = beta or compute_beta(y)
+    beta = beta if beta is not None else compute_beta(y)
     S, alpha = compute_true_posterior_covar(X, beta, alpha=alpha, alpha_scaling_factor=alpha_scaling_factor)
     m = compute_true_posterior_mean(X, y, beta, S)
     return m, S, alpha, beta
@@ -529,7 +529,7 @@ def compute_true_posterior_covar(X: Tensor, beta: float, alpha: Optional[float] 
             2021.
     """
     B = beta * torch.einsum('ij,ik->jk', X, X)
-    alpha = alpha or alpha_scaling_factor * torch.diag(B).mean().item()
+    alpha = alpha if alpha is not None else alpha_scaling_factor * torch.diag(B).mean().item()
     A = alpha * torch.eye(len(B)) + B
     S = torch.linalg.inv(A)
     return S, alpha
