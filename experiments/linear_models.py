@@ -276,7 +276,7 @@ def run_dataset_experiments(
             print('-' * 100)
         print('-' * 100)
 
-    results = pd.concat(results)
+    results = pd.concat(results, ignore_index=True)
 
     results['mean_norm'] = compute_distance_between_matrices(
         true_posterior_mean, torch.zeros_like(true_posterior_mean)
