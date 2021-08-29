@@ -13,17 +13,17 @@ from experiments.linear_models import (
 
 
 @pytest.mark.parametrize(
-        "n_datasets, n_trials, n_features, n_epochs, posterior_eval_epoch_frequency",
+        "n_datasets, max_latent_dim, n_trials, n_features, n_epochs, posterior_eval_epoch_frequency",
         [
-            (1, 1, [2], 1, 1),
-            (1, 2, [3], 2, 1),
-            (1, 2, [3], 4, 2),
-            (2, 1, [2, 3], 1, 1),
-            (2, 2, [3, 2], 2, 1),
-            (2, 2, [3, 3], 4, 2),
+            (1, 1, 1, [2], 1, 1),
+            (1, 2, 2, [3], 2, 1),
+            (1, 2, 2, [3], 4, 2),
+            (2, 1, 1, [2, 3], 1, 1),
+            (2, 2, 2, [3, 2], 2, 1),
+            (2, 2, 2, [3, 3], 4, 2),
         ]
     )
-def test_all_experiments_results_rows_and_columns(n_datasets, n_trials, n_features, n_epochs,
+def test_all_experiments_results_rows_and_columns(n_datasets, max_latent_dim, n_trials, n_features, n_epochs,
                                                   posterior_eval_epoch_frequency):
     n_samples = 100
     datasets = [pd.DataFrame(np.random.randn(n_samples, n_features[i] + 1)) for i in range(n_datasets)]
@@ -32,6 +32,7 @@ def test_all_experiments_results_rows_and_columns(n_datasets, n_trials, n_featur
     results = run_all_experiments(
         datasets=datasets,
         dataset_labels=dataset_labels,
+        max_latent_dim=max_latent_dim,
         n_trials=n_trials,
         model_optimiser='sgd',
         model_optimiser_kwargs=dict(lr=0.01),
@@ -83,12 +84,11 @@ def test_all_experiments_results_rows_and_columns(n_datasets, n_trials, n_featur
     assert len(actual_columns) == len(expected_columns)
     assert len(np.intersect1d(actual_columns, expected_columns)) == len(actual_columns)
 
-    expected_n_rows = sum([(n_features[i] - 1) * n_trials for i in range(n_datasets)]) * n_epochs \
-        / posterior_eval_epoch_frequency
+    expected_n_rows = n_datasets * max_latent_dim * n_trials * n_epochs / posterior_eval_epoch_frequency
     assert len(results) == expected_n_rows
 
     for i in range(n_datasets):
-        assert (results['dataset'] == dataset_labels[i]).sum() == (n_features[i] - 1) * n_trials * n_epochs \
+        assert (results['dataset'] == dataset_labels[i]).sum() == max_latent_dim * n_trials * n_epochs \
                     / posterior_eval_epoch_frequency
 
 

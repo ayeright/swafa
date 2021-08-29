@@ -28,6 +28,7 @@ from experiments.utils.factory import OPTIMISER_FACTORY
 def run_all_experiments(
         datasets: List[pd.DataFrame],
         dataset_labels: List[str],
+        max_latent_dim: int,
         n_trials: int,
         model_optimiser: str,
         model_optimiser_kwargs: dict,
@@ -48,7 +49,7 @@ def run_all_experiments(
     during SGD to estimate the posterior distribution of the weights via the sklearn batch factor analysis (FA)
     algorithm, online gradient FA and online expectation-maximisation (EM) FA. For each method, compute the distance
     between the true and estimated posterior. For each dataset, run experiments with the latent dimension of the FA
-    models equal to 1 to d - 1, where d is the number of features in the dataset.
+    models equal to 1 to max_latent_dim.
 
     Note: the posterior distribution depends on the reciprocal of the variance of the target variable and the precision
     of the prior on the weights. These are referred to as beta and alpha respectively. See [1] for more details on how
@@ -58,6 +59,7 @@ def run_all_experiments(
         datasets: A list of datasets. Each dataset contains features and a target variable, where the target variable is
             in the final column.
         dataset_labels: A label for each of the datasets.
+        max_latent_dim: The maximum latent dimension of the FA models.
         n_trials: The number of trials to run for each experiment.
         model_optimiser: The name of the PyTorch optimiser used to train the linear models. Options are 'sgd' and
             'adam'.
@@ -80,7 +82,7 @@ def run_all_experiments(
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
-        sum[(n_features_in_dataset - 1) * n_trials for dataset in datasets] * n_epochs / posterior_eval_epoch_frequency.
+        n_datasets * max_latent_dim * n_trials * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
             - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
@@ -143,6 +145,7 @@ def run_all_experiments(
         dataset_results = run_dataset_experiments(
             dataset=dataset,
             dataset_label=label,
+            max_latent_dim=max_latent_dim,
             n_trials=n_trials,
             model_optimiser=model_optimiser,
             model_optimiser_kwargs=model_optimiser_kwargs,
@@ -166,6 +169,7 @@ def run_all_experiments(
 def run_dataset_experiments(
         dataset: pd.DataFrame,
         dataset_label: str,
+        max_latent_dim: int,
         n_trials: int,
         model_optimiser: str,
         model_optimiser_kwargs: dict,
@@ -186,7 +190,7 @@ def run_dataset_experiments(
     during SGD to estimate the posterior distribution of the weights via the sklearn batch factor analysis (FA)
     algorithm, online gradient FA and online expectation-maximisation (EM) FA. For each method, compute the distance
     between the true and estimated posterior. Run experiments with the latent dimension of the FA models equal to 1 to
-    d - 1, where d is the number of features in the dataset.
+    max_latent_dim.
 
     Note: the posterior distribution depends on the reciprocal of the variance of the target variable and the precision
     of the prior on the weights. These are referred to as beta and alpha respectively. See [1] for more details on how
@@ -195,6 +199,7 @@ def run_dataset_experiments(
     Args:
         dataset: Contains features and a target variable, where the target variable is in the final column.
         dataset_label: A label for the dataset.
+        max_latent_dim: The maximum latent dimension of the FA models.
         n_trials: The number of trials to run for each experiment.
         model_optimiser: The name of the PyTorch optimiser used to train the linear models. Options are 'sgd' and
             'adam'.
@@ -217,7 +222,7 @@ def run_dataset_experiments(
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
-        (n_features_in_dataset - 1) * n_trials * n_epochs / posterior_eval_epoch_frequency.
+        max_latent_dim * n_trials * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
             - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
@@ -279,7 +284,11 @@ def run_dataset_experiments(
     observation_dim = X.shape[1]
 
     results = []
-    for latent_dim in range(1, observation_dim):
+    for latent_dim in range(1, max_latent_dim + 1):
+        if latent_dim > observation_dim:
+            raise ValueError(f'latent dimension should be at most observation dimension ({observation_dim}), '
+                             f'not {latent_dim}')
+
         print(f'Using a posterior with latent dimension equal to {latent_dim} and observation dimension equal to '
               f'{observation_dim}...')
         print('-' * 100)
@@ -885,6 +894,7 @@ def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, co
     results = run_all_experiments(
         datasets=datasets,
         dataset_labels=dataset_labels,
+        max_latent_dim=params['max_latent_dim'],
         n_trials=params['n_trials'],
         model_optimiser=params['model_optimiser'],
         model_optimiser_kwargs=params['model_optimiser_kwargs'],

@@ -20,15 +20,16 @@ online_fa_analysis:
 linear_models:
   model_optimiser: 'sgd'
   model_optimiser_kwargs:
-    lr: 0.001
-  n_epochs: 500
+    lr: 0.1
+  n_epochs: 1000
   batch_size: 32
   gradient_optimiser: 'sgd'
   gradient_optimiser_kwargs:
     lr: 0.001
   gradient_warm_up_time_steps: 100
   em_warm_up_time_steps: 100
-  posterior_update_epoch_start: 10
-  posterior_eval_epoch_frequency: 25
-  precision_scaling_factor: 0.1
-  n_trials: 10
+  posterior_update_epoch_start: 1
+  posterior_eval_epoch_frequency: 50
+  precision_scaling_factor: 0.01
+  max_latent_dim: 3
+  n_trials: 2

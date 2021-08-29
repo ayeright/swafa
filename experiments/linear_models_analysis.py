@@ -21,8 +21,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
 
     Args:
         results: The results of each experiment. The number of rows in the DataFrame is equal to
-            sum[(n_features_in_dataset - 1) * n_trials for dataset in datasets]
-                * n_epochs / posterior_eval_epoch_frequency.
+            n_datasets * max_latent_dim * n_trials * n_epochs / posterior_eval_epoch_frequency.
             The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
             - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
@@ -121,6 +120,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             ylabel='Relative distance from true posterior mean',
             axes_columns=posterior_mean_columns,
             axes_titles=axis_titles,
+            yscale='log',
         )
 
         generate_and_save_error_bar_plot(
@@ -130,6 +130,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             ylabel='Relative distance from true posterior covariance',
             axes_columns=posterior_covar_columns,
             axes_titles=axis_titles,
+            yscale='log'
         )
 
         generate_and_save_error_bar_plot(
@@ -139,6 +140,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             ylabel='2-Wasserstein distance from true posterior',
             axes_columns=posterior_wasserstein_columns,
             axes_titles=axis_titles,
+            yscale='log'
         )
 
         generate_and_save_error_bar_plot(
@@ -148,6 +150,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             ylabel='Relative distance from empirical mean',
             axes_columns=empirical_mean_columns,
             axes_titles=axis_titles,
+            yscale='log'
         )
 
         generate_and_save_error_bar_plot(
@@ -157,6 +160,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             ylabel='Relative distance from empirical covariance',
             axes_columns=empirical_covar_columns,
             axes_titles=axis_titles,
+            yscale='log'
         )
 
         generate_and_save_error_bar_plot(
@@ -166,6 +170,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             ylabel='2-Wasserstein distance from empirical distribution',
             axes_columns=empirical_wasserstein_columns,
             axes_titles=axis_titles,
+            yscale='log'
         )
 
 
@@ -196,7 +201,8 @@ def aggregate_experiment_results(results: pd.DataFrame, dataset_label: str, metr
 
 
 def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.DataFrame, png_path: str,
-                                     ylabel: str, axes_columns: List[str], axes_titles: Optional[List[str]] = None):
+                                     ylabel: str, axes_columns: List[str], axes_titles: Optional[List[str]] = None,
+                                     xscale: str = 'linear', yscale: str = 'linear',):
     """
     Plot the means with standard error bars.
 
@@ -213,6 +219,8 @@ def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.Da
             (1, len(axes_columns)).
         axes_titles: A title for each axis. Should have the same length as axes_columns. If None, will be set to
             axes_columns.
+        xscale: The type of scale to use on the x-axis.
+        yscale: The type of scale to use on the y-axis.
     """
     axes_titles = axes_titles or axes_columns
     plt.rcParams.update({'font.size': 15})
@@ -230,9 +238,11 @@ def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.Da
 
     for ax, title in zip(axes, axes_titles):
         ax.set_xlabel('Epoch')
+        ax.set_xscale(xscale)
         ax.set_title(title)
 
     axes[0].set_ylabel(ylabel)
+    axes[0].set_yscale(yscale)
     plt.legend()
 
     plt.savefig(png_path, format='png')
