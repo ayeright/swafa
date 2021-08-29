@@ -83,28 +83,48 @@ def run_all_experiments(
         sum[(n_features_in_dataset - 1) * n_trials for dataset in datasets] * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
-            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the posterior
-                estimated via the batch sklearn FA algorithm.
-            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true posterior and
+            - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - posterior_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via the batch sklearn FA algorithm.
+            - posterior_wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - empirical_mean_distance_sklearn: (float) The Frobenius norm between the mean of the empirical distribution
+                and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_wasserstein_sklearn: (float) The 2-Wasserstein distance between the empirical distribution and
                 the posterior estimated via the batch sklearn FA algorithm.
-            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via the batch sklearn FA algorithm.
-            - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
-                posterior estimated via online gradient FA.
-            - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
-                posterior and the posterior estimated via online gradient FA.
-            - wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and the
-                posterior estimated via online gradient FA.
-            - mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and the
+            - posterior_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior
+                and the posterior estimated via online gradient FA.
+            - posterior_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                true posterior and the posterior estimated via online gradient FA.
+            - posterior_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and
+                the posterior estimated via online gradient FA.
+            - empirical_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - empirical_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online gradient FA.
+            - empirical_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - posterior_mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and
+                the posterior estimated via online EM FA.
+            - posterior_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via online EM FA.
+            - posterior_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
                 posterior estimated via online EM FA.
-            - covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true posterior
-                and the posterior estimated via online EM FA.
-            - wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via online EM FA.
+            - empirical_mean_distance_online_em: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online EM FA.
+            - empirical_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online EM FA.
+            - empirical_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
+                empirical distribution estimated via online EM FA.
+            - empirical_mean_norm: (float) The Frobenius norm of the mean vector of the empirical distribution.
+            - empirical_covar_norm: (float) The Frobenius norm of the covariance matrix of the empirical distribution.
             - latent_dim: (int) The latent dimension of the FA models.
             - trial: (int) The index of the trial within the experiment.
-            - mean_norm: (float) The Frobenius norm of the mean vector of the true posterior.
-            - covar_norm: (float) The Frobenius norm of the covariance matrix of the true posterior.
+            - posterior_mean_norm: (float) The Frobenius norm of the mean vector of the true posterior.
+            - posterior_covar_norm: (float) The Frobenius norm of the covariance matrix of the true posterior.
             - alpha: (float) The precision of the prior of the weights of the linear model.
             - beta: (float) The reciprocal of the variance of the dataset's target variable.
             - dataset: (str) The name of the dataset.
@@ -200,28 +220,48 @@ def run_dataset_experiments(
         (n_features_in_dataset - 1) * n_trials * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
-            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the posterior
-                estimated via the batch sklearn FA algorithm.
-            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true posterior and
+            - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - posterior_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via the batch sklearn FA algorithm.
+            - posterior_wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - empirical_mean_distance_sklearn: (float) The Frobenius norm between the mean of the empirical distribution
+                and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_wasserstein_sklearn: (float) The 2-Wasserstein distance between the empirical distribution and
                 the posterior estimated via the batch sklearn FA algorithm.
-            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via the batch sklearn FA algorithm.
-            - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
-                posterior estimated via online gradient FA.
-            - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
-                posterior and the posterior estimated via online gradient FA.
-            - wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and the
-                posterior estimated via online gradient FA.
-            - mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and the
+            - posterior_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior
+                and the posterior estimated via online gradient FA.
+            - posterior_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                true posterior and the posterior estimated via online gradient FA.
+            - posterior_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and
+                the posterior estimated via online gradient FA.
+            - empirical_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - empirical_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online gradient FA.
+            - empirical_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - posterior_mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and
+                the posterior estimated via online EM FA.
+            - posterior_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via online EM FA.
+            - posterior_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
                 posterior estimated via online EM FA.
-            - covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true posterior
-                and the posterior estimated via online EM FA.
-            - wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via online EM FA.
+            - empirical_mean_distance_online_em: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online EM FA.
+            - empirical_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online EM FA.
+            - empirical_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
+                empirical distribution estimated via online EM FA.
+            - empirical_mean_norm: (float) The Frobenius norm of the mean vector of the empirical distribution.
+            - empirical_covar_norm: (float) The Frobenius norm of the covariance matrix of the empirical distribution.
             - latent_dim: (int) The latent dimension of the FA models.
             - trial: (int) The index of the trial within the experiment.
-            - mean_norm: (float) The Frobenius norm of the mean vector of the true posterior.
-            - covar_norm: (float) The Frobenius norm of the covariance matrix of the true posterior.
+            - posterior_mean_norm: (float) The Frobenius norm of the mean vector of the true posterior.
+            - posterior_covar_norm: (float) The Frobenius norm of the covariance matrix of the true posterior.
             - alpha: (float) The precision of the prior of the weights of the linear model.
             - beta: (float) The reciprocal of the variance of the dataset's target variable.
             - dataset: (str) The name of the dataset.
@@ -278,10 +318,10 @@ def run_dataset_experiments(
 
     results = pd.concat(results, ignore_index=True)
 
-    results['mean_norm'] = compute_distance_between_matrices(
+    results['posterior_mean_norm'] = compute_distance_between_matrices(
         true_posterior_mean, torch.zeros_like(true_posterior_mean)
     )
-    results['covar_norm'] = compute_distance_between_matrices(
+    results['posterior_covar_norm'] = compute_distance_between_matrices(
         true_posterior_covar, torch.zeros_like(true_posterior_covar)
     )
     results['alpha'] = alpha
@@ -352,24 +392,44 @@ def run_experiment_trial(
         n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
-            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
+            - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
                 posterior estimated via the batch sklearn FA algorithm.
-            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
+            - posterior_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
                 posterior and the posterior estimated via the batch sklearn FA algorithm.
-            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
+            - posterior_wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
                 posterior estimated via the batch sklearn FA algorithm.
-            - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
-                posterior estimated via online gradient FA.
-            - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
-                posterior and the posterior estimated via online gradient FA.
-            - wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and the
-                posterior estimated via online gradient FA.
-            - mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and the
+            - empirical_mean_distance_sklearn: (float) The Frobenius norm between the mean of the empirical distribution
+                and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_wasserstein_sklearn: (float) The 2-Wasserstein distance between the empirical distribution and
+                the posterior estimated via the batch sklearn FA algorithm.
+            - posterior_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior
+                and the posterior estimated via online gradient FA.
+            - posterior_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                true posterior and the posterior estimated via online gradient FA.
+            - posterior_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and
+                the posterior estimated via online gradient FA.
+            - empirical_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - empirical_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online gradient FA.
+            - empirical_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - posterior_mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and
+                the posterior estimated via online EM FA.
+            - posterior_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via online EM FA.
+            - posterior_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
                 posterior estimated via online EM FA.
-            - covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true posterior
-                and the posterior estimated via online EM FA.
-            - wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via online EM FA.
+            - empirical_mean_distance_online_em: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online EM FA.
+            - empirical_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online EM FA.
+            - empirical_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
+                empirical distribution estimated via online EM FA.
+            - empirical_mean_norm: (float) The Frobenius norm of the mean vector of the empirical distribution.
+            - empirical_covar_norm: (float) The Frobenius norm of the covariance matrix of the empirical distribution.
     """
     model_optimiser_kwargs = model_optimiser_kwargs or dict()
     model_optimiser_kwargs['weight_decay'] = weight_decay
@@ -426,11 +486,21 @@ def run_experiment_trial(
         batch_size=batch_size,
     )
 
-    return collate_callback_results(
+    results = collate_callback_results(
         sklearn_posterior_eval_callback,
         gradient_posterior_eval_callback,
         em_posterior_eval_callback,
     )
+
+    empirical_mean, empirical_covar = sklearn_posterior_eval_callback.get_empirical_mean_and_covariance()
+    results['empirical_mean_norm'] = compute_distance_between_matrices(
+        empirical_mean, torch.zeros_like(empirical_mean)
+    )
+    results['empirical_covar_norm'] = compute_distance_between_matrices(
+        empirical_covar, torch.zeros_like(empirical_covar)
+    )
+
+    return results
 
 
 def get_features_and_targets(dataset: pd.DataFrame) -> (Tensor, Tensor):
@@ -636,6 +706,7 @@ def build_model_and_callbacks(
         true_mean=true_posterior_mean,
         true_covar=true_posterior_covar,
         collect_epoch_start=posterior_update_epoch_start,
+        eval_epoch_start=posterior_update_epoch_start,
         eval_epoch_frequency=posterior_eval_epoch_frequency,
         random_seed=model_random_seed,
     )
@@ -644,6 +715,8 @@ def build_model_and_callbacks(
         posterior=gradient_posterior.weight_posterior,
         true_mean=true_posterior_mean,
         true_covar=true_posterior_covar,
+        collect_epoch_start=posterior_update_epoch_start,
+        eval_epoch_start=posterior_update_epoch_start,
         eval_epoch_frequency=posterior_eval_epoch_frequency,
     )
 
@@ -651,6 +724,8 @@ def build_model_and_callbacks(
         posterior=em_posterior.weight_posterior,
         true_mean=true_posterior_mean,
         true_covar=true_posterior_covar,
+        collect_epoch_start=posterior_update_epoch_start,
+        eval_epoch_start=posterior_update_epoch_start,
         eval_epoch_frequency=posterior_eval_epoch_frequency,
     )
 
@@ -699,24 +774,42 @@ def collate_callback_results(sklearn_posterior_eval_callback: BatchFactorAnalysi
         n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
-            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
+            - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
                 posterior estimated via the batch sklearn FA algorithm.
-            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
+            - posterior_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
                 posterior and the posterior estimated via the batch sklearn FA algorithm.
-            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
+            - posterior_wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
                 posterior estimated via the batch sklearn FA algorithm.
-            - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
-                posterior estimated via online gradient FA.
-            - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
-                posterior and the posterior estimated via online gradient FA.
-            - wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and the
-                posterior estimated via online gradient FA.
-            - mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and the
+            - empirical_mean_distance_sklearn: (float) The Frobenius norm between the mean of the empirical distribution
+                and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_wasserstein_sklearn: (float) The 2-Wasserstein distance between the empirical distribution and
+                the posterior estimated via the batch sklearn FA algorithm.
+            - posterior_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior
+                and the posterior estimated via online gradient FA.
+            - posterior_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                true posterior and the posterior estimated via online gradient FA.
+            - posterior_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and
+                the posterior estimated via online gradient FA.
+            - empirical_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - empirical_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online gradient FA.
+            - empirical_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - posterior_mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and
+                the posterior estimated via online EM FA.
+            - posterior_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via online EM FA.
+            - posterior_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
                 posterior estimated via online EM FA.
-            - covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true posterior
-                and the posterior estimated via online EM FA.
-            - wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via online EM FA.
+            - empirical_mean_distance_online_em: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online EM FA.
+            - empirical_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online EM FA.
+            - empirical_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
+                empirical distribution estimated via online EM FA.
     """
     results = []
     for i, (epoch_sklearn, epoch_gradient, epoch_em) in enumerate(zip(sklearn_posterior_eval_callback.eval_epochs,
@@ -728,15 +821,24 @@ def collate_callback_results(sklearn_posterior_eval_callback: BatchFactorAnalysi
 
         results.append(dict(
             epoch=epoch_sklearn,
-            mean_distance_sklearn=sklearn_posterior_eval_callback.distances_from_mean[i],
-            covar_distance_sklearn=sklearn_posterior_eval_callback.distances_from_covar[i],
-            wasserstein_sklearn=sklearn_posterior_eval_callback.wasserstein_distances[i],
-            mean_distance_online_gradient=gradient_posterior_eval_callback.distances_from_mean[i],
-            covar_distance_online_gradient=gradient_posterior_eval_callback.distances_from_covar[i],
-            wasserstein_online_gradient=gradient_posterior_eval_callback.wasserstein_distances[i],
-            mean_distance_online_em=em_posterior_eval_callback.distances_from_mean[i],
-            covar_distance_online_em=em_posterior_eval_callback.distances_from_covar[i],
-            wasserstein_online_em=em_posterior_eval_callback.wasserstein_distances[i],
+            posterior_mean_distance_sklearn=sklearn_posterior_eval_callback.posterior_distances_from_mean[i],
+            posterior_covar_distance_sklearn=sklearn_posterior_eval_callback.posterior_distances_from_covar[i],
+            posterior_wasserstein_sklearn=sklearn_posterior_eval_callback.posterior_wasserstein_distances[i],
+            empirical_mean_distance_sklearn=sklearn_posterior_eval_callback.empirical_distances_from_mean[i],
+            empirical_covar_distance_sklearn=sklearn_posterior_eval_callback.empirical_distances_from_covar[i],
+            empirical_wasserstein_sklearn=sklearn_posterior_eval_callback.empirical_wasserstein_distances[i],
+            posterior_mean_distance_online_gradient=gradient_posterior_eval_callback.posterior_distances_from_mean[i],
+            posterior_covar_distance_online_gradient=gradient_posterior_eval_callback.posterior_distances_from_covar[i],
+            posterior_wasserstein_online_gradient=gradient_posterior_eval_callback.posterior_wasserstein_distances[i],
+            empirical_mean_distance_online_gradient=gradient_posterior_eval_callback.empirical_distances_from_mean[i],
+            empirical_covar_distance_online_gradient=gradient_posterior_eval_callback.empirical_distances_from_covar[i],
+            empirical_wasserstein_online_gradient=gradient_posterior_eval_callback.empirical_wasserstein_distances[i],
+            posterior_mean_distance_online_em=em_posterior_eval_callback.posterior_distances_from_mean[i],
+            posterior_covar_distance_online_em=em_posterior_eval_callback.posterior_distances_from_covar[i],
+            posterior_wasserstein_online_em=em_posterior_eval_callback.posterior_wasserstein_distances[i],
+            empirical_mean_distance_online_em=em_posterior_eval_callback.empirical_distances_from_mean[i],
+            empirical_covar_distance_online_em=em_posterior_eval_callback.empirical_distances_from_covar[i],
+            empirical_wasserstein_online_em=em_posterior_eval_callback.empirical_wasserstein_distances[i],
         ))
 
     return pd.DataFrame(results)

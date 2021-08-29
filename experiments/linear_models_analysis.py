@@ -21,31 +21,52 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
 
     Args:
         results: The results of each experiment. The number of rows in the DataFrame is equal to
-            sum[(n_features_in_dataset - 1) * n_trials for dataset in datasets] * n_epochs / posterior_eval_epoch_frequency.
+            sum[(n_features_in_dataset - 1) * n_trials for dataset in datasets]
+                * n_epochs / posterior_eval_epoch_frequency.
             The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
-            - mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the posterior
-                estimated via the batch sklearn FA algorithm.
-            - covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true posterior and
+            - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - posterior_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via the batch sklearn FA algorithm.
+            - posterior_wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the
+                posterior estimated via the batch sklearn FA algorithm.
+            - empirical_mean_distance_sklearn: (float) The Frobenius norm between the mean of the empirical distribution
+                and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_covar_distance_sklearn: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via the batch sklearn FA algorithm.
+            - empirical_wasserstein_sklearn: (float) The 2-Wasserstein distance between the empirical distribution and
                 the posterior estimated via the batch sklearn FA algorithm.
-            - wasserstein_sklearn: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via the batch sklearn FA algorithm.
-            - mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior and the
-                posterior estimated via online gradient FA.
-            - covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the true
-                posterior and the posterior estimated via online gradient FA.
-            - wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and the
-                posterior estimated via online gradient FA.
-            - mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and the
+            - posterior_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the true posterior
+                and the posterior estimated via online gradient FA.
+            - posterior_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                true posterior and the posterior estimated via online gradient FA.
+            - posterior_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the true posterior and
+                the posterior estimated via online gradient FA.
+            - empirical_mean_distance_online_gradient: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - empirical_covar_distance_online_gradient: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online gradient FA.
+            - empirical_wasserstein_online_gradient: (float) The 2-Wasserstein distance between the empirical
+                distribution and the posterior estimated via online gradient FA.
+            - posterior_mean_distance_online_em: (float) The Frobenius norm between the mean of the true posterior and
+                the posterior estimated via online EM FA.
+            - posterior_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true
+                posterior and the posterior estimated via online EM FA.
+            - posterior_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
                 posterior estimated via online EM FA.
-            - covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the true posterior
-                and the posterior estimated via online EM FA.
-            - wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the posterior
-                estimated via online EM FA.
+            - empirical_mean_distance_online_em: (float) The Frobenius norm between the mean of the empirical
+                distribution and the posterior estimated via online EM FA.
+            - empirical_covar_distance_online_em: (float) The Frobenius norm between the covariance matrix of the
+                empirical distribution and the posterior estimated via online EM FA.
+            - empirical_wasserstein_online_em: (float) The 2-Wasserstein distance between the true posterior and the
+                empirical distribution estimated via online EM FA.
+            - empirical_mean_norm: (float) The Frobenius norm of the mean vector of the empirical distribution.
+            - empirical_covar_norm: (float) The Frobenius norm of the covariance matrix of the empirical distribution.
             - latent_dim: (int) The latent dimension of the FA models.
             - trial: (int) The index of the trial within the experiment.
-            - mean_norm: (float) The Frobenius norm of the mean vector of the true posterior.
-            - covar_norm: (float) The Frobenius norm of the covariance matrix of the true posterior.
+            - posterior_mean_norm: (float) The Frobenius norm of the mean vector of the true posterior.
+            - posterior_covar_norm: (float) The Frobenius norm of the covariance matrix of the true posterior.
             - alpha: (float) The precision of the prior of the weights of the linear model.
             - beta: (float) The reciprocal of the variance of the dataset's target variable.
             - dataset: (str) The name of the dataset.
@@ -54,12 +75,22 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         analysis_output_dir: The directory path to save the output of the analysis.
     """
     metric_suffixes = ['sklearn', 'online_gradient', 'online_em']
-    mean_columns = [f'mean_distance_{x}' for x in metric_suffixes]
-    covar_columns = [f'covar_distance_{x}' for x in metric_suffixes]
-    wasserstein_columns = [f'wasserstein_{x}' for x in metric_suffixes]
+    posterior_mean_columns = [f'posterior_mean_distance_{x}' for x in metric_suffixes]
+    posterior_covar_columns = [f'posterior_covar_distance_{x}' for x in metric_suffixes]
+    posterior_wasserstein_columns = [f'posterior_wasserstein_{x}' for x in metric_suffixes]
+    empirical_mean_columns = [f'empirical_mean_distance_{x}' for x in metric_suffixes]
+    empirical_covar_columns = [f'empirical_covar_distance_{x}' for x in metric_suffixes]
+    empirical_wasserstein_columns = [f'empirical_wasserstein_{x}' for x in metric_suffixes]
 
-    results[mean_columns] = results[mean_columns].values / results[['mean_norm']].values
-    results[covar_columns] = results[covar_columns].values / results[['covar_norm']].values
+    results[posterior_mean_columns] = \
+        results[posterior_mean_columns].values / results[['posterior_mean_norm']].values
+    results[posterior_covar_columns] = \
+        results[posterior_covar_columns].values / results[['posterior_covar_norm']].values
+
+    results[empirical_mean_columns] = \
+        results[empirical_mean_columns].values / results[['empirical_mean_norm']].values
+    results[empirical_covar_columns] = \
+        results[empirical_covar_columns].values / results[['empirical_covar_norm']].values
 
     axis_titles = ['Batch SVD', 'Online SGA', 'Online EM']
 
@@ -67,7 +98,12 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         dataset_means, dataset_standard_errors = aggregate_experiment_results(
             results,
             dataset_label,
-            metric_columns=mean_columns + covar_columns + wasserstein_columns,
+            metric_columns=posterior_mean_columns
+            + posterior_covar_columns
+            + posterior_wasserstein_columns
+            + empirical_mean_columns
+            + empirical_covar_columns
+            + empirical_wasserstein_columns,
         )
 
         dataset_means.to_csv(os.path.join(
@@ -81,27 +117,54 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_mean_distance__{dataset_label}.png'),
-            ylabel='Relative mean distance',
-            axes_columns=mean_columns,
+            png_path=os.path.join(analysis_output_dir, f'linear_models_posterior_mean_distance__{dataset_label}.png'),
+            ylabel='Relative distance from true posterior mean',
+            axes_columns=posterior_mean_columns,
             axes_titles=axis_titles,
         )
 
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_covariance_distance__{dataset_label}.png'),
-            ylabel='Relative covariance distance',
-            axes_columns=covar_columns,
+            png_path=os.path.join(analysis_output_dir, f'linear_models_posterior_covar_distance__{dataset_label}.png'),
+            ylabel='Relative distance from true posterior covariance',
+            axes_columns=posterior_covar_columns,
             axes_titles=axis_titles,
         )
 
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_wasserstein__{dataset_label}.png'),
-            ylabel='2-Wasserstein distance',
-            axes_columns=wasserstein_columns,
+            png_path=os.path.join(analysis_output_dir, f'linear_models_posterior_wasserstein__{dataset_label}.png'),
+            ylabel='2-Wasserstein distance from true posterior',
+            axes_columns=posterior_wasserstein_columns,
+            axes_titles=axis_titles,
+        )
+
+        generate_and_save_error_bar_plot(
+            dataset_means,
+            dataset_standard_errors,
+            png_path=os.path.join(analysis_output_dir, f'linear_models_empirical_mean_distance__{dataset_label}.png'),
+            ylabel='Relative distance from empirical mean',
+            axes_columns=empirical_mean_columns,
+            axes_titles=axis_titles,
+        )
+
+        generate_and_save_error_bar_plot(
+            dataset_means,
+            dataset_standard_errors,
+            png_path=os.path.join(analysis_output_dir, f'linear_models_empirical_covar_distance__{dataset_label}.png'),
+            ylabel='Relative distance from empirical covariance',
+            axes_columns=empirical_covar_columns,
+            axes_titles=axis_titles,
+        )
+
+        generate_and_save_error_bar_plot(
+            dataset_means,
+            dataset_standard_errors,
+            png_path=os.path.join(analysis_output_dir, f'linear_models_empirical_wasserstein__{dataset_label}.png'),
+            ylabel='2-Wasserstein distance from empirical distribution',
+            axes_columns=empirical_wasserstein_columns,
             axes_titles=axis_titles,
         )
 
