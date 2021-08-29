@@ -71,6 +71,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             - dataset: (str) The name of the dataset.
             - n_samples: (int) The number of samples in the dataset.
             - observation_dim: (int) The number of features in the dataset.
+            - learning_rate: (float) The learning rate of the PyTorch optimiser used to train the linear models.
         analysis_output_dir: The directory path to save the output of the analysis.
     """
     metric_suffixes = ['sklearn', 'online_gradient', 'online_em']

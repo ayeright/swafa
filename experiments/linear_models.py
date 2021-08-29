@@ -28,6 +28,7 @@ from experiments.utils.factory import OPTIMISER_FACTORY
 def run_all_experiments(
         datasets: List[pd.DataFrame],
         dataset_labels: List[str],
+        min_latent_dim: int,
         max_latent_dim: int,
         n_trials: int,
         model_optimiser: str,
@@ -49,7 +50,7 @@ def run_all_experiments(
     during SGD to estimate the posterior distribution of the weights via the sklearn batch factor analysis (FA)
     algorithm, online gradient FA and online expectation-maximisation (EM) FA. For each method, compute the distance
     between the true and estimated posterior. For each dataset, run experiments with the latent dimension of the FA
-    models equal to 1 to max_latent_dim.
+    models equal to min_latent_dim to max_latent_dim.
 
     Note: the posterior distribution depends on the reciprocal of the variance of the target variable and the precision
     of the prior on the weights. These are referred to as beta and alpha respectively. See [1] for more details on how
@@ -59,6 +60,7 @@ def run_all_experiments(
         datasets: A list of datasets. Each dataset contains features and a target variable, where the target variable is
             in the final column.
         dataset_labels: A label for each of the datasets.
+        min_latent_dim: The minimum latent dimension of the FA models.
         max_latent_dim: The maximum latent dimension of the FA models.
         n_trials: The number of trials to run for each experiment.
         model_optimiser: The name of the PyTorch optimiser used to train the linear models. Options are 'sgd' and
@@ -82,7 +84,7 @@ def run_all_experiments(
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
-        n_datasets * max_latent_dim * n_trials * n_epochs / posterior_eval_epoch_frequency.
+        n_datasets * (max_latent_dim - min_latent_dim + 1) * n_trials * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
             - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
@@ -132,11 +134,14 @@ def run_all_experiments(
             - dataset: (str) The name of the dataset.
             - n_samples: (int) The number of samples in the dataset.
             - observation_dim: (int) The number of features in the dataset.
+            - learning_rate: (float) The learning rate of the PyTorch optimiser used to train the linear models.
 
     References:
         [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
             2021.
     """
+    model_optimiser_kwargs = model_optimiser_kwargs or dict(lr=0.001)
+
     results = []
     for label, dataset in zip(dataset_labels, datasets):
         print(f'Running experiments on {label} dataset...')
@@ -145,6 +150,7 @@ def run_all_experiments(
         dataset_results = run_dataset_experiments(
             dataset=dataset,
             dataset_label=label,
+            min_latent_dim=min_latent_dim,
             max_latent_dim=max_latent_dim,
             n_trials=n_trials,
             model_optimiser=model_optimiser,
@@ -169,6 +175,7 @@ def run_all_experiments(
 def run_dataset_experiments(
         dataset: pd.DataFrame,
         dataset_label: str,
+        min_latent_dim: int,
         max_latent_dim: int,
         n_trials: int,
         model_optimiser: str,
@@ -189,8 +196,8 @@ def run_dataset_experiments(
     Train a linear model to predict the target variable via SGD. Use the model weight vectors sampled
     during SGD to estimate the posterior distribution of the weights via the sklearn batch factor analysis (FA)
     algorithm, online gradient FA and online expectation-maximisation (EM) FA. For each method, compute the distance
-    between the true and estimated posterior. Run experiments with the latent dimension of the FA models equal to 1 to
-    max_latent_dim.
+    between the true and estimated posterior. Run experiments with the latent dimension of the FA models equal to
+    min_latent_dim to max_latent_dim.
 
     Note: the posterior distribution depends on the reciprocal of the variance of the target variable and the precision
     of the prior on the weights. These are referred to as beta and alpha respectively. See [1] for more details on how
@@ -199,6 +206,7 @@ def run_dataset_experiments(
     Args:
         dataset: Contains features and a target variable, where the target variable is in the final column.
         dataset_label: A label for the dataset.
+        min_latent_dim: The minimum latent dimension of the FA models.
         max_latent_dim: The maximum latent dimension of the FA models.
         n_trials: The number of trials to run for each experiment.
         model_optimiser: The name of the PyTorch optimiser used to train the linear models. Options are 'sgd' and
@@ -222,7 +230,7 @@ def run_dataset_experiments(
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
-        max_latent_dim * n_trials * n_epochs / posterior_eval_epoch_frequency.
+        (max_latent_dim - min_latent_dim + 1) * n_trials * n_epochs / posterior_eval_epoch_frequency.
         The DataFrame has the following columns:
             - epoch: (int) The training epoch on which the metrics were computed.
             - posterior_mean_distance_sklearn: (float) The Frobenius norm between the mean of the true posterior and the
@@ -272,6 +280,7 @@ def run_dataset_experiments(
             - dataset: (str) The name of the dataset.
             - n_samples: (int) The number of samples in the dataset.
             - observation_dim: (int) The number of features in the dataset.
+            - learning_rate: (float) The learning rate of the PyTorch optimiser used to train the linear models.
 
     References:
         [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
@@ -284,7 +293,7 @@ def run_dataset_experiments(
     observation_dim = X.shape[1]
 
     results = []
-    for latent_dim in range(1, max_latent_dim + 1):
+    for latent_dim in range(min_latent_dim, max_latent_dim + 1):
         if latent_dim > observation_dim:
             raise ValueError(f'latent dimension should be at most observation dimension ({observation_dim}), '
                              f'not {latent_dim}')
@@ -338,6 +347,7 @@ def run_dataset_experiments(
     results['dataset'] = dataset_label
     results['n_samples'] = len(X)
     results['observation_dim'] = observation_dim
+    results['learning_rate'] = model_optimiser_kwargs['lr']
 
     return results
 
@@ -440,7 +450,6 @@ def run_experiment_trial(
             - empirical_mean_norm: (float) The Frobenius norm of the mean vector of the empirical distribution.
             - empirical_covar_norm: (float) The Frobenius norm of the covariance matrix of the empirical distribution.
     """
-    model_optimiser_kwargs = model_optimiser_kwargs or dict()
     model_optimiser_kwargs['weight_decay'] = weight_decay
 
     gradient_weight_posterior_kwargs = dict(
@@ -894,6 +903,7 @@ def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, co
     results = run_all_experiments(
         datasets=datasets,
         dataset_labels=dataset_labels,
+        min_latent_dim=params['min_latent_dim'],
         max_latent_dim=params['max_latent_dim'],
         n_trials=params['n_trials'],
         model_optimiser=params['model_optimiser'],

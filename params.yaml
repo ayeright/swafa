@@ -31,5 +31,6 @@ linear_models:
   posterior_update_epoch_start: 1
   posterior_eval_epoch_frequency: 50
   precision_scaling_factor: 0.01
+  min_latent_dim: 1
   max_latent_dim: 3
-  n_trials: 2
+  n_trials: 10
