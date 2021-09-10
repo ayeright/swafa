@@ -125,22 +125,23 @@ usual late penalties based on your final submission time.
 %
 %A dissertation usually contains several chapters.
 
-\chapter{Factor Analysis}\label{sec:fa}
 
-\section{Background}
+\chapter{Background}\label{ch:background}
 
-FA is a latent variable model which generates observations $\theta \in \R^d$ as follows. First, a latent vector $\matr{h} \in \R^K$, for some $K < d$, is sampled from $p(\matr{h}) = \mathcal{N}(\matr{0}, \matr{I})$. Next, $\matr{h}$ is transformed onto a $K$-dimensional linear subspace of $\R^d$ by left-multiplying it by a \emph{factor loading} matrix $\matr{F} \in \R^{d \times K}$. The origin of this subspace is then shifted by adding a bias term $\matr{c} \in \R^d$. Finally, the data is perturbed by adding some zero mean Gaussian noise $\epsilon \in \R^d$ sampled from $\mathcal{N}(\matr{0}, \Psi)$, where $\Psi$ is a $d\times d$ diagonal matrix \cite{barber2007}. Putting all this together, an observation $\theta \in \R^d$ is generated according to 
+\section{Factor Analysis}\label{sec:fa}
+
+Factor analysis (FA) is a latent variable model which generates observations $\theta \in \R^D$ as follows. First, a latent vector $\matr{h} \in \R^K$, for some $K < D$, is sampled from $p(\matr{h}) = \mathcal{N}(\matr{0}, \matr{I})$. Next, $\matr{h}$ is transformed onto a $K$-dimensional linear subspace of $\R^D$ by left-multiplying it by a \emph{factor loading} matrix $\matr{F} \in \R^{D \times K}$. The origin of this subspace is then shifted by adding a bias term $\matr{c} \in \R^D$. Finally, the data is perturbed by adding some zero mean Gaussian noise $\epsilon \in \R^D$ sampled from $\mathcal{N}(\matr{0}, \Psi)$, where $\Psi$ is a $D\times D$ diagonal matrix \cite{barber2007}. Putting all this together, an observation $\theta \in \R^D$ is generated according to 
 \begin{equation}\label{eqn:fa_model}
 	\theta = \matr{Fh} + \matr{c} + \epsilon.
 \end{equation}
-In this context, an observation $\theta$ is the parameter vector of a neural network. 
+In the context of this thesis, an observation $\theta$ is the parameter vector of a neural network. 
 
 It follows that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$ \cite{barber2007}. Formally,
 \begin{equation}\label{eqn:fa_cond_dist}
 	p(\theta | \matr{h}) 
 	= \mathcal{N}\Big( \matr{Fh} + \matr{c}, \Psi \Big)
-	= \frac{1}{\sqrt{(2\pi)^d |\Psi|}} 
-	\exp \Big(-\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} 	- \matr{c})\Big),
+	= \frac{1}{\sqrt{(2\pi)^D |\Psi|}} 
+	\exp \Big(-\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c})\Big),
 \end{equation}
 where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, integrating $p(\theta | \matr{h})$ over $\matr{h}$ gives the marginal distribution
 \begin{equation}\label{eqn:fa_marginal_dist}
@@ -148,7 +149,133 @@ where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, inte
 \end{equation}
 The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\theta_{\text{SWA}}$. 
 %By substituting $\matr{c} = \theta_{\text{SWA}}$ into $p(\theta)$, the distribution in (\ref{eqn:fa_dist}) is obtained. 
-Having set the bias term, an expectation-maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Sections \ref{sec:gradient_fa} and \ref{sec:online_em}.
+Having set the bias term, an expectation-maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Chapter \ref{ch:online_fa}.
+
+\section{Bayesian Linear Regression}\label{sec:bayesian_lr}
+
+A linear regression model is a mapping from vector inputs $\matr{x} \in \R^D$ to scalar outputs $y \in \R$ via an affine transformation. Given a set of observed input-output pairs, $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, it is assumed that each output is generated according to 
+\begin{equation}\label{eqn:linear_regression}
+	y_n = \theta^\intercal \matr{x}_n + \epsilon
+\end{equation}
+for some unknown $\theta \in \R^D$. The underlying signal, $\theta^\intercal \matr{x}_n$, is corrupted by additive noise, 
+\begin{equation}
+	\epsilon \sim \mathcal{N}(0, \sigma^2), 
+\end{equation}
+for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}).
+
+\subsection{Computing the Posterior}
+
+Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon$ is Gaussian distributed, the conditional pdf of $y_n$ is 
+\begin{equation}\label{eqn:linear_regression_pdf}
+	p(y_n | \theta, \matr{x}_n) 
+	= \mathcal{N}\big(\theta^\intercal \matr{x}_n, \sigma^2\big)
+	= \frac{1}{\sqrt{2\pi \sigma^2}} \exp\Big(-\frac{1}{2\sigma^2} \big(y_n - \theta^\intercal \matr{x}_n \big)^2\Big).
+\end{equation}
+Assuming that the observations in $\mathcal{D}$ are independent and identically distributed, the log-likelihood of $\theta$ having generated the data is 
+\begin{align}\label{eqn:linear_regression_log_likelihood}
+\begin{split}
+	\log p(\mathcal{D} | \theta) 
+	& = \sum_{n=1}^N \big[ \log p(y_n | \theta, \matr{x}_n)  + \log p(\matr{x}_n) \big] \\
+	& = \sum_{n=1}^N \Big[ -\frac{1}{2} \log 2\pi \sigma^2 - \frac{1}{2\sigma^2} \big(y_n - \theta^\intercal \matr{x}_n \big)^2 \Big]
+	+ \sum_{n=1}^N \log p(\matr{x}_n) \\
+	& = - \frac{1}{2 \sigma^2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	- \frac{N}{2} \log \sigma^2
+	- \frac{N}{2} \log 2\pi
+	+ \sum_{n=1}^N \log p(\matr{x}_n) \\
+	& = - \frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	+ \frac{N}{2} \log \beta
+	+ \text{constant},
+\end{split}
+\end{align}
+where $\beta = \frac{1}{\sigma^2}$ \cite{barber2007}. In Bayesian linear regression, a prior distribution for $\theta$ is also specified. A common choice  is 
+\begin{equation}\label{eqn:linear_regression_prior}
+	p(\theta) 
+	= \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)
+	= \Big(\frac{\alpha}{2\pi}\Big)^{\frac{D}{2}} \exp\Big(-\frac{\alpha}{2} \theta^\intercal \theta \Big)
+\end{equation}
+for some $\alpha > 0$, which is a hyperparameter known as the \emph{precision} \cite{barber2007}. Applying the logarithm, 
+\begin{align}\label{eqn:linear_regression_log_prior}
+\begin{split}
+	\log p(\theta) 
+	& = \frac{D}{2} \log \frac{\alpha}{2\pi} - \frac{\alpha}{2} \theta^\intercal \theta \\
+	& = -\frac{\alpha}{2} \theta^\intercal \theta + \frac{D}{2} \log \alpha + \text{constant}.
+\end{split}
+\end{align}
+Now, using Bayes' rule and Equation (\ref{eqn:linear_regression_log_likelihood}) and Equation (\ref{eqn:linear_regression_log_prior}), it follows that the log-posterior distribution of $\theta$ for fixed $\alpha$ and $\beta$ is 
+\begin{align}\label{eqn:linear_regression_log_posterior}
+\begin{split}
+	\log p(\theta | \mathcal{D}) 
+	& = \log \frac{p(\mathcal{D} | \theta) p(\theta)}{p(\mathcal{D})} \\
+	& = \log p(\mathcal{D} | \theta) + \log p(\theta) - \log p(\mathcal{D}) \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	-\frac{\alpha}{2} \theta^\intercal \theta 
+	+ \text{constant} \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N\big( y_n^2 - 2 y_n \theta^\intercal \matr{x}_n + (\theta^\intercal \matr{x}_n)^2 \big)
+	-\frac{\alpha}{2} \theta^\intercal \theta
+	+ \text{constant} \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N y_n^2
+	+ \beta \sum_{n=1}^N y_n \theta^\intercal \matr{x}_n
+	-\frac{\beta}{2} \sum_{n=1}^N \theta^\intercal \matr{x}_n \matr{x}_n^\intercal \theta
+	-\frac{\alpha}{2} \theta^\intercal \theta
+	+ \text{constant} \\
+	& = \Big(\beta \sum_{n=1}^N y_n \matr{x}_n \Big)^\intercal \theta 
+	-\frac{1}{2} \theta^\intercal \Big( \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal \Big) \theta 
+	+ \text{constant} \\
+	& = \matr{b}^\intercal \theta 
+	- \frac{1}{2} \theta^\intercal \matr{A} \theta 
+	+ \text{constant},
+\end{split}
+\end{align}
+where 
+\begin{equation}\label{eqn:linear_model_A_and_b}
+	\matr{A} = \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal
+	\quad \text{and} \quad 
+	\matr{b} = \beta \sum_{n=1}^N y_n \matr{x}_n.
+\end{equation}
+Now, using a result from \cite{barber2007} to complete the square of Equation (\ref{eqn:linear_regression_log_posterior}),
+\begin{align}
+\begin{split}
+	\log p(\theta | \mathcal{D}) 
+	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
+	+ \frac{1}{2} \matr{b}^\intercal \matr{A}^{-1} \matr{b}
+	+ \text{constant} \\
+	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
+	+ \text{constant} \\
+	& = -\frac{1}{2} \big(\theta - \matr{m} \big)^\intercal \matr{S}^{-1} \big(\theta - \matr{m} \big)
+	+ \text{constant},
+\end{split}
+\end{align}
+where
+\begin{equation}\label{eqn:linear_regression_posterior_params}
+	\matr{m} = \matr{A}^{-1} \matr{b}
+	\quad \text{and} \quad 
+	\matr{S} = \matr{A}^{-1}.
+\end{equation}
+Hence, the posterior distribution of $\theta$ is 
+\begin{align}\label{eqn:linear_regression_posterior}
+\begin{split}
+	p(\theta | \mathcal{D}) = \mathcal{N}(\matr{m}, \matr{S}).
+\end{split}
+\end{align}
+
+
+\section{Gaussian Processes}\label{sec:gaussian_processes}
+
+Gaussian processes (GPs) are a flexible class of non-parametric models. 
+
+Any function $f:\R^D \mapsto \R$ 
+
+Given a training set $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, a function 
+
+
+\section{Deep Neural Networks}\label{sec:dnns}
+
+
+\chapter{Related Work and Research Questions}\label{ch:previous_work}
+
+
+\chapter{Online Factor Analysis}\label{ch:online_fa}
+
 
 \section{Online Stochastic Gradient Ascent}\label{sec:gradient_fa}
 
@@ -197,8 +324,8 @@ Note that $p(\theta_t | \matr{h}_t, \matr{F}, \Psi)$ is just the Gaussian distri
 \begin{align}\label{eqn:log_fa_cond_dist}
 \begin{split}
 	\log p(\theta_t | \matr{h}_t, \matr{F}, \Psi)
-	& = -\frac{1}{2} (\theta_t - \matr{Fh}_t - \theta_{\text{SWA}})^\intercal \Psi^{-1} (\theta_t - \matr{Fh}_t - \theta_{\text{SWA}}) - \frac{1}{2} \log |\Psi| - \frac{d}{2} \log 2\pi \\
-	& = -\frac{1}{2} (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) - \frac{1}{2} \log |\Psi| - \frac{d}{2} \log 2\pi,
+	& = -\frac{1}{2} (\theta_t - \matr{Fh}_t - \theta_{\text{SWA}})^\intercal \Psi^{-1} (\theta_t - \matr{Fh}_t - \theta_{\text{SWA}}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
+	& = -\frac{1}{2} (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi,
 \end{split}
 \end{align}
 where $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$. This is convenient, since Equation (\ref{eqn:log_fa_cond_dist}) can be differentiated with respect to both $\matr{F}$ and $\Psi$. Of course, this requires access to $\theta_{\text{SWA}}$, which is not available during training. As a compromise - and following the approach of the SWAG covariance approximation - $\theta_{\text{SWA}}$ can be replaced by the running average of the neural network's parameter vectors.
@@ -244,23 +371,23 @@ Finally, substituting Equation (\ref{eqn:expected_value_h_hh}) into Equation (\r
 
 \subsection{Partial derivatives with respect to $\Psi$}
 
-In order to differentiate Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$, it helps to use the fact that $\Psi$ is diagonal. First consider $\matr{X}^{-1} = \diag(\frac{1}{x_1}, \dots, \frac{1}{x_d})$ and $\matr{a} = (a_1, \dots, a_d)^\intercal$. Then 
+In order to differentiate Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$, it helps to use the fact that $\Psi$ is diagonal. First consider $\matr{X}^{-1} = \diag(\frac{1}{x_1}, \dots, \frac{1}{x_D})$ and $\matr{a} = (a_1, \dots, a_D)^\intercal$. Then 
 \begin{equation}\label{eqn:aXa}
-	\matr{a}^\intercal \matr{X}^{-1} \matr{a} = \sum_{i=1}^d \frac{a_i^2}{x_i},
+	\matr{a}^\intercal \matr{X}^{-1} \matr{a} = \sum_{d=1}^D \frac{a_d^2}{x_d},
 \end{equation}
 and so
 \begin{equation}
-	\frac{\partial}{\partial x_i} \matr{a}^\intercal \matr{X}^{-1} \matr{a} = \frac{-a_i^2}{x_i^2}
+	\frac{\partial}{\partial x_d} \matr{a}^\intercal \matr{X}^{-1} \matr{a} = \frac{-a_d^2}{x_d^2}
 \end{equation}
-for $i=1, \dots, d$. Since the partial derivatives of Equation (\ref{eqn:aXa}) with respect to the off-diagonal entries of $\matr{X}$ are zero, 
+for $d=1, \dots, D$. Since the partial derivatives of Equation (\ref{eqn:aXa}) with respect to the off-diagonal entries of $\matr{X}$ are zero, 
 \begin{align}\label{eqn:derivatives_diag_qaud_form}
 \begin{split}
 	\nabla_\matr{X} (\matr{a}^\intercal \matr{X}^{-1} \matr{a}) 
-	& = \diag\Big({\frac{-a_1^2}{x_1^2}, \dots, \frac{-a_d^2}{x_d^2}}\Big) \\
+	& = \diag\Big({\frac{-a_1^2}{x_1^2}, \dots, \frac{-a_D^2}{x_D^2}}\Big) \\
 	& = -\diag\big(\diag(\matr{X}^{-2}) \odot \matr{a}^2\big),
 \end{split}
 \end{align}  
-where $\odot$ denotes the element-wise matrix product (with broadcasting, if applicable) and the square of a vector is applied element-wise. Also, when applied to a $d$-length vector, $\diag(\cdot)$ represents the $d \times d$ diagonal matrix with the vector on its diagonal, and when applied to a $d \times d$ matrix, $\diag(\cdot)$ represents the $d$-length vector consisting of the diagonal entries of the matrix. Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
+where $\odot$ denotes the element-wise matrix product (with broadcasting, if applicable) and the square of a vector is applied element-wise. Also, when applied to a $D$-length vector, $\diag(\cdot)$ represents the $D \times D$ diagonal matrix with the vector on its diagonal, and when applied to a $D \times D$ matrix, $\diag(\cdot)$ represents the $D$-length vector consisting of the diagonal entries of the matrix. Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
 \begin{equation}\label{eqn:derivatives_wrt_Psi_1}
 	\nabla_\Psi (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) 
 	= -\diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big).
@@ -307,7 +434,7 @@ Finally, substituting Equation (\ref{eqn:expected_gradient_d_Fh}) into Equation 
 
 \subsection{Practical implementation}
 
-In practice, storing the full $d\times d$ covariance matrix $\Psi$ (or its inverse) would be infeasible for high-dimensional $\theta_t \in \R^d$. However, since $\Psi$ is diagonal and the partial derivatives of the log-likelihood with respect to the off-diagonal are always zero, it suffices to work with the diagonal entries only. All occurrences of $d \times d$ matrices can then be removed from the gradient calculations. 
+In practice, storing the full $D\times D$ covariance matrix $\Psi$ (or its inverse) would be infeasible for high-dimensional $\theta_t \in \R^D$. However, since $\Psi$ is diagonal and the partial derivatives of the log-likelihood with respect to the off-diagonal are always zero, it suffices to work with the diagonal entries only. All occurrences of $D \times D$ matrices can then be removed from the gradient calculations. 
 
 First, note that the partial derivatives with respect to both $\matr{F}$ and $\Psi$ depend on $\matr{m}_t$ and $\Sigma$ from Equation (\ref{eqn:variational_params}), which themselves depend on  $\Psi^{-1}$. Let $\psi = \diag(\Psi)$ and $\psi^{-n} = \diag(\Psi^{-n})$ for $n \in \N^+$. Then 
 \begin{equation}
@@ -335,7 +462,7 @@ Also, the partial derivatives with respect to $\Psi$ in Equation (\ref{eqn:deriv
 \end{align} 
 where $\text{sum}(\cdot, \text{ dim} = 1)$ denotes the operation of summing along the rows of a matrix. 
 
-One final point is that the elements of $\psi$ must be positive, since they represent variances. One way to achieve this is by using the re-parameterisation $\psi = \exp \beta$ for some unconstrained parameter $\beta \in \R^d$. Then the gradient updates can be performed on $\beta$ instead of $\psi$. Using the chain rule from calculus, 
+One final point is that the elements of $\psi$ must be positive, since they represent variances. One way to achieve this is by using the re-parameterisation $\psi = \exp \beta$ for some unconstrained parameter $\beta \in \R^D$. Then the gradient updates can be performed on $\beta$ instead of $\psi$. Using the chain rule from calculus, 
 \begin{align}
 \begin{split}\label{eqn:efficient_derivatives_wrt_beta}
 	\nabla_{\beta} \log p(\theta_t | \matr{F}, \Psi)
@@ -352,11 +479,11 @@ Pseudo code for online stochastic gradient ascent (SGA) for FA is given in Algor
 	\caption{Online Stochastic Gradient Ascent for Factor Analysis}
 	\label{alg:gradient_fa}
 	\begin{algorithmic}[1]
-		\Require{Observation dimension $d$, latent dimension $K$, learning rate $\alpha > 0$} 
-		\State Initialise $\matr{F} \in \R^{d \times K}$, $\psi > \matr{0} \in \R^d$, $\overline{\theta}_0 = \matr{0}^d$
+		\Require{Observation dimension $D$, latent dimension $K$, learning rate $\alpha > 0$} 
+		\State Initialise $\matr{F} \in \R^{D \times K}$, $\psi = \matr{I}^D$, $\overline{\theta}_0 = \matr{0}^D$
 		\State $\beta \leftarrow \log \psi$
 		\For {$t=1,\dots,T$}
-			\State Sample observation $\theta_t \in \R^d$
+			\State Sample observation $\theta_t \in \R^D$
 			\State
 				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
@@ -440,7 +567,6 @@ The diagonal entries of Equation (\ref{eqn:em_Psi_incremental_update}) can be co
 	+ \text{sum} \big((\matr{F} \overline{\matr{H}}_t) \odot \matr{F} -2\matr{F} \odot \overline{\matr{A}}_t , \text{ dim} = 1\big).
 \end{split}
 \end{align}
-(TODO: check whether this can be negative).
 All that remains to complete the online algorithm is to define the incremental update rules for $\overline{\matr{A}}_t$ and $\overline{\matr{H}}_t$. Both are similar, and for $\overline{\matr{A}}_t$ the derivation is 
 \begin{align}
 \begin{split}
@@ -460,12 +586,12 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 	\caption{Online Expectation-Maximisation for Factor Analysis}
 	\label{alg:online_em}
 	\begin{algorithmic}[1]
-		\Require{Observation dimension $d$, latent dimension $K$} 
-		\State Initialise $\matr{F} \in \R^{d \times K}$, $\psi > \matr{0} \in \R^d$
-		\State Initialise $\overline{\theta}_0 = \matr{0}^d, \overline{\matr{A}}_0 = \matr{0}^{d \times K}, 
-			\overline{\matr{B}}_0 = \matr{0}^{K \times K}, \overline{\matr{d}^2}_0 = \matr{0}^d$
+		\Require{Observation dimension $D$, latent dimension $K$} 
+		\State Initialise $\matr{F} \in \R^{D \times K}$, $\psi = \matr{I}^D$
+		\State Initialise $\overline{\theta}_0 = \matr{0}^D, \overline{\matr{A}}_0 = \matr{0}^{D \times K}, 
+			\overline{\matr{B}}_0 = \matr{0}^{K \times K}, \overline{\matr{D}^2}_0 = \matr{0}^D$
 		\For {$t=1,\dots,T$}
-			\State Sample observation $\theta_t \in \R^d$
+			\State Sample observation $\theta_t \in \R^D$
 			\State
 				$\overline{\theta}_t \leftarrow  \overline{\theta}_{t-1} + \frac{1}{t}\big(\overline{\theta}_t - \overline{\theta}_{t-1}\big)$
 			\State $\matr{d}_t \leftarrow \theta_t - \overline{\theta}_t$
@@ -486,40 +612,15 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 	\end{algorithmic}
 \end{algorithm}
 
-\section{Factors and Noise Initialisation}
+\section{Factors Initialisation}\label{sec:F_init}
 
-One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ and $\psi$ are initialised. Suppose $\matr{F}$ is initialised with ones on its diagonal and zeros everywhere else. That is,
-\begin{equation}
-	\matr{F} =
-		\begin{bmatrix}
-			\matr{I} \\
-			\matr{0}
-  		\end{bmatrix}
-	\in \R^{d \times K},
-\end{equation}
-where $\matr{I} \in \R^{K \times K}$ and $\matr{0} \in \R^{(d-K) \times K}$. Then for $\matr{h} \in \R^K$, the product $\matr{Fh} \in \R^d$ is just the vector formed by appending $d-K$ zeros onto the end of $\matr{h}$. In order to increase the initial diversity of $\matr{Fh}$, noise is added to the off-diagonal entries of  $\matr{F}$. That is, $\matr{F}$ is initialised as
-\begin{equation}\label{eqn:F_init}
-	\matr{F} =
-  \begin{bmatrix}
-    1 & \nu_{1, 2} & \cdots & \nu_{1, K} \\
-    \nu_{2, 1} & 1 &  & \nu_{2, K} \\
-     \vdots &  & \ddots & \vdots  \\
-     \nu_{K, 1} & \nu_{K, 2} & \cdots & 1 \\
-     \nu_{K+1, 1} & \nu_{K+1, 2} & \cdots & \nu_{K+1, K} \\
-     \vdots & \vdots & \vdots & \vdots \\
-     \nu_{d, 1} & \nu_{d, 2} & \cdots & \nu_{d, K} \\
-  \end{bmatrix},
-\end{equation}
-where $\nu_{i, j} \sim \mathcal{N}(0, \sigma^2)$ for some small $\sigma$, which is a hyperparameter. 
+One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diversity, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$.
 
-From Equation (\ref{eqn:fa_marginal_dist}), the full covariance matrix of a FA model is $\matr{FF}^\intercal + \Psi$, where $\Psi = \text{diag}(\psi)$. To ensure that neither $\matr{FF}^\intercal$ nor $\Psi$ dominates in the initial covariance matrix, the initial entries of $\psi$ are set equal to the maximum diagonal value of $\matr{FF}^\intercal$. That is, 
-\begin{equation}\label{eqn:psi_init}
-	\psi = (s, s, \dots, s)^\intercal \in \R^d, \quad s = \max\big(\text{diag}(\matr{F})\big).
-\end{equation}
 
-\section{Experiments}\label{sec:online_fa_experiments}
+\chapter{Learning Factor Analysis Models Online}\label{ch:online_fa_experiments}
 
-\subsection{Methodology}
+
+\section{Methodology}
 
 The aim of these experiments is to test how well the online FA algorithms from Section \ref{sec:fa} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both online FA algorithms (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}) by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
 \begin{equation}
@@ -529,7 +630,7 @@ The aim of these experiments is to test how well the online FA algorithms from S
 \end{equation}
 Therefore, the $\matr{F}$ estimated by an online FA algorithm cannot be directly compared to the true $\matr{F}$. The comparison must be made between the full covariance matrices.  
 
-Since the covariance matrices have shape $d \times d$, memory requirements dictate that $d$, the observation dimension, cannot be too large. Therefore, values of $d=100$ and $d=1000$ were used in all experiments in this section. In all cases the latent dimension was set to $K=10$, meaning that two different observation to latent ratios were tested: $\frac{d}{K} = 10$ and $\frac{d}{K} = 100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^d$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that its columns spanned the $K$-dimensional latent space and the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{d \times d}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^d$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number of a matrix is equal to
+Since the covariance matrices have shape $D \times D$, memory requirements dictate that $D$, the observation dimension, cannot be too large. Therefore, values of $D=100$ and $D=1000$ were used in all experiments in this section. In all cases the latent dimension was set to $K=10$, meaning that two different observation to latent ratios were tested: $\frac{D}{K} = 10$ and $\frac{D}{K} = 100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^D$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that its columns spanned the $K$-dimensional latent space and the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{D \times D}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^D$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number of a matrix is equal to
 \begin{equation}
 	\max_{i, j} \frac{| \lambda_i |}{| \lambda_j |},
 \end{equation}
@@ -539,34 +640,34 @@ where the $\lambda_i$ and $\lambda_j$ are eigenvalues of the matrix \cite{goodfe
 	\caption{Generate a Factor Analysis Model}
 	\label{alg:generate_fa}
 	\begin{algorithmic}[1]
-		\Require{Observation dimension $d$, latent dimension $K$, spectrum range $[a, b]$} 
-		\State Generate $\matr{c} \in \R^d$ by sampling entries independently from $\mathcal{N}(0, 1)$
-		\State Generate $\matr{A} \in \R^{d \times d}$ by sampling entries independently from $\mathcal{N}(0, 1)$
+		\Require{Observation dimension $D$, latent dimension $K$, spectrum range $[a, b]$} 
+		\State Generate $\matr{c} \in \R^D$ by sampling entries independently from $\mathcal{N}(0, 1)$
+		\State Generate $\matr{A} \in \R^{D \times D}$ by sampling entries independently from $\mathcal{N}(0, 1)$
 		\State $\matr{M} \leftarrow \matr{A} \matr{A}^\intercal$
-		\State Compute the $K$ eigenvectors, $\matr{v}_1, \dots, \matr{v}_K \in \R^d$, corresponding to the $K$ largest eigenvalues of $\matr{M}$
-		\State Construct the matrix $\matr{V}_K \in \R^{d \times K}$ with columns $\matr{v}_1, \dots, \matr{v}_K$
-		\State Generate $\matr{s}^2 \in \R^d$ by sampling entries independently from $\mathcal{U}(a, b)$
+		\State Compute the $K$ eigenvectors, $\matr{v}_1, \dots, \matr{v}_K \in \R^D$, corresponding to the $K$ largest eigenvalues of $\matr{M}$
+		\State Construct the matrix $\matr{V}_K \in \R^{D \times K}$ with columns $\matr{v}_1, \dots, \matr{v}_K$
+		\State Generate $\matr{s}^2 \in \R^D$ by sampling entries independently from $\mathcal{U}(a, b)$
 		\State $\matr{s} \leftarrow \sqrt{\matr{s}^2}$ (square root is applied element-wise) 
 		\State $\matr{F} \leftarrow \matr{V}_K \odot \matr{s}$ (with broadcasting)
 		\State $s_{max} \leftarrow \max({\matr{s}^2})$ (largest element of ${\matr{s}^2}$)
-		\State Generate $\psi \in \R^d$ by sampling entries independently from $\mathcal{U}(0, s_{max}) $
+		\State Generate $\psi \in \R^D$ by sampling entries independently from $\mathcal{U}(0, s_{max}) $
 		\State $\Psi \leftarrow \text{diag}(\psi)$
 		\State \Return $\matr{c}, \matr{F}, \Psi$	
 	\end{algorithmic}
 \end{algorithm}
 
-Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007}. The \emph{randomised} version of SVD was used, which for most applications is  ``sufficiently precise while providing significant speed gains" \cite{pedregosa2012}. Each algorithm was tested on samples of varying size, from 100 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ and $\Psi$ were initialised according to Equations (\ref{eqn:F_init}) and (\ref{eqn:psi_init}) with $\sigma=0.1$, and online SGA ran with a learning rate of 0.001. Additionally, both online algorithms were allowed a \emph{warm-up} period of 100 iterations during which running averages (such as the sample mean) were updated, while $\matr{F}$ and $\Psi$ remained fixed (TODO: perhaps include in an appendix the derivation that Michael sent, about how this is equivalent to specifying a prior). Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
+Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007}. The \emph{randomised} version of SVD was used, which for most applications is  ``sufficiently precise while providing significant speed gains" \cite{pedregosa2012}. Each algorithm was tested on samples of varying size, from 100 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ was initialised as described in Section \ref{sec:F_init}, and online SGA ran with a learning rate of 0.001. Additionally, both online algorithms were allowed a \emph{warm-up} period of 100 iterations during which running averages (such as the sample mean) were updated, while $\matr{F}$ and $\Psi$ remained fixed (TODO: perhaps include in an appendix the derivation that Michael sent, about how this is equivalent to specifying a prior). Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
 
 
-\subsection{Results}
+\section{Results}
 
 Figure \ref{fig:fa_covar_distance} shows the relative distance between the true covariance matrix of each FA model and the corresponding estimated covariance matrix of each learning algorithm, as a function of the number of samples used to fit the approximate models. The distance between two matrices is measured by the Frobenius norm (also sometimes called the Euclidean norm) of the difference between the two matrices. The distance is then divided by the Frobenius norm of the true covariance matrix to get the relative distance. 
 
-In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[1, 10]$. When $d=100$ (top-left), online EM approximates the true covariance matrix better than online SGA when the number of samples, $T$, is less than or equal to 20,000. For $T = 50,000$ and $T = 100,000$, the result are very close and the standard error bars overlap. Moreover, for these large sample sizes both online algorithms are on par with batch SVD. When $d=1000$ (top-right), online EM beats SGA for $T \geq 1000$. Interestingly, when the warm-up period ends after the first 100 samples, the relative covariance distance of online EM initially starts to increase. This means that the first few hundred updates to the $\matr{F}$ and $\Psi$ learned by online EM actually result in covariance matrices which are farther from the true covariance matrix than the randomly generated initial solution.  
+In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[1, 10]$. When $D=100$ (top-left), online EM approximates the true covariance matrix better than online SGA when the number of samples, $T$, is less than or equal to 20,000. For $T = 50,000$ and $T = 100,000$, the result are very close and the standard error bars overlap. Moreover, for these large sample sizes both online algorithms are on par with batch SVD. When $D=1000$ (top-right), online EM beats SGA for $T \geq 1000$. Interestingly, when the warm-up period ends after the first 100 samples, the relative covariance distance of online EM initially starts to increase. This means that the first few hundred updates to the $\matr{F}$ and $\Psi$ learned by online EM actually result in covariance matrices which are farther from the true covariance matrix than the randomly generated initial solution.  
 
-In the second row of the figure are the results corresponding to a spectrum range of $[1, 100]$. For both $d=100$ (middle-left) and $d=1000$ (middle-right), online EM outperforms online SGA for all sample sizes. When $d=1000$, online EM is either better than or on par with batch SVD for all sample sizes. This is not the case when $d=100$, although the relative covariance distances for the largest sample size of $T=100,000$ are practically identical. 
+In the second row of the figure are the results corresponding to a spectrum range of $[1, 100]$. For both $D=100$ (middle-left) and $D=1000$ (middle-right), online EM outperforms online SGA for all sample sizes. When $D=1000$, online EM is either better than or on par with batch SVD for all sample sizes. This is not the case when $D=100$, although the relative covariance distances for the largest sample size of $T=100,000$ are practically identical. 
 
-In the third row of the figure are the results corresponding to a spectrum range of $[1, 10,000]$. In this case, the results for online SGA were extremely poor, with the relative distances several orders of magnitude greater than the corresponding results achieved by online EM and batch SVD. To avoid skewing the axes, the online SGA results are omitted from these plots. For both $d=100$ (bottom-left) and $d=1000$ (bottom-right), online EM makes good progress early-on. However, the relative covariance distance soon flattens off and very little improvement is made after $T=1000$. This is in contrast to batch SVD which continues to decrease the distance, especially in the case of $d=1000$. 
+In the third row of the figure are the results corresponding to a spectrum range of $[1, 10,000]$. In this case, the results for online SGA were extremely poor, with the relative distances several orders of magnitude greater than the corresponding results achieved by online EM and batch SVD. To avoid skewing the axes, the online SGA results are omitted from these plots. For both $D=100$ (bottom-left) and $D=1000$ (bottom-right), online EM makes good progress early-on. However, the relative covariance distance soon flattens off and very little improvement is made after $T=1000$. This is in contrast to batch SVD which continues to decrease the distance, especially in the case of $D=1000$. 
 
 Figure \ref{fig:fa_wasserstein} shows the 2-Wasserstein distance (TODO: add citation) between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size. Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the Wasserstein distance is dominated by the difference between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to the shape of the plots in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. 
 
@@ -576,18 +677,18 @@ In summary, these results suggest that online EM is better at fitting FA models 
 	\begin{tabular}{cc}
 		 \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=10.png}
 		 & \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10.png} \\
-		 (a) $d=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
-		 & (b) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt]
+		 (a) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
+		 & (b) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt]
 		 \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=100.png}
 		 & \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=100.png} \\
-		 (c) $d=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$ 
-		 & (d) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$\\[6pt]
+		 (c) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$ 
+		 & (d) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$\\[6pt]
 		 \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=10000.png}
 		 & \includegraphics[width=70mm]{plots/online_fa_covar_distance__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10000.png} \\
-		 (e) $d=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$ 
-		 & (f) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$\\[6pt]
+		 (e) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$ 
+		 & (f) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$\\[6pt]
 	\end{tabular}
-	\caption{The relative distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue, orange and green lines show, for batch SVD, online EM and online SGA, respectively, the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $d$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$. The plots on the bottom row omit the results for online SGA as the distances are several orders of magnitude greater than the other results.} 
+	\caption{The relative distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue, orange and green lines show, for batch SVD, online EM and online SGA, respectively, the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$. The plots on the bottom row omit the results for online SGA as the distances are several orders of magnitude greater than the other results.} 
 	\label{fig:fa_covar_distance}
 \end{figure}
 
@@ -596,134 +697,23 @@ In summary, these results suggest that online EM is better at fitting FA models 
 	\begin{tabular}{cc}
 		\includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=10.png}
 		& \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10.png} \\
-		(a) $d=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
-		 & (b) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt] 
+		(a) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
+		 & (b) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt] 
 		 \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=100.png} 
 		 & \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=100.png} \\
-		 (c) $d=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$ 
-		 & (d) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$\\[6pt]
+		 (c) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$ 
+		 & (d) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$\\[6pt]
 		 \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=10000.png} 
 		 & \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10000.png} \\
-		 (e) $d=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$ 
-		 & (f) $d=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$\\[6pt]
+		 (e) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$ 
+		 & (f) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10000)$\\[6pt]
 	\end{tabular}
-	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model. The blue, orange and green lines show the 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $d$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$. The plots on the bottom row omit the results for online SGA as the distances are several orders of magnitude greater than the other results.}
+	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model. The blue, orange and green lines show the 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$. The plots on the bottom row omit the results for online SGA as the distances are several orders of magnitude greater than the other results.}
 	\label{fig:fa_wasserstein}
 \end{figure}
 
 
-\chapter{Bayesian Linear Regression} 
-
-\section{Background}
-
-A linear regression model is a mapping from vector inputs $\matr{x} \in \R^d$ to scalar outputs $y \in \R$ via an affine transformation. Given a set of observed input-output pairs, $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, it is assumed that each output is generated according to 
-\begin{equation}\label{eqn:linear_regression}
-	y_n = \theta^\intercal \matr{x}_n + \epsilon
-\end{equation}
-for some unknown $\theta \in \R^d$. The underlying signal, $\theta^\intercal \matr{x}_n$, is corrupted by additive noise, 
-\begin{equation}
-	\epsilon \sim \mathcal{N}(0, \sigma^2), 
-\end{equation}
-for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}).
-
-\subsection{Computing the Posterior}
-
-Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon$ is Gaussian distributed, the conditional pdf of $y_n$ is 
-\begin{equation}\label{eqn:linear_regression_pdf}
-	p(y_n | \theta, \matr{x}_n) 
-	= \mathcal{N}\big(\theta^\intercal \matr{x}_n, \sigma^2\big)
-	= \frac{1}{\sqrt{2\pi \sigma^2}} \exp\Big(-\frac{1}{2\sigma^2} \big(y_n - \theta^\intercal \matr{x}_n \big)^2\Big).
-\end{equation}
-Assuming that the observations in $\mathcal{D}$ are independent and identically distributed, the log-likelihood of $\theta$ having generated the data is 
-\begin{align}\label{eqn:linear_regression_log_likelihood}
-\begin{split}
-	\log p(\mathcal{D} | \theta) 
-	& = \sum_{n=1}^N \big[ \log p(y_n | \theta, \matr{x}_n)  + \log p(\matr{x}_n) \big] \\
-	& = \sum_{n=1}^N \Big[ -\frac{1}{2} \log 2\pi \sigma^2 - \frac{1}{2\sigma^2} \big(y_n - \theta^\intercal \matr{x}_n \big)^2 \Big]
-	+ \sum_{n=1}^N \log p(\matr{x}_n) \\
-	& = - \frac{1}{2 \sigma^2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-	- \frac{N}{2} \log \sigma^2
-	- \frac{N}{2} \log 2\pi
-	+ \sum_{n=1}^N \log p(\matr{x}_n) \\
-	& = - \frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-	+ \frac{N}{2} \log \beta
-	+ \text{constant},
-\end{split}
-\end{align}
-where $\beta = \frac{1}{\sigma^2}$ \cite{barber2007}. In Bayesian linear regression, a prior distribution for $\theta$ is also specified. A common choice  is 
-\begin{equation}\label{eqn:linear_regression_prior}
-	p(\theta) 
-	= \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)
-	= \Big(\frac{\alpha}{2\pi}\Big)^{\frac{d}{2}} \exp\Big(-\frac{\alpha}{2} \theta^\intercal \theta \Big)
-\end{equation}
-for some $\alpha > 0$, which is a hyperparameter known as the \emph{precision} \cite{barber2007}. Applying the logarithm, 
-\begin{align}\label{eqn:linear_regression_log_prior}
-\begin{split}
-	\log p(\theta) 
-	& = \frac{d}{2} \log \frac{\alpha}{2\pi} - \frac{\alpha}{2} \theta^\intercal \theta \\
-	& = -\frac{\alpha}{2} \theta^\intercal \theta + \frac{d}{2} \log \alpha + \text{constant}.
-\end{split}
-\end{align}
-Now, using Bayes' rule and Equation (\ref{eqn:linear_regression_log_likelihood}) and Equation (\ref{eqn:linear_regression_log_prior}), it follows that the log-posterior distribution of $\theta$ for fixed $\alpha$ and $\beta$ is 
-\begin{align}\label{eqn:linear_regression_log_posterior}
-\begin{split}
-	\log p(\theta | \mathcal{D}) 
-	& = \log \frac{p(\mathcal{D} | \theta) p(\theta)}{p(\mathcal{D})} \\
-	& = \log p(\mathcal{D} | \theta) + \log p(\theta) - \log p(\mathcal{D}) \\
-	& = -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-	-\frac{\alpha}{2} \theta^\intercal \theta 
-	+ \text{constant} \\
-	& = -\frac{\beta}{2} \sum_{n=1}^N\big( y_n^2 - 2 y_n \theta^\intercal \matr{x}_n + (\theta^\intercal \matr{x}_n)^2 \big)
-	-\frac{\alpha}{2} \theta^\intercal \theta
-	+ \text{constant} \\
-	& = -\frac{\beta}{2} \sum_{n=1}^N y_n^2
-	+ \beta \sum_{n=1}^N y_n \theta^\intercal \matr{x}_n
-	-\frac{\beta}{2} \sum_{n=1}^N \theta^\intercal \matr{x}_n \matr{x}_n^\intercal \theta
-	-\frac{\alpha}{2} \theta^\intercal \theta
-	+ \text{constant} \\
-	& = \Big(\beta \sum_{n=1}^N y_n \matr{x}_n \Big)^\intercal \theta 
-	-\frac{1}{2} \theta^\intercal \Big( \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal \Big) \theta 
-	+ \text{constant} \\
-	& = \matr{b}^\intercal \theta 
-	- \frac{1}{2} \theta^\intercal \matr{A} \theta 
-	+ \text{constant},
-\end{split}
-\end{align}
-where 
-\begin{equation}\label{eqn:linear_model_A_and_b}
-	\matr{A} = \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal
-	\quad \text{and} \quad 
-	\matr{b} = \beta \sum_{n=1}^N y_n \matr{x}_n.
-\end{equation}
-Now, using a result from \cite{barber2007} to complete the square of Equation (\ref{eqn:linear_regression_log_posterior}),
-\begin{align}
-\begin{split}
-	\log p(\theta | \mathcal{D}) 
-	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
-	+ \frac{1}{2} \matr{b}^\intercal \matr{A}^{-1} \matr{b}
-	+ \text{constant} \\
-	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
-	+ \text{constant} \\
-	& = -\frac{1}{2} \big(\theta - \matr{m} \big)^\intercal \matr{S}^{-1} \big(\theta - \matr{m} \big)
-	+ \text{constant},
-\end{split}
-\end{align}
-where
-\begin{equation}\label{eqn:linear_regression_posterior_params}
-	\matr{m} = \matr{A}^{-1} \matr{b}
-	\quad \text{and} \quad 
-	\matr{S} = \matr{A}^{-1}.
-\end{equation}
-Hence, the posterior distribution of $\theta$ is 
-\begin{align}\label{eqn:linear_regression_posterior}
-\begin{split}
-	p(\theta | \mathcal{D}) 
-	%& = \exp \Big(-\frac{1}{2} \big(\theta - \matr{m} \big)^\intercal \matr{S}^{-1} \big(\theta - \matr{m} \big) \Big) \cdot \text{constant} \\
-	= \mathcal{N}(\matr{m}, \matr{S}).
-\end{split}
-\end{align}
-
-\subsection{Estimating the Posterior Online}\label{sec:linear_models_online_posterior}
+\chapter{Estimating the Linear Regression Posterior}\label{ch:linear_regression_experiments}
 
 Since the posterior of the linear regression parameter vector can be computed in closed form, the ability of the online FA algorithms to learn the posterior can be evaluated in this case. For a linear regression model trained via SGD, Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} can both be used to fit a Gaussian posterior distribution to the iterates, $\theta_1, \dots, \theta_T$, encountered along the SGD trajectory. The mean and covariance of the learned distributions can then be compared directly to the ground truth. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). This can be estimated by calculating the empirical standard deviation of $\{y_n\}_{n=1}^{N}$. 
 
@@ -751,12 +741,9 @@ This objective function is analogous to the L2-regularised training loss often u
 \end{equation}
 for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the posterior distribution of $\theta$ can be estimated by fitting an online FA model to the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$.
  
+\section{Methodology}
 
-\section{Experiments}
-
-\subsection{Methodology}
-
-The aim of these experiments is to test how well the online FA algorithms from Section \ref{sec:fa} are able to approximate the true posterior distribution of the weights of a linear regression model. For this purpose, four real regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength}, Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
+The aim of these experiments is to test how well the online FA algorithms, fit to the weight vectors sampled during SGD while training a linear regression model, are able to approximate the true posterior distribution of the weights. For this purpose, four real regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength}, Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
 
 \begin{table}[h!]
 	\begin{center}
@@ -778,74 +765,108 @@ The aim of these experiments is to test how well the online FA algorithms from S
 	\end{center}
 \end{table}
 
-In each experiment, a linear regression model (with no bias term) was trained on one of these datasets via mini-batch SGD for 500 epochs, with a batch size of 32 and a constant learning rate of 0.001. The L2 regularisation strength was set to $\lambda = \frac{\alpha}{\beta}$, as justified in Section \ref{sec:linear_models_online_posterior}. Recall that $\beta$ is just the reciprocal of the variance of the target variable and $\alpha$ is a hyperparameter which controls the width of the prior on the linear regression weights. Both $\alpha$ and $\beta$ are used when computing $\matr{A}$ in Equation \ref{eqn:linear_model_A_and_b}. In order for the prior to have a noticeable effect on the posterior, $\alpha$ was set to the maximum diagonal entry of $\beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal$.
+In each experiment, a linear regression model was trained on one of these datasets via mini-batch SGD for 1000 epochs, with a batch size of 32. The L2 regularisation strength was set to $\lambda = \frac{\alpha}{\beta}$. Recall that $\beta$ is just the reciprocal of the variance of the target variable and $\alpha$ is a hyperparameter which controls the width of the prior on the linear regression weights. Both $\alpha$ and $\beta$ are used when computing $\matr{A}$ in Equation \ref{eqn:linear_model_A_and_b}. In order to balance the effect of the prior term and the data term, $\alpha$ was set to $0.01$ times the mean of the diagonal entries of $\beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal$.
 
-Before training began, two FA models were initialised according to Equations (\ref{eqn:F_init}) and (\ref{eqn:psi_init}) with $\sigma=0.1$. Their observation dimension was set to the number of weights in the linear regression model, as their purpose was to approximate the posterior distribution of the weights. After an initial warm-up period of training the linear model for 10 epochs, the two FA models began to be updated, one via online SGA and the other via online EM (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}, respectively). An update to each FA model was performed using the weight vector sampled after each mini-batch update to the linear model. As in the experiments in Section \ref{sec:online_fa_experiments}, $\matr{F}$ and $\Psi$ remained fixed during the first 100 updates to the FA models, with only the running average being updated in this period. The SGA updates were performed with a learning rate of 0.001. 
+Before training began, the factors of two FA models were initialised as described in Section \ref{sec:F_init}. Their observation dimension was set to the number of weights in the linear regression model, as their purpose was to approximate the posterior distribution of the weights. After an initial warm-up period of training the linear model for 10 epochs, the two FA models began to be updated, one via online SGA and the other via online EM (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}, respectively). An update to each FA model was performed using the weight vector sampled after each mini-batch update to the linear model. As in the experiments in Chapter \ref{ch:online_fa_experiments}, $\matr{F}$ and $\Psi$ remained fixed during the first 100 updates to the FA models, with only the running average being updated in this period. The SGA updates were performed with a learning rate of 0.001. 
 
-The mean and covariance of the true posterior of the linear regression weights, for the specific values of $\alpha$ and $\beta$, were computed prior to training according to Equation \ref{eqn:linear_regression_posterior_params}. After each set of 10 training epochs, the distance between the parameters of the true posterior and the posteriors estimated by the online FA algorithms was computed. For each dataset, this experiment was run with the latent dimension of the FA models set to each value in $\{1, 2, \dots, d-1\}$, where $d$ is the number of weights (or equivalently, the number of input variables in the dataset). Each experiment was repeated ten times. In each trial a different random seed was used for initialising the weights of the linear model and also initialising the parameters of the FA models.
+The mean and covariance of the true posterior of the linear regression weights, for the specific values of $\alpha$ and $\beta$, were computed prior to training according to Equation \ref{eqn:linear_regression_posterior_params}. After each set of 10 training epochs, the distance between the parameters of the true posterior and the posteriors estimated by the online FA algorithms was computed. For each dataset, this experiment was run with the latent dimension of the FA models set to $K=1, 2, 3$. Each experiment was repeated ten times. In each trial a different random seed was used for initialising the weights of the linear model and also initialising the parameters of the FA models.
 
-\subsection{Results}
-
-Figures \ref{fig:linear_models_boston_housing}, \ref{fig:linear_models_concrete_strength}, \ref{fig:linear_models_energy_efficiency} and \ref{fig:linear_models_yacht_hydrodynamics} show the results for the Boston Housing, Concrete Compressive Strength, Energy Efficiency and Yacht Hydrodynamics datasets, respectively. 
-
-\begin{figure}[!htbp] 
-	\centering
-	\begin{tabular}{cc}
-		\includegraphics[width=140mm]{plots/linear_models_mean_distance__boston_housing} \\
-		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__boston_housing} \\
-		\includegraphics[width=140mm]{plots/linear_models_wasserstein__boston_housing} 
-	\end{tabular}
-	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Boston Housing} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-	\label{fig:linear_models_boston_housing}
-\end{figure}
+\section{Results}
 
 
-\begin{figure}[!htbp] 
-	\centering
-	\begin{tabular}{cc}
-		\includegraphics[width=140mm]{plots/linear_models_mean_distance__concrete_strength} \\
-		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__concrete_strength} \\
-		\includegraphics[width=140mm]{plots/linear_models_wasserstein__concrete_strength} 
-	\end{tabular}
-	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Concrete Compressive Strength} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-	\label{fig:linear_models_concrete_strength}
-\end{figure}
-
-
-\begin{figure}[!htbp] 
-	\centering
-	\begin{tabular}{cc}
-		\includegraphics[width=140mm]{plots/linear_models_mean_distance__energy_efficiency} \\
-		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__energy_efficiency} \\
-		\includegraphics[width=140mm]{plots/linear_models_wasserstein__energy_efficiency} 
-	\end{tabular}
-	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Energy Efficiency} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-	\label{fig:linear_models_energy_efficiency}
-\end{figure}
-
-
-\begin{figure}[!htbp] 
-	\centering
-	\begin{tabular}{cc}
-		\includegraphics[width=140mm]{plots/linear_models_mean_distance__yacht_hydrodynamics} \\
-		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__yacht_hydrodynamics} \\
-		\includegraphics[width=140mm]{plots/linear_models_wasserstein__yacht_hydrodynamics} 
-	\end{tabular}
-	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Yacht Hydrodynamics} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-	\label{fig:linear_models_yacht_hydrodynamics}
-\end{figure}
-
-
+%Figures \ref{fig:linear_models_empirical_boston_housing}, \ref{fig:linear_models_empirical_concrete_strength}, \ref{fig:linear_models_empirical_energy_efficiency} and \ref{fig:linear_models_empirical_yacht_hydrodynamics} show the results for the Boston Housing, Concrete Compressive Strength, Energy Efficiency and Yacht Hydrodynamics datasets, respectively. 
+%
 %\begin{figure}[!htbp] 
 %	\centering
 %	\begin{tabular}{cc}
-%		\includegraphics[width=100mm]{plots/linear_models_covariance_distance__boston_housing} \\
-%		\includegraphics[width=100mm]{plots/linear_models_covariance_distance__concrete_strength} \\
-%		\includegraphics[width=100mm]{plots/linear_models_covariance_distance__energy_efficiency} \\
-%		\includegraphics[width=100mm]{plots/linear_models_covariance_distance__yacht_hydrodynamics} \\
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__boston_housing} \\
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__boston_housing} 
 %	\end{tabular}
-%	\caption{For four difference UCI regression datasets, this figure show how well the online FA algorithms are able to learn the covariance matrix of the posterior distribution of the weights of a linear regression model trained on the dataset. Results for online SGA and online EM are show in the left and right axes, respectively. Each plot shows the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_covariance_distance}
+%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Boston Housing} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_empirical_boston_housing}
+%\end{figure}
+%
+%
+%\begin{figure}[!htbp] 
+%	\centering
+%	\begin{tabular}{cc}
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__concrete_strength} \\
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__concrete_strength} 
+%	\end{tabular}
+%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Concrete Compressive Strength} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_empirical_concrete_strength}
+%\end{figure}
+%
+%
+%\begin{figure}[!htbp] 
+%	\centering
+%	\begin{tabular}{cc}
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__energy_efficiency} \\
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__energy_efficiency} 
+%	\end{tabular}
+%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Energy Efficiency} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_empirical_energy_efficiency}
+%\end{figure}
+%
+%
+%\begin{figure}[!htbp] 
+%	\centering
+%	\begin{tabular}{cc}
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__yacht_hydrodynamics} \\
+%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__yacht_hydrodynamics} 
+%	\end{tabular}
+%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Yacht Hydrodynamics} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_empirical_yacht_hydrodynamics}
+%\end{figure}
+
+
+%Figures \ref{fig:linear_models_boston_housing}, \ref{fig:linear_models_concrete_strength}, \ref{fig:linear_models_energy_efficiency} and \ref{fig:linear_models_yacht_hydrodynamics} show the results for the Boston Housing, Concrete Compressive Strength, Energy Efficiency and Yacht Hydrodynamics datasets, respectively. 
+%
+%\begin{figure}[!htbp] 
+%	\centering
+%	\begin{tabular}{cc}
+%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__boston_housing} \\
+%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__boston_housing} \\
+%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__boston_housing} 
+%	\end{tabular}
+%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Boston Housing} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_boston_housing}
+%\end{figure}
+%
+%
+%\begin{figure}[!htbp] 
+%	\centering
+%	\begin{tabular}{cc}
+%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__concrete_strength} \\
+%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__concrete_strength} \\
+%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__concrete_strength} 
+%	\end{tabular}
+%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Concrete Compressive Strength} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_concrete_strength}
+%\end{figure}
+%
+%
+%\begin{figure}[!htbp] 
+%	\centering
+%	\begin{tabular}{cc}
+%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__energy_efficiency} \\
+%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__energy_efficiency} \\
+%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__energy_efficiency} 
+%	\end{tabular}
+%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Energy Efficiency} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_energy_efficiency}
+%\end{figure}
+%
+%
+%\begin{figure}[!htbp] 
+%	\centering
+%	\begin{tabular}{cc}
+%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__yacht_hydrodynamics} \\
+%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__yacht_hydrodynamics} \\
+%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__yacht_hydrodynamics} 
+%	\end{tabular}
+%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Yacht Hydrodynamics} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
+%	\label{fig:linear_models_yacht_hydrodynamics}
 %\end{figure}
 
 
