@@ -261,11 +261,90 @@ Hence, the posterior distribution of $\theta$ is
 
 \section{Gaussian Processes}\label{sec:gaussian_processes}
 
-Gaussian processes (GPs) are a flexible class of non-parametric models. 
+%Linear regression is limited to modelling linear relationships between the inputs and output. 
+%
+%Gaussian processes (GPs) \cite{rasmussen2006} are a flexible class of non-parametric models. 
 
-Any function $f:\R^D \mapsto \R$ 
+As in Section \ref{sec:bayesian_lr}, let $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$ be a set of training examples, where each $\matr{x}_n \in \R^D$ and $y_n \in \R$. Considering only the training set for now, a function $f$ can be specified by its values $\{f_n =  f(\matr{x}_n)\}_{n=1}^{N}$. Letting $\matr{f} = (f_1, \dots, f_N)^\intercal$, the function $f$ can be seen to generate a sample from a multivariate distribution. If this distribution is constrained to be Gaussian, then it is completely specified by the pdf
+\begin{equation}
+	p(\matr{f}) = \mathcal{N}(\mu, \Sigma)
+\end{equation}
+with parameters $\mu \in \R^D$ and $\Sigma \in \R^{D \times D}$. This is an example of a Gaussian process (GP), which is defined as a collection of random variables such that any finite number of the variables are jointly Gaussian \cite{rasmussen2006}. The finite subset in this case is $\{\matr{x}_n\}_{n=1}^{N}$, but any other set of inputs $\matr{x} \in \R^d$ would similarly give rise to a multivariate Gaussian distribution. 
 
-Given a training set $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, a function 
+The distribution $p(\matr{f})$ can be used as a prior on the function values of the training inputs before observing the outputs $y_n$. In the absence of domain knowledge about which function values are possible, a sensible choice for the prior mean is $\mu = \matr{0} \in \R^D$. By definition, the covariance matrix $\Sigma$ must be positive semi-definite. If $\Sigma$ was diagonal, function values $f_i$ and $f_j$, $i, j \in \{1, \dots, N\}$, would be independent, irrespective of how close $\matr{x}_i$ is to $\matr{x}_j$. This would lead to extremely noisy functions. To encourage smoothness, it is preferable to define a covariance matrix which assigns greater dependance between function values of nearby inputs. One way to generate covariance matrices with this property is by using the \emph{squared exponential kernel} function \cite{rasmussen2006}. Formally,
+ \begin{equation}
+	\Sigma_{i, j} = k(\matr{x}_i, \matr{x}_j) = \exp \Big( -\frac{1}{2} |\matr{x}_i - \matr{x}_j|^2 \Big).
+\end{equation}
+Different \emph{kernel} functions $k(\cdot, \cdot)$ give rise to different covariance matrices, and hence, different priors on the function values. 
+
+To simplify the notation in what follows, let $\matr{X} \in \R^{N\times D}$ be formed by stacking $\matr{x}_1^\intercal,\dots,\matr{x}_N^\intercal$ in the rows of a matrix. Then the zero mean prior can be written as 
+\begin{equation}
+	p(\matr{f}) = \mathcal{N}(\matr{0}, K(\matr{X}, \matr{X})),
+\end{equation}
+where $K(\matr{A}, \matr{B})$, for $\matr{A} \in \R^{N\times D}$ and $\matr{B} \in \R^{M\times D}$, is shorthand from \cite{rasmussen2006} for the $N \times M$ matrix with elements
+\begin{equation}
+	K(\matr{A}, \matr{B})_{i, j} = k(\matr{a}_i, \matr{b}_j),
+\end{equation} 
+where $\matr{a}_i$ and $\matr{b}_j$ are the $i$-th and $j$-th rows of $\matr{A}$ and $\matr{B}$, respectively.
+
+
+\subsection{Making Predictions with Gaussian Processes}
+
+Suppose that the $y_n$ are noisy observations of the true function values at the training points. That is, $y_n = f_n + \epsilon$, where $\epsilon$ is zero mean Gaussian noise with variance $\sigma_y^2$. Letting $\matr{y} = (y_1, \dots, y_N)^\intercal$, the prior on $\matr{y}$ is 
+\begin{equation}
+	p(\matr{y}) = \mathcal{N}(\matr{0}, K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}).
+\end{equation}
+Now suppose that $\matr{x}_{*} \in \R^D$ is a test point outside the training set. The prior on $f_{*} = f(\matr{x}_{*})$, the function value at the test point, is $p(f_{*} ) = \mathcal{N}(0, k(\matr{x}_{*}, \matr{x}_{*}))$. Hence, the joint distribution of the observed training outputs $\matr{y}$ and the test prediction $f_{*}$ is
+\begin{equation}
+	\begin{bmatrix}
+		\matr{y} \\
+		f_{*}
+	\end{bmatrix}
+	\sim \mathcal{N}\Bigg(
+		\matr{0}, 
+		\begin{bmatrix}
+			K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I} & K(\matr{X}, \matr{x}_{*}) \\
+			K(\matr{x}_{*}, \matr{X}) & k(\matr{x}_{*}, \matr{x}_{*})
+		\end{bmatrix}
+	\Bigg).
+\end{equation}
+Using a standard property of joint Gaussian distributions from \cite{barber2007}, the conditional distribution of $f_{*}$ given $\matr{y}$ is $p(f_{*} | \matr{y}) = \mathcal{N}(m, s^2)$, where
+\begin{equation}
+	m = K(\matr{x}_{*}, \matr{X}) \big[K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big]^{-1} \matr{y}
+\end{equation}
+and
+\begin{equation}
+	s^2 = k(\matr{x}_{*}, \matr{x}_{*}) 
+	- K(\matr{x}_{*}, \matr{X}) \big[K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big]^{-1} K(\matr{X}, \matr{x}_{*}).
+\end{equation}
+Writing
+\begin{equation}
+	\matr{A} = \big[K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big]^{-1}
+	\quad \text{and} \quad 
+	\matr{k}_{*} = K(\matr{X}, \matr{x}_{*}),
+\end{equation}
+the conditional distribution can be simplified to 
+\begin{equation}
+	p(f_{*} | \matr{y}) = \mathcal{N}\big(
+		\matr{k}_{*}^\intercal \matr{A} \matr{y},  
+		k(\matr{x}_{*}, \matr{x}_{*}) - \matr{k}_{*}^\intercal \matr{A} \matr{k}_{*}
+	\big).
+\end{equation} 
+
+
+\subsection{The Neural Network Kernel Function}
+
+Let $f(\matr{x}): \R^D \mapsto \R$ be a neural network with a single hidden layer. Neural network will be explained in more detail in Section \ref{sec:dnns}, but for now it's enough to know that the functional form of this model is
+\begin{equation}
+	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g\Big(w_0 + \sum_{d=1}^D w_d x_d\Big),
+\end{equation} 
+where $H$ is the number of units in the hidden layer, the $w_d$, $v_h$ and $b$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}.
+
+Let $\theta \in \R^{(D + 1)h + h + 1}$ denote all the learnable parameters of the neural network. For two points $\matr{x}, \matr{x}' \in \R^D$, the covariance function of the neural network is defined as 
+\begin{equation}
+	\E_\theta[]
+\end{equation} 
+
 
 
 \section{Deep Neural Networks}\label{sec:dnns}
