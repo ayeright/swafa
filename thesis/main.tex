@@ -334,17 +334,29 @@ the conditional distribution can be simplified to
 
 \subsection{The Neural Network Kernel Function}
 
-Let $f(\matr{x}): \R^D \mapsto \R$ be a neural network with a single hidden layer. Neural network will be explained in more detail in Section \ref{sec:dnns}, but for now it's enough to know that the functional form of this model is
+Let $f(\matr{x}): \R^D \mapsto \R$ be a neural network with a single hidden layer. Neural network will be explained in more detail in Section \ref{sec:dnns}, but for now it's enough to know that the functional form of the single layer model is
 \begin{equation}
-	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g\Big(w_0 + \sum_{d=1}^D w_d x_d\Big),
+	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x}),
 \end{equation} 
-where $H$ is the number of units in the hidden layer, the $w_d$, $v_h$ and $b$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}.
+where $H$ is the number of units in the hidden layer, the $\matr{w}_h$, $v_h$ and $b$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Also, assume that $\matr{x}$ has been augmented with a constant of one such that the hidden layer bias terms are absorbed into the $\matr{w}_h$.
 
-Let $\theta \in \R^{(D + 1)h + h + 1}$ denote all the learnable parameters of the neural network. For two points $\matr{x}, \matr{x}' \in \R^D$, the covariance function of the neural network is defined as 
+Let $\theta \in \R^{(D + 1)h + h + 1}$ denote all the learnable parameters of the neural network. For two points $\matr{x}, \matr{x}' \in \R^D$, the covariance of their predictions is 
+\begin{equation}\label{eqn:nn_cov}
+	\E_{p(\theta)}\Big[\big(f(\matr{x}) - \E_{p(\theta)}[f(\matr{x})]\big) \big(f(\matr{x}') - \E_{p(\theta)}[f(\matr{x}')]\big)\Big].
+\end{equation} 
+Assuming that $b \sim \mathcal{N}(0, \sigma_b^2)$ and $v_h \sim \mathcal{N}(0, \sigma_v^2)$ are independent and that the $\matr{w}_h \sim p(\matr{w}) = \mathcal{N}(\matr{0}, \Sigma)$ are independent and identically distributed for each hidden unit, Equation (\ref{eqn:nn_cov}) can be written as 
+\begin{equation}\label{eqn:simplified_nn_cov}
+	\sigma_b^2 + H \sigma_v^2 \E_{p(\matr{w})} \big[ g(\matr{w}^\intercal \matr{x}) g(\matr{w}^\intercal \matr{x}') \big].
+\end{equation} 
+Moreover, as $H \rightarrow \infty$, the neural network will converge to a GP with kernel function given by Equation (\ref{eqn:simplified_nn_cov}) \cite{williams1997}. Of course, for this to be a valid GP the activation function $g$ must give rise to a positive definite kernel. One suitable activation is the \emph{error function}, 
 \begin{equation}
-	\E_\theta[]
-\end{equation} 
-
+	\text{erf}(z) = \frac{2}{\sqrt{\pi}} \int_0^z e^{-t^2} dt.
+\end{equation}
+Setting $g(\matr{w}^\intercal \matr{x}) = \text{erf}(\matr{w}^\intercal \matr{x})$ in Equation (\ref{eqn:simplified_nn_cov}), it is shown in \cite{williams1997} that the kernel function of a neural network with a single, infinitely wide hidden layer is 
+\begin{equation}
+	k_{\text{NN}}(\matr{x}, \matr{x}') = \frac{2}{\pi} \sin^{-1} 
+	\Bigg( \frac{2\matr{x}^\intercal \Sigma \matr{x}'}{\sqrt{(1 + 2\matr{x}^\intercal \Sigma \matr{x}) (1 + 2\matr{x}'^\intercal \Sigma \matr{x}')}} \Bigg).
+\end{equation}
 
 
 \section{Deep Neural Networks}\label{sec:dnns}
