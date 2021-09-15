@@ -269,7 +269,7 @@ As in Section \ref{sec:bayesian_lr}, let $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n
 \begin{equation}
 	p(\matr{f}) = \mathcal{N}(\mu, \Sigma)
 \end{equation}
-with parameters $\mu \in \R^D$ and $\Sigma \in \R^{D \times D}$. This is an example of a Gaussian process (GP), which is defined as a collection of random variables such that any finite number of the variables are jointly Gaussian \cite{rasmussen2006}. The finite subset in this case is $\{\matr{x}_n\}_{n=1}^{N}$, but any other set of inputs $\matr{x} \in \R^D$ would similarly give rise to a multivariate Gaussian distribution. 
+with parameters $\mu \in \R^D$ and $\Sigma \in \R^{D \times D}$. This is an example of a Gaussian process (GP), which is defined as a collection of random variables such that any finite number of the variables are jointly Gaussian \cite{rasmussen2006}. In this case, the finite subset contains the function values of $\{\matr{x}_n\}_{n=1}^{N}$, but any other set of inputs $\matr{x} \in \R^D$ would similarly give rise to a multivariate Gaussian distribution. 
 
 The distribution $p(\matr{f})$ can be used as a prior on the function values of the training inputs before observing the outputs $y_n$. In the absence of domain knowledge about which function values are possible, a sensible choice for the prior mean is $\mu = \matr{0} \in \R^D$. By definition, the covariance matrix $\Sigma$ must be positive semi-definite. If $\Sigma$ was diagonal, function values $f_i$ and $f_j$, $i, j \in \{1, \dots, N\}$, would be independent, irrespective of how close $\matr{x}_i$ is to $\matr{x}_j$. This would lead to extremely noisy functions. To encourage smoothness, it is preferable to define a covariance matrix which assigns greater dependance between function values of nearby inputs. One way to generate covariance matrices with this property is by using the \emph{squared exponential kernel} function \cite{rasmussen2006}. Formally,
  \begin{equation}
@@ -290,7 +290,7 @@ where $\matr{a}_i$ and $\matr{b}_j$ are the $i$-th and $j$-th rows of $\matr{A}$
 
 \subsection{Making Predictions with Gaussian Processes}
 
-Suppose that the $y_n$ are noisy observations of the true function values at the training points. That is, $y_n = f_n + \epsilon$, where $\epsilon$ is iid zero mean Gaussian noise with variance $\sigma_y^2$. Letting $\matr{y} = (y_1, \dots, y_N)^\intercal$, the prior on $\matr{y}$ is 
+Suppose that the $y_n$ are noisy observations of the true function values at the training points. That is, $y_n = f_n + \epsilon_n$, where $\epsilon_n$ is zero mean Gaussian noise with variance $\sigma_y^2$. Letting $\matr{y} = (y_1, \dots, y_N)^\intercal$, the prior on $\matr{y}$ is 
 \begin{equation}
 	p(\matr{y}) = \mathcal{N}(\matr{0}, K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}).
 \end{equation}
@@ -310,16 +310,16 @@ Now suppose that $\matr{x}_{*} \in \R^D$ is a test point outside the training se
 \end{equation}
 Using a standard property of joint Gaussian distributions from \cite{barber2007}, the conditional distribution of $f_{*}$ given $\matr{y}$ is $p(f_{*} | \matr{y}) = \mathcal{N}(m, s^2)$, where
 \begin{equation}
-	m = K(\matr{x}_{*}, \matr{X}) \big[K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big]^{-1} \matr{y}
+	m = K(\matr{x}_{*}, \matr{X}) \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1} \matr{y}
 \end{equation}
 and
 \begin{equation}
 	s^2 = k(\matr{x}_{*}, \matr{x}_{*}) 
-	- K(\matr{x}_{*}, \matr{X}) \big[K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big]^{-1} K(\matr{X}, \matr{x}_{*}).
+	- K(\matr{x}_{*}, \matr{X}) \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1} K(\matr{X}, \matr{x}_{*}).
 \end{equation}
 Writing
 \begin{equation}
-	\matr{A} = \big[K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big]^{-1}
+	\matr{A} = \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1}
 	\quad \text{and} \quad 
 	\matr{k}_{*} = K(\matr{X}, \matr{x}_{*}),
 \end{equation}
@@ -334,11 +334,11 @@ the conditional distribution can be simplified to
 
 \subsection{Neural Network Kernel Function}
 
-Let $f(\matr{x}): \R^D \mapsto \R$ be a neural network with a single hidden layer. Neural network will be explained in more detail in Section \ref{sec:dnns}, but for now it is enough to know that the functional form of the single layer model is
+Let $f(\matr{x}): \R^D \mapsto \R$ be a neural network with a single hidden layer. Neural networks will be explained in more detail in Section \ref{sec:dnns}, but for now it is enough to know that the functional form of the single layer model is
 \begin{equation}
 	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x}),
 \end{equation} 
-where $H$ is the number of \emph{units} in the hidden layer, the $\matr{w}_h \in \R^D$ and $v_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Here $\matr{x}$ has been augmented with a constant of one such that the bias term of each hidden unit is absorbed into the corresponding $\matr{w}_h$.
+where $H$ is the number of \emph{units} in the hidden layer, the $\matr{w}_h \in \R^D$ and $v_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. To simplify notation, $\matr{x}$ has been augmented with a constant of one such that the bias term of each hidden unit is absorbed into the corresponding $\matr{w}_h$.
 
 Let $\theta \in \R^{Dh + h + 1}$ denote all the learnable parameters of the neural network. For any two points $\matr{x}, \matr{x}' \in \R^D$, the covariance of their predictions is 
 \begin{equation}\label{eqn:nn_cov}
@@ -352,7 +352,7 @@ where $\matr{w}$ replaces $\matr{w}_h$ due to the iid assumption \cite{williams1
 \begin{equation}
 	\text{erf}(z) = \frac{2}{\sqrt{\pi}} \int_0^z e^{-t^2} dt.
 \end{equation}
-Setting $g = \text{erf}$ and evaluating $\E_{p(\matr{w})} \big[ \text{erf}(\matr{w}^\intercal \matr{x}) \text{erf}(\matr{w}^\intercal \matr{x}') \big]$, it is shown in \cite{williams1997} that the kernel function of this neural network is
+Setting $g = \text{erf}$ and evaluating $\E_{p(\matr{w})} \big[ \text{erf}(\matr{w}^\intercal \matr{x}) \text{erf}(\matr{w}^\intercal \matr{x}') \big]$, it is shown in \cite{williams1997} that the kernel function of the resultant neural network is
 \begin{equation}\label{eqn:nn_kernel}
 	k_{\text{NN}}(\matr{x}, \matr{x}') = \frac{2}{\pi} \sin^{-1} 
 	\Bigg( \frac{2\matr{x}^\intercal \Sigma_{\matr{w}} \matr{x}'}{\sqrt{(1 + 2\matr{x}^\intercal \Sigma_{\matr{w}} \matr{x}) (1 + 2\matr{x}'^\intercal \Sigma_{\matr{w}} \matr{x}')}} \Bigg).
@@ -964,9 +964,9 @@ The mean and covariance of the true posterior of the linear regression weights, 
 
 \chapter{Gaussian Processes Experiments}
 
-In was show in Section \ref{sec:gps} that, under certain conditions on the parameters, a neural network with a single, infinitely wide, hidden layer is equivalent to a GP with kernel function $k_{\text{NN}}$ given in Equation (\ref{eqn:nn_kernel}). The kernel depends on $\Sigma_{\matr{w}} \in \R^{D \times D}$, which is the covariance of the prior on the weights of each hidden unit. The individual weights of a neural network are usually independent on initialisation, so $\Sigma_{\matr{w}}$ can be set to a diagonal matrix $\sigma_w \matr{I}$. With this, $k_{\text{NN}}(\matr{x}, \matr{x}')$ can be evaluated for any two points $\matr{x}, \matr{x}' \in \R^D$. Hence, given training inputs $\matr{X} \in \R^{N\times D}$, training outputs $\matr{y} \in \R^N$ and a test point $\matr{x}_{*} \in \R^D$, the posterior predictive distribution $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be computed according to Equation (\ref{eqn:gp_prediction}). 
+In was show in Section \ref{sec:gps} that, under certain conditions on the parameters, a neural network with a single, infinitely wide, hidden layer is equivalent to a GP with kernel function $k_{\text{NN}}$ given in Equation (\ref{eqn:nn_kernel}). The kernel depends on $\Sigma_{\matr{w}} \in \R^{D \times D}$, which is the covariance of the prior on the weights of each hidden unit. The individual weights of a neural network are usually independent on initialisation, so $\Sigma_{\matr{w}}$ can be set to a diagonal matrix $\sigma_w \matr{I}$. With this, $k_{\text{NN}}(\matr{x}, \matr{x}')$ can be evaluated for any two points $\matr{x}, \matr{x}' \in \R^D$. Hence, given training inputs $\matr{X} \in \R^{N\times D}$, training outputs $\matr{y} \in \R^N$ and a test point $\matr{x}_{*} \in \R^D$, the Gaussian posterior predictive distribution $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be computed according to Equation (\ref{eqn:gp_prediction}). 
 
-Alternatively, the Gaussian distribution $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated via an approximate Bayesian model average (BMA). Given a posterior over the parameters of a neural network, $p(\theta |  \matr{X}, \matr{y})$, a parameter vector $\tilde{\theta} \sim p(\theta |  \matr{X}, \matr{y})$ can be used to construct a specific instance of the neural network and make a prediction for $\matr{x}_{*}$. If this procedure is repeated multiple times, the mean and variance of $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated and compared directly to the ground truth. To obtain the parameter posterior, the online FA algorithms can be used to fit a Gaussian posterior to the iterates of the parameter vector, $\theta_1, \dots, \theta_T$, encountered while training the single layer neural network via SGD. Of course, in practice it is impossible to train a neural network with an infinitely wide hidden layer, but for these experiments it will suffice to consider neural networks with a few hundred hidden units. 
+Alternatively, $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated via an approximate Bayesian model average (BMA). Given a posterior over the parameters of a neural network, $p(\theta |  \matr{X}, \matr{y})$, a parameter vector $\tilde{\theta} \sim p(\theta |  \matr{X}, \matr{y})$ can be used to construct a specific instance of the neural network and make a prediction for $\matr{x}_{*}$. If this procedure is repeated multiple times, the mean and variance of $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated and compared directly to the ground truth. To obtain the parameter posterior, the online FA algorithms can be used to fit a Gaussian posterior to the iterates of the parameter vector, $\theta_1, \dots, \theta_T$, encountered while training the single layer neural network via SGD. Of course, in practice it is impossible to train a neural network with an infinitely wide hidden layer, but for these experiments it will suffice to consider neural networks with a few hundred hidden units. 
 
 
 \section{Methodology}
