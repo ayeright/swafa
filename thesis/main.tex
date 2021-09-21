@@ -259,108 +259,105 @@ Hence, the posterior distribution of $\theta$ is
 \end{align}
 
 
-\section{Gaussian Processes}\label{sec:gps}
-
-%Linear regression is limited to modelling linear relationships between the inputs and output. 
+%\section{Gaussian Processes}\label{sec:gps}
 %
-%Gaussian processes (GPs) \cite{rasmussen2006} are a flexible class of non-parametric models. 
-
-As in Section \ref{sec:bayesian_lr}, let $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$ be a set of training examples, where each $\matr{x}_n \in \R^D$ and $y_n \in \R$. Considering only the training set for now, a function $f$ can be specified by its values $\{f_n =  f(\matr{x}_n)\}_{n=1}^{N}$. Letting $\matr{f} = (f_1, \dots, f_N)^\intercal$, the function $f$ can be seen to generate a sample from a multivariate distribution. If this distribution is constrained to be Gaussian, then it is completely specified by the pdf
-\begin{equation}
-	p(\matr{f}) = \mathcal{N}(\mu, \Sigma)
-\end{equation}
-with parameters $\mu \in \R^D$ and $\Sigma \in \R^{D \times D}$. This is an example of a Gaussian process (GP), which is defined as a collection of random variables such that any finite number of the variables are jointly Gaussian \cite{rasmussen2006}. In this case, the finite subset contains the function values of $\{\matr{x}_n\}_{n=1}^{N}$, but any other set of inputs $\matr{x} \in \R^D$ would similarly give rise to a multivariate Gaussian distribution. 
-
-The distribution $p(\matr{f})$ can be used as a prior on the function values of the training inputs before observing the outputs $y_n$. In the absence of domain knowledge about which function values are possible, a sensible choice for the prior mean is $\mu = \matr{0} \in \R^D$. By definition, the covariance matrix $\Sigma$ must be positive semi-definite. If $\Sigma$ was diagonal, function values $f_i$ and $f_j$, $i, j \in \{1, \dots, N\}$, would be independent, irrespective of how close $\matr{x}_i$ is to $\matr{x}_j$. This would lead to extremely noisy functions. To encourage smoothness, it is preferable to define a covariance matrix which assigns greater dependance between function values of nearby inputs. One way to generate covariance matrices with this property is by using the \emph{squared exponential kernel} function \cite{rasmussen2006}. Formally,
- \begin{equation}
-	\Sigma_{i, j} = k(\matr{x}_i, \matr{x}_j) = \exp \Big( -\frac{1}{2} |\matr{x}_i - \matr{x}_j|^2 \Big).
-\end{equation}
-Different \emph{kernel} functions $k(\cdot, \cdot)$ give rise to different covariance matrices, and hence, different priors on the function values. 
-
-To simplify the notation in what follows, let $\matr{X} \in \R^{N\times D}$ be formed by stacking $\matr{x}_1^\intercal,\dots,\matr{x}_N^\intercal$ in the rows of a matrix. Then the zero mean prior can be written as 
-\begin{equation}
-	p(\matr{f}) = \mathcal{N}(\matr{0}, K(\matr{X}, \matr{X})),
-\end{equation}
-where $K(\matr{A}, \matr{B})$, for $\matr{A} \in \R^{N\times D}$ and $\matr{B} \in \R^{M\times D}$, is shorthand from \cite{rasmussen2006} for the $N \times M$ matrix with elements
-\begin{equation}
-	K(\matr{A}, \matr{B})_{i, j} = k(\matr{a}_i, \matr{b}_j),
-\end{equation} 
-where $\matr{a}_i$ and $\matr{b}_j$ are the $i$-th and $j$-th rows of $\matr{A}$ and $\matr{B}$, respectively.
-
-
-\subsection{Making Predictions with Gaussian Processes}
-
-Suppose that the $y_n$ are noisy observations of the true function values at the training points. That is, $y_n = f_n + \epsilon_n$, where $\epsilon_n$ is zero mean Gaussian noise with variance $\sigma_y^2$. Letting $\matr{y} = (y_1, \dots, y_N)^\intercal$, the prior on $\matr{y}$ is 
-\begin{equation}
-	p(\matr{y}) = \mathcal{N}(\matr{0}, K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}).
-\end{equation}
-Now suppose that $\matr{x}_{*} \in \R^D$ is a test point outside the training set. The prior on $f_{*} = f(\matr{x}_{*})$, the function value at the test point, is $p(f_{*} ) = \mathcal{N}(0, k(\matr{x}_{*}, \matr{x}_{*}))$. Hence, the joint distribution of the observed training outputs $\matr{y}$ and the test prediction $f_{*}$ is
-\begin{equation}
-	\begin{bmatrix}
-		\matr{y} \\
-		f_{*}
-	\end{bmatrix}
-	\sim \mathcal{N}\Bigg(
-		\matr{0}, 
-		\begin{bmatrix}
-			K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I} & K(\matr{X}, \matr{x}_{*}) \\
-			K(\matr{x}_{*}, \matr{X}) & k(\matr{x}_{*}, \matr{x}_{*})
-		\end{bmatrix}
-	\Bigg).
-\end{equation}
-Using a standard property of joint Gaussian distributions from \cite{barber2007}, the conditional distribution of $f_{*}$ given $\matr{y}$ is $p(f_{*} | \matr{y}) = \mathcal{N}(m, s^2)$, where
-\begin{equation}
-	m = K(\matr{x}_{*}, \matr{X}) \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1} \matr{y}
-\end{equation}
-and
-\begin{equation}
-	s^2 = k(\matr{x}_{*}, \matr{x}_{*}) 
-	- K(\matr{x}_{*}, \matr{X}) \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1} K(\matr{X}, \matr{x}_{*}).
-\end{equation}
-Writing
-\begin{equation}
-	\matr{A} = \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1}
-	\quad \text{and} \quad 
-	\matr{k}_{*} = K(\matr{X}, \matr{x}_{*}),
-\end{equation}
-the conditional distribution can be simplified to 
-\begin{equation}\label{eqn:gp_prediction}
-	p(f_{*} | \matr{y}) = \mathcal{N}\big(
-		\matr{k}_{*}^\intercal \matr{A} \matr{y},  
-		k(\matr{x}_{*}, \matr{x}_{*}) - \matr{k}_{*}^\intercal \matr{A} \matr{k}_{*}
-	\big).
-\end{equation} 
-
-
-\subsection{Neural Network Kernel Function}
-
-Let $f(\matr{x}): \R^D \mapsto \R$ be a neural network with a single hidden layer. Neural networks will be explained in more detail in Section \ref{sec:dnns}, but for now it is enough to know that the functional form of the single layer model is
-\begin{equation}
-	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x}),
-\end{equation} 
-where $H$ is the number of \emph{units} in the hidden layer, the $\matr{w}_h \in \R^D$ and $v_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. To simplify notation, $\matr{x}$ has been augmented with a constant of one such that the bias term of each hidden unit is absorbed into the corresponding $\matr{w}_h$.
-
-Let $\theta \in \R^{Dh + h + 1}$ denote all the learnable parameters of the neural network. For any two points $\matr{x}, \matr{x}' \in \R^D$, the covariance of their predictions is 
-\begin{equation}\label{eqn:nn_cov}
-	\E_{p(\theta)}\Big[\big(f(\matr{x}) - \E_{p(\theta)}[f(\matr{x})]\big) \big(f(\matr{x}') - \E_{p(\theta)}[f(\matr{x}')]\big)\Big].
-\end{equation} 
-Assuming that $b \sim \mathcal{N}(0, \sigma_b^2)$ and $v_h \sim \mathcal{N}(0, \sigma_v^2)$ are independent and that the $\matr{w}_h \sim p(\matr{w}) = \mathcal{N}(\matr{0}, \Sigma_{\matr{w}})$ are iid for each hidden unit, Equation (\ref{eqn:nn_cov}) can be written as 
-\begin{equation}\label{eqn:simplified_nn_cov}
-	\sigma_b^2 + H \sigma_v^2 \E_{p(\matr{w})} \big[ g(\matr{w}^\intercal \matr{x}) g(\matr{w}^\intercal \matr{x}') \big],
-\end{equation} 
-where $\matr{w}$ replaces $\matr{w}_h$ due to the iid assumption \cite{williams1997}. Moreover, as $H \rightarrow \infty$, the neural network will converge to a GP \cite{williams1997}. Of course, for this to be a valid GP the activation function $g$ must give rise to a positive definite kernel. One suitable activation is the \emph{error function}, 
-\begin{equation}
-	\text{erf}(z) = \frac{2}{\sqrt{\pi}} \int_0^z e^{-t^2} dt.
-\end{equation}
-Setting $g = \text{erf}$ and evaluating $\E_{p(\matr{w})} \big[ \text{erf}(\matr{w}^\intercal \matr{x}) \text{erf}(\matr{w}^\intercal \matr{x}') \big]$, it is shown in \cite{williams1997} that the kernel function of the resultant neural network is
-\begin{equation}\label{eqn:nn_kernel}
-	k_{\text{NN}}(\matr{x}, \matr{x}') = \frac{2}{\pi} \sin^{-1} 
-	\Bigg( \frac{2\matr{x}^\intercal \Sigma_{\matr{w}} \matr{x}'}{\sqrt{(1 + 2\matr{x}^\intercal \Sigma_{\matr{w}} \matr{x}) (1 + 2\matr{x}'^\intercal \Sigma_{\matr{w}} \matr{x}')}} \Bigg).
-\end{equation}
-
-
-
-\section{Deep Neural Networks}\label{sec:dnns}
+%
+%As in Section \ref{sec:bayesian_lr}, let $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$ be a set of training examples, where each $\matr{x}_n \in \R^D$ and $y_n \in \R$. Considering only the training set for now, a function $f$ can be specified by its values $\{f_n =  f(\matr{x}_n)\}_{n=1}^{N}$. Letting $\matr{f} = (f_1, \dots, f_N)^\intercal$, the function $f$ can be seen to generate a sample from a multivariate distribution. If this distribution is constrained to be Gaussian, then it is completely specified by the pdf
+%\begin{equation}
+%	p(\matr{f}) = \mathcal{N}(\mu, \Sigma)
+%\end{equation}
+%with parameters $\mu \in \R^D$ and $\Sigma \in \R^{D \times D}$. This is an example of a Gaussian process (GP), which is defined as a collection of random variables such that any finite number of the variables are jointly Gaussian \cite{rasmussen2006}. In this case, the finite subset contains the function values of $\{\matr{x}_n\}_{n=1}^{N}$, but any other set of inputs $\matr{x} \in \R^D$ would similarly give rise to a multivariate Gaussian distribution. 
+%
+%The distribution $p(\matr{f})$ can be used as a prior on the function values of the training inputs before observing the outputs $y_n$. In the absence of domain knowledge about which function values are possible, a sensible choice for the prior mean is $\mu = \matr{0} \in \R^D$. By definition, the covariance matrix $\Sigma$ must be positive semi-definite. If $\Sigma$ was diagonal, function values $f_i$ and $f_j$, $i, j \in \{1, \dots, N\}$, would be independent, irrespective of how close $\matr{x}_i$ is to $\matr{x}_j$. This would lead to extremely noisy functions. To encourage smoothness, it is preferable to define a covariance matrix which assigns greater dependance between function values of nearby inputs. One way to generate covariance matrices with this property is by using the \emph{squared exponential kernel} function \cite{rasmussen2006}. Formally,
+% \begin{equation}
+%	\Sigma_{i, j} = k(\matr{x}_i, \matr{x}_j) = \exp \Big( -\frac{1}{2} |\matr{x}_i - \matr{x}_j|^2 \Big).
+%\end{equation}
+%Different \emph{kernel} functions $k(\cdot, \cdot)$ give rise to different covariance matrices, and hence, different priors on the function values. 
+%
+%To simplify the notation in what follows, let $\matr{X} \in \R^{N\times D}$ be formed by stacking $\matr{x}_1^\intercal,\dots,\matr{x}_N^\intercal$ in the rows of a matrix. Then the zero mean prior can be written as 
+%\begin{equation}
+%	p(\matr{f}) = \mathcal{N}(\matr{0}, K(\matr{X}, \matr{X})),
+%\end{equation}
+%where $K(\matr{A}, \matr{B})$, for $\matr{A} \in \R^{N\times D}$ and $\matr{B} \in \R^{M\times D}$, is shorthand from \cite{rasmussen2006} for the $N \times M$ matrix with elements
+%\begin{equation}
+%	K(\matr{A}, \matr{B})_{i, j} = k(\matr{a}_i, \matr{b}_j),
+%\end{equation} 
+%where $\matr{a}_i$ and $\matr{b}_j$ are the $i$-th and $j$-th rows of $\matr{A}$ and $\matr{B}$, respectively.
+%
+%
+%\subsection{Making Predictions with Gaussian Processes}
+%
+%Suppose that the $y_n$ are noisy observations of the true function values at the training points. That is, $y_n = f_n + \epsilon_n$, where $\epsilon_n$ is zero mean Gaussian noise with variance $\sigma_y^2$. Letting $\matr{y} = (y_1, \dots, y_N)^\intercal$, the prior on $\matr{y}$ is 
+%\begin{equation}
+%	p(\matr{y}) = \mathcal{N}(\matr{0}, K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}).
+%\end{equation}
+%Now suppose that $\matr{x}_{*} \in \R^D$ is a test point outside the training set. The prior on $f_{*} = f(\matr{x}_{*})$, the function value at the test point, is $p(f_{*} ) = \mathcal{N}(0, k(\matr{x}_{*}, \matr{x}_{*}))$. Hence, the joint distribution of the observed training outputs $\matr{y}$ and the test prediction $f_{*}$ is
+%\begin{equation}
+%	\begin{bmatrix}
+%		\matr{y} \\
+%		f_{*}
+%	\end{bmatrix}
+%	\sim \mathcal{N}\Bigg(
+%		\matr{0}, 
+%		\begin{bmatrix}
+%			K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I} & K(\matr{X}, \matr{x}_{*}) \\
+%			K(\matr{x}_{*}, \matr{X}) & k(\matr{x}_{*}, \matr{x}_{*})
+%		\end{bmatrix}
+%	\Bigg).
+%\end{equation}
+%Using a standard property of joint Gaussian distributions from \cite{barber2007}, the conditional distribution of $f_{*}$ given $\matr{y}$ is $p(f_{*} | \matr{y}) = \mathcal{N}(m, s^2)$, where
+%\begin{equation}
+%	m = K(\matr{x}_{*}, \matr{X}) \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1} \matr{y}
+%\end{equation}
+%and
+%\begin{equation}
+%	s^2 = k(\matr{x}_{*}, \matr{x}_{*}) 
+%	- K(\matr{x}_{*}, \matr{X}) \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1} K(\matr{X}, \matr{x}_{*}).
+%\end{equation}
+%Writing
+%\begin{equation}
+%	\matr{A} = \big(K(\matr{X}, \matr{X}) + \sigma_y^2 \matr{I}\big)^{-1}
+%	\quad \text{and} \quad 
+%	\matr{k}_{*} = K(\matr{X}, \matr{x}_{*}),
+%\end{equation}
+%the conditional distribution can be simplified to 
+%\begin{equation}\label{eqn:gp_prediction}
+%	p(f_{*} | \matr{y}) = \mathcal{N}\big(
+%		\matr{k}_{*}^\intercal \matr{A} \matr{y},  
+%		k(\matr{x}_{*}, \matr{x}_{*}) - \matr{k}_{*}^\intercal \matr{A} \matr{k}_{*}
+%	\big).
+%\end{equation} 
+%
+%
+%\subsection{Neural Network Kernel Function}
+%
+%Let $f(\matr{x}): \R^D \mapsto \R$ be a neural network with a single hidden layer. Neural networks will be explained in more detail in Section \ref{sec:dnns}, but for now it is enough to know that the functional form of the single layer model is
+%\begin{equation}
+%	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x}),
+%\end{equation} 
+%where $H$ is the number of \emph{units} in the hidden layer, the $\matr{w}_h \in \R^D$ and $v_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. To simplify notation, $\matr{x}$ has been augmented with a constant of one such that the bias term of each hidden unit is absorbed into the corresponding $\matr{w}_h$.
+%
+%Let $\theta \in \R^{Dh + h + 1}$ denote all the learnable parameters of the neural network. For any two points $\matr{x}, \matr{x}' \in \R^D$, the covariance of their predictions is 
+%\begin{equation}\label{eqn:nn_cov}
+%	\E_{p(\theta)}\Big[\big(f(\matr{x}) - \E_{p(\theta)}[f(\matr{x})]\big) \big(f(\matr{x}') - \E_{p(\theta)}[f(\matr{x}')]\big)\Big].
+%\end{equation} 
+%Assuming that $b \sim \mathcal{N}(0, \sigma_b^2)$ and $v_h \sim \mathcal{N}(0, \sigma_v^2)$ are independent and that the $\matr{w}_h \sim p(\matr{w}) = \mathcal{N}(\matr{0}, \Sigma_{\matr{w}})$ are iid for each hidden unit, Equation (\ref{eqn:nn_cov}) can be written as 
+%\begin{equation}\label{eqn:simplified_nn_cov}
+%	\sigma_b^2 + H \sigma_v^2 \E_{p(\matr{w})} \big[ g(\matr{w}^\intercal \matr{x}) g(\matr{w}^\intercal \matr{x}') \big],
+%\end{equation} 
+%where $\matr{w}$ replaces $\matr{w}_h$ due to the iid assumption \cite{williams1997}. Moreover, as $H \rightarrow \infty$, the neural network will converge to a GP \cite{williams1997}. Of course, for this to be a valid GP the activation function $g$ must give rise to a positive definite kernel. One suitable activation is the \emph{error function}, 
+%\begin{equation}
+%	\text{erf}(z) = \frac{2}{\sqrt{\pi}} \int_0^z e^{-t^2} dt.
+%\end{equation}
+%Setting $g = \text{erf}$ and evaluating $\E_{p(\matr{w})} \big[ \text{erf}(\matr{w}^\intercal \matr{x}) \text{erf}(\matr{w}^\intercal \matr{x}') \big]$, it is shown in \cite{williams1997} that the kernel function of the resultant neural network is
+%\begin{equation}\label{eqn:nn_kernel}
+%	k_{\text{NN}}(\matr{x}, \matr{x}') = \frac{2}{\pi} \sin^{-1} 
+%	\Bigg( \frac{2\matr{x}^\intercal \Sigma_{\matr{w}} \matr{x}'}{\sqrt{(1 + 2\matr{x}^\intercal \Sigma_{\matr{w}} \matr{x}) (1 + 2\matr{x}'^\intercal \Sigma_{\matr{w}} \matr{x}')}} \Bigg).
+%\end{equation}
+%
+%
+%
+%\section{Deep Neural Networks}\label{sec:dnns}
 
 
 \chapter{Related Work and Research Questions}\label{ch:previous_work}
@@ -803,9 +800,9 @@ In summary, these results suggest that online EM is in general better at fitting
 
 \chapter{Linear Regression Experiments}\label{ch:linear_regression_experiments}
 
-Since the posterior of the linear regression parameter vector can be computed in closed form, the ability of the online FA algorithms to learn the posterior can be evaluated in this case. For a linear regression model trained via SGD, Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} can both be used to fit a Gaussian posterior distribution to the iterates, $\theta_1, \dots, \theta_T$, encountered along the SGD trajectory. The mean and covariance of the learned distributions can then be compared directly to the ground truth. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). This can be estimated by calculating the empirical standard deviation of $\{y_n\}_{n=1}^{N}$. 
+\section{Sampling from the Posterior}
 
-The precision $\alpha$ is a hyperparameter which controls the width of the prior $p(\theta)$. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
+The ability of the online FA algorithms to learn the posterior of a neural network's parameter vector hinges on obtaining samples of the parameter vector which are representative of the true posterior. In the SWAG approach, such samples are thought to be obtained from the iterates of the parameter vector which are encountered along the SGD trajectory while training the neural network. In the case of linear regression - which is a neural network with no hidden layers - this assumption can be tested directly, since the true posterior of its parameter vector can be computed in closed form. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). The precision $\alpha$ is a hyperparameter which controls the width of the prior $p(\theta)$. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
 \begin{equation}
 	\log p(\theta | \mathcal{D}) 
 	= -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
@@ -827,39 +824,107 @@ This objective function is analogous to the L2-regularised training loss often u
 	\sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
 	+ \lambda \theta^\intercal \theta 
 \end{equation}
-for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the posterior distribution of $\theta$ can be estimated by fitting an online FA model to the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$.
+for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$. The purpose of the experiments in this section is to test this hypothesis. 
  
-\section{Methodology}
+\subsection{Methodology}
 
-The aim of these experiments is to test how well the online FA algorithms, fit to the weight vectors sampled during SGD while training a linear regression model, are able to approximate the true posterior distribution of the weights. For this purpose, four real regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength}, Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
+Synthetic data was generated for these experiments as follows. First, 1000 inputs $\matr{x} \in \R^2$ were sampled from a multivariate zero mean Gaussian distribution with covariance matrix
+\begin{equation}
+	\begin{bmatrix}
+		1 & 0.5 \\
+		0.5 & 1
+	\end{bmatrix}.
+\end{equation}
+Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to Equation (\ref{eqn:linear_regression}) with $\beta = 0.1$. Using this data, the true posterior in Equation (\ref{eqn:linear_regression_posterior}) was evaluated. Before collecting samples, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. Each experiment was repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear model. 
+
+\subsection{Results and Discussion}
+
+The results of each experiment are shown in Table \ref{table:linear_regression_samples}. It is apparent from the third column that the empirical mean of the sampled parameter vectors does not match the true posterior mean when the theoretically motivated value of $\lambda = 0.1$ is used. However, if the regularisation strength is reduced to $\lambda = 0.001$, the distance between the means is reduced significantly. Unfortunately, the distance between the covariance matrices of the two distributions is relatively large for all combinations of the hyperparameters, as can be seen in the fourth column. The best result is achieved when using a learning rate of 0.1 with $\lambda = 0.1$, but even then the average relative distance is 0.62. 
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{||c c c ||} 
+		\begin{tabular}{|| p{0.12\linewidth} p{0.1\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
  			\hline
- 			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
+ 			Learning Rate & $\lambda$ & Relative Distance from Mean & Relative Distance from Covariance & Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
- 			Boston Housing & 506 & 13 \\ 
- 			\hline
- 			Concrete Compressive Strength & 1030 & 8 \\
- 			\hline
- 			Energy Efficiency & 768 & 8 \\
- 			\hline
- 			Yacht Hydrodynamics & 308 & 6 \\ [1ex] 
- 			\hline
+ 			0.1 &  0.1 & $0.0666 \pm 0.0078$ & $0.6200 \pm 0.0750$ & $1.3480 \pm 0.5087$ \\ 
+			\hline
+ 			0.1 & 0.001 & $0.0006 \pm 0.0001$ & $0.8065 \pm 0.0101$ & $0.0078 \pm 0.0004$  \\
+			\hline
+			0.01 & 0.1 & $0.0620 \pm 0.0070$ & $1.7110 \pm 0.6187$ & $1.1776 \pm 0.4434$ \\ 
+			\hline
+ 			0.01 & 0.001 & $0.0010 \pm 0.0002$ & $0.9870 \pm 0.0042$ & $0.0219 \pm 0.0006$  \\ [1ex] 
+			\hline
 		\end{tabular}
-		\caption{UCI regression datasets used in experiments with linear models.}
-		\label{table:uci_datasets}
+		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the empirical distribution of the parameter vectors sampled along the SGD trajectory while training the model. Relative distances between the true and empirical means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
+		\label{table:linear_regression_samples}
 	\end{center}
 \end{table}
 
-In each experiment, a linear regression model was trained on one of these datasets via mini-batch SGD for 1000 epochs, with a batch size of 32. The L2 regularisation strength was set to $\lambda = \frac{\alpha}{\beta}$. Recall that $\beta$ is just the reciprocal of the variance of the target variable and $\alpha$ is a hyperparameter which controls the width of the prior on the linear regression weights. Both $\alpha$ and $\beta$ are used when computing $\matr{A}$ in Equation \ref{eqn:linear_model_A_and_b}. In order to balance the effect of the prior term and the data term, $\alpha$ was set to $0.01$ times the mean of the diagonal entries of $\beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal$.
+Figure \ref{fig:linear_regression_pdfs} shows the pdfs of the true posterior and empirical distribution for each combination of the hyperparameters, for one of the ten trials in each experiment. Note that in each case the pre-trained parameter vector is very close to the true posterior mean. When $\lambda = 0.1$, SGD moves away from the pre-trained solution to a different region of the parameter space (subplots (a) and (c)). When $\lambda = 0.001$, SGD bounces around the pre-trained solution and the empirical mean of the parameter vectors, $\theta_{\text{SWA}}$, is right on the true posterior mean. However, when the learning rate is 0.1 the empirical covariance is in the wrong direction (subplot (b)), and when the learning rate is 0.01 the empirical covariance is far too narrow (subplot (d)).
 
-Before training began, the factors of two FA models were initialised as described in Section \ref{sec:F_init}. Their observation dimension was set to the number of weights in the linear regression model, as their purpose was to approximate the posterior distribution of the weights. After an initial warm-up period of training the linear model for 10 epochs, the two FA models began to be updated, one via online SGA and the other via online EM (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}, respectively). An update to each FA model was performed using the weight vector sampled after each mini-batch update to the linear model. As in the experiments in Chapter \ref{ch:online_fa_experiments}, $\matr{F}$ and $\Psi$ remained fixed during the first 100 updates to the FA models, with only the running average being updated in this period. The SGA updates were performed with a learning rate of 0.001. 
+\renewcommand*\arraystretch{0.01}
+\begin{figure}[!htbp] 
+	\begin{tabular}{c}
+		\includegraphics[width=130mm]{plots/linear_model_weight_iterates__lr=0.1__lambda=0.1.png} \\
+		(a) Learning rate of 0.1 and $\lambda = 0.1$ \\
+		\includegraphics[width=130mm]{plots/linear_model_weight_iterates__lr=0.1__lambda=0.001.png} \\
+		(b) Learning rate of 0.1 and $\lambda = 0.001$ \\
+		\includegraphics[width=130mm]{plots/linear_model_weight_iterates__lr=0.01__lambda=0.1.png} \\
+		(c) Learning rate of 0.01 and $\lambda = 0.1$ \\
+		\includegraphics[width=130mm]{plots/linear_model_weight_iterates__lr=0.01__lambda=0.001.png} \\
+		(d) Learning rate of 0.01 and $\lambda = 0.001$ \\
+	\end{tabular}
+	\caption{Probability density functions for the true posterior distribution of the parameter vector of a linear model and the empirical distribution of the parameter vectors sampled during SGD, for different combinations of learning rate and regularisation strength. In each plot, the white dot denotes the pre-trained parameter vector, red dots are the sampled parameter vectors and the black star is the empirical mean of the red dots. Contours show the probability density of each distribution.}
+	\label{fig:linear_regression_pdfs}
+\end{figure}
 
-The mean and covariance of the true posterior of the linear regression weights, for the specific values of $\alpha$ and $\beta$, were computed prior to training according to Equation \ref{eqn:linear_regression_posterior_params}. After each set of 10 training epochs, the distance between the parameters of the true posterior and the posteriors estimated by the online FA algorithms was computed. For each dataset, this experiment was run with the latent dimension of the FA models set to $K=1, 2, 3$. Each experiment was repeated ten times. In each trial a different random seed was used for initialising the weights of the linear model and also initialising the parameters of the FA models.
+These results suggest that SGD does not sample parameter vectors from the true posterior distribution. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For the right value of $\lambda$, the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected from the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely, since in that case the posterior cannot be compute in closed form, which makes hyperparameter tuning far more difficult. These results suggest that SWAG and similar techniques do not actually do approximate Bayesian inference, but are rather elaborate ensemble methods. 
 
-\section{Results}
+
+\section{Making Predictions}
+
+\subsection{Methodology}
+
+
+\subsection{Results and Discussion}
+
+
+
+%\begin{figure}[!htbp] 
+%		\includegraphics[width=160mm]{plots/linear_model_weight_iterates__lr=0.1__lambda=0.001.png}
+%	\caption{yjyjy}
+%	\label{fig:yjytj}
+%\end{figure}
+
+
+%The aim of these experiments is to test how well the online FA algorithms, fit to the weight vectors sampled during SGD while training a linear regression model, are able to approximate the true posterior distribution of the weights. For this purpose, four real regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength}, Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
+
+%\begin{table}[h!]
+%	\begin{center}
+%		\begin{tabular}{||c c c ||} 
+% 			\hline
+% 			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
+% 			\hline\hline
+% 			Boston Housing & 506 & 13 \\ 
+% 			\hline
+% 			Concrete Compressive Strength & 1030 & 8 \\
+% 			\hline
+% 			Energy Efficiency & 768 & 8 \\
+% 			\hline
+% 			Yacht Hydrodynamics & 308 & 6 \\ [1ex] 
+% 			\hline
+%		\end{tabular}
+%		\caption{UCI regression datasets used in experiments with linear models.}
+%		\label{table:uci_datasets}
+%	\end{center}
+%\end{table}
+
+%In each experiment, a linear regression model was trained on one of these datasets via mini-batch SGD for 1000 epochs, with a batch size of 32. The L2 regularisation strength was set to $\lambda = \frac{\alpha}{\beta}$. Recall that $\beta$ is just the reciprocal of the variance of the target variable and $\alpha$ is a hyperparameter which controls the width of the prior on the linear regression weights. Both $\alpha$ and $\beta$ are used when computing $\matr{A}$ in Equation \ref{eqn:linear_model_A_and_b}. In order to balance the effect of the prior term and the data term, $\alpha$ was set to $0.01$ times the mean of the diagonal entries of $\beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal$.
+%
+%Before training began, the factors of two FA models were initialised as described in Section \ref{sec:F_init}. Their observation dimension was set to the number of weights in the linear regression model, as their purpose was to approximate the posterior distribution of the weights. After an initial warm-up period of training the linear model for 10 epochs, the two FA models began to be updated, one via online SGA and the other via online EM (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}, respectively). An update to each FA model was performed using the weight vector sampled after each mini-batch update to the linear model. As in the experiments in Chapter \ref{ch:online_fa_experiments}, $\matr{F}$ and $\Psi$ remained fixed during the first 100 updates to the FA models, with only the running average being updated in this period. The SGA updates were performed with a learning rate of 0.001. 
+%
+%The mean and covariance of the true posterior of the linear regression weights, for the specific values of $\alpha$ and $\beta$, were computed prior to training according to Equation \ref{eqn:linear_regression_posterior_params}. After each set of 10 training epochs, the distance between the parameters of the true posterior and the posteriors estimated by the online FA algorithms was computed. For each dataset, this experiment was run with the latent dimension of the FA models set to $K=1, 2, 3$. Each experiment was repeated ten times. In each trial a different random seed was used for initialising the weights of the linear model and also initialising the parameters of the FA models.
 
 
 %Figures \ref{fig:linear_models_empirical_boston_housing}, \ref{fig:linear_models_empirical_concrete_strength}, \ref{fig:linear_models_empirical_energy_efficiency} and \ref{fig:linear_models_empirical_yacht_hydrodynamics} show the results for the Boston Housing, Concrete Compressive Strength, Energy Efficiency and Yacht Hydrodynamics datasets, respectively. 
@@ -958,16 +1023,16 @@ The mean and covariance of the true posterior of the linear regression weights, 
 %\end{figure}
 
 
-\chapter{Gaussian Processes Experiments}
-
-In was show in Section \ref{sec:gps} that, under certain conditions on the parameters, a neural network with a single, infinitely wide, hidden layer is equivalent to a GP with kernel function $k_{\text{NN}}$ given in Equation (\ref{eqn:nn_kernel}). The kernel depends on $\Sigma_{\matr{w}} \in \R^{D \times D}$, which is the covariance of the prior on the weights of each hidden unit. The individual weights of a neural network are usually independent on initialisation, so $\Sigma_{\matr{w}}$ can be set to a diagonal matrix $\sigma_w \matr{I}$. With this, $k_{\text{NN}}(\matr{x}, \matr{x}')$ can be evaluated for any two points $\matr{x}, \matr{x}' \in \R^D$. Hence, given training inputs $\matr{X} \in \R^{N\times D}$, training outputs $\matr{y} \in \R^N$ and a test point $\matr{x}_{*} \in \R^D$, the Gaussian posterior predictive distribution $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be computed according to Equation (\ref{eqn:gp_prediction}). 
-
-Alternatively, $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated via an approximate Bayesian model average (BMA). Given a posterior over the parameters of a neural network, $p(\theta |  \matr{X}, \matr{y})$, a parameter vector $\tilde{\theta} \sim p(\theta |  \matr{X}, \matr{y})$ can be used to construct a specific instance of the neural network and make a prediction for $\matr{x}_{*}$. If this procedure is repeated multiple times, the mean and variance of $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated and compared directly to the ground truth. To obtain the parameter posterior, the online FA algorithms can be used to fit a Gaussian posterior to the iterates of the parameter vector, $\theta_1, \dots, \theta_T$, encountered while training the single layer neural network via SGD. Of course, in practice it is impossible to train a neural network with an infinitely wide hidden layer, but for these experiments it will suffice to consider neural networks with a few hundred hidden units. 
-
-
-\section{Methodology}
-
-\section{Results}
+%\chapter{Gaussian Processes Experiments}
+%
+%In was show in Section \ref{sec:gps} that, under certain conditions on the parameters, a neural network with a single, infinitely wide, hidden layer is equivalent to a GP with kernel function $k_{\text{NN}}$ given in Equation (\ref{eqn:nn_kernel}). The kernel depends on $\Sigma_{\matr{w}} \in \R^{D \times D}$, which is the covariance of the prior on the weights of each hidden unit. The individual weights of a neural network are usually independent on initialisation, so $\Sigma_{\matr{w}}$ can be set to a diagonal matrix $\sigma_w \matr{I}$. With this, $k_{\text{NN}}(\matr{x}, \matr{x}')$ can be evaluated for any two points $\matr{x}, \matr{x}' \in \R^D$. Hence, given training inputs $\matr{X} \in \R^{N\times D}$, training outputs $\matr{y} \in \R^N$ and a test point $\matr{x}_{*} \in \R^D$, the Gaussian posterior predictive distribution $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be computed according to Equation (\ref{eqn:gp_prediction}). 
+%
+%Alternatively, $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated via an approximate Bayesian model average (BMA). Given a posterior over the parameters of a neural network, $p(\theta |  \matr{X}, \matr{y})$, a parameter vector $\tilde{\theta} \sim p(\theta |  \matr{X}, \matr{y})$ can be used to construct a specific instance of the neural network and make a prediction for $\matr{x}_{*}$. If this procedure is repeated multiple times, the mean and variance of $p(f_{*} | \matr{X}, \matr{y}, \matr{x}_{*})$ can be estimated and compared directly to the ground truth. To obtain the parameter posterior, the online FA algorithms can be used to fit a Gaussian posterior to the iterates of the parameter vector, $\theta_1, \dots, \theta_T$, encountered while training the single layer neural network via SGD. Of course, in practice it is impossible to train a neural network with an infinitely wide hidden layer, but for these experiments it will suffice to consider neural networks with a few hundred hidden units. 
+%
+%
+%\section{Methodology}
+%
+%\section{Results}
 
 \chapter{Conclusions}
 
