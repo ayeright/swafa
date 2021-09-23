@@ -874,7 +874,7 @@ def collate_callback_results(sklearn_posterior_eval_callback: BatchFactorAnalysi
 def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, concrete_strength_input_path: str,
          energy_efficiency_input_path: str, results_output_path: str):
     """
-    Run experiments involving linear models on UCI datasets.
+    Run experiments to estimate the posterior distribution of the weights of linear regression models.
 
     Args:
         boston_housing_input_path: The parquet file path to load the Boston Housing dataset.
@@ -884,7 +884,7 @@ def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, co
         results_output_path: The parquet file path to save the experiment results.
     """
     with open("params.yaml", 'r') as fd:
-        params = yaml.safe_load(fd)['linear_models']
+        params = yaml.safe_load(fd)['linear_regression_posterior']
 
     datasets = [
         pd.read_parquet(boston_housing_input_path),

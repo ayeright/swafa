@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from experiments.linear_models import (
+from experiments.linear_regression_posterior import (
     compute_true_posterior,
     compute_true_posterior_covar,
     compute_true_posterior_mean,

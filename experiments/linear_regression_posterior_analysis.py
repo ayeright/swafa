@@ -254,7 +254,7 @@ def generate_and_save_error_bar_plot(means: pd.DataFrame, standard_errors: pd.Da
 @click.option('--analysis-output-dir', type=str, help='The directory path to save the output of the analysis')
 def main(results_input_path: str, analysis_output_dir: str):
     """
-    Analyse the results from the linear models experiments.
+    Analyse the results from the linear regression posterior experiments.
 
     Save the analysis to the given output directory.
 

@@ -19,7 +19,7 @@ online_fa:
 online_fa_analysis:
   min_samples: 100
 
-linear_models:
+linear_regression_posterior:
   model_optimiser: 'sgd'
   model_optimiser_kwargs:
     lr: 0.1
