@@ -3,8 +3,6 @@ from typing import Any, Union
 from pytorch_lightning import Trainer, LightningModule
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-import torch
-from torch import Tensor
 
 from swafa.custom_types import POSTERIOR_TYPE
 from swafa.utils import get_callback_epoch_range, vectorise_weights
