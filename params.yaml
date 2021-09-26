@@ -38,8 +38,8 @@ linear_regression_posterior:
   n_trials: 10
 
 linear_regression_predictions:
-  latent_dim: 2
-  n_folds: 20
+  latent_dim: 3
+  n_folds: 100
   lr_pretrain: 0.001
   lr_swa: 0.1
   n_epochs_pretrain: 500
@@ -51,4 +51,4 @@ linear_regression_predictions:
     lr: 0.001
   gradient_warm_up_time_steps: 100
   em_warm_up_time_steps: 100
-  n_posterior_samples: 10
+  n_posterior_samples: 30

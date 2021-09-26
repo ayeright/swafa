@@ -46,7 +46,13 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         )
 
         fig, ax = plt.subplots(1, 1, figsize=(16, 6))
-        dataset_results.boxplot(column=['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa'], grid=True)
+        dataset_results.boxplot(
+            column=['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa'],
+            grid=True,
+            whis=(5, 95),
+            showfliers=False,
+            showmeans=True,
+        )
         ax.set_xticklabels(['pre-trained', 'SWA', 'online SGA ensemble', 'online EM ensemble'])
         plt.ylabel('Mean squared error')
 
