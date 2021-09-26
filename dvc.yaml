@@ -117,3 +117,13 @@ stages:
       - linear_regression_predictions.n_posterior_samples
     outs:
       - experiments/data/linear_regression_predictions_results.parquet
+
+  linear_regression_predictions_analysis:
+    cmd: python experiments/linear_regression_predictions_analysis.py
+      --results-input-path experiments/data/linear_regression_predictions_results.parquet
+      --analysis-output-dir experiments/data/linear_regression_predictions_analysis
+    deps:
+      - experiments/linear_regression_predictions_analysis.py
+      - experiments/data/linear_regression_predictions_results.parquet
+    outs:
+      - experiments/data/linear_regression_predictions_analysis
