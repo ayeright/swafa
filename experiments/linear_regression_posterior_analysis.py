@@ -107,17 +107,22 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         )
 
         dataset_means.to_csv(os.path.join(
-            analysis_output_dir, f'linear_model_metric_means__{dataset_label}.csv'), index=False,
+            analysis_output_dir,
+            f'linear_regression_posterior_metric_means__{dataset_label}.csv'), index=False,
         )
 
         dataset_standard_errors.to_csv(os.path.join(
-            analysis_output_dir, f'linear_model_metric_standard_errors__{dataset_label}.csv'), index=False,
+            analysis_output_dir,
+            f'linear_regression_posterior_metric_standard_errors__{dataset_label}.csv'),
+            index=False,
         )
 
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_posterior_mean_distance__{dataset_label}.png'),
+            png_path=os.path.join(
+                analysis_output_dir, f'linear_regression_posterior_mean_distance__{dataset_label}.png',
+            ),
             ylabel='Relative distance from true posterior mean',
             axes_columns=posterior_mean_columns,
             axes_titles=axis_titles,
@@ -127,7 +132,9 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_posterior_covar_distance__{dataset_label}.png'),
+            png_path=os.path.join(
+                analysis_output_dir, f'linear_regression_posterior_covar_distance__{dataset_label}.png',
+            ),
             ylabel='Relative distance from true posterior covariance',
             axes_columns=posterior_covar_columns,
             axes_titles=axis_titles,
@@ -137,7 +144,9 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_posterior_wasserstein__{dataset_label}.png'),
+            png_path=os.path.join(
+                analysis_output_dir, f'linear_regression_posterior_wasserstein__{dataset_label}.png',
+            ),
             ylabel='2-Wasserstein distance from true posterior',
             axes_columns=posterior_wasserstein_columns,
             axes_titles=axis_titles,
@@ -147,7 +156,9 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_empirical_mean_distance__{dataset_label}.png'),
+            png_path=os.path.join(
+                analysis_output_dir, f'linear_regression_empirical_mean_distance__{dataset_label}.png',
+            ),
             ylabel='Relative distance from empirical mean',
             axes_columns=empirical_mean_columns,
             axes_titles=axis_titles,
@@ -157,7 +168,9 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_empirical_covar_distance__{dataset_label}.png'),
+            png_path=os.path.join(
+                analysis_output_dir, f'linear_regression_empirical_covar_distance__{dataset_label}.png',
+            ),
             ylabel='Relative distance from empirical covariance',
             axes_columns=empirical_covar_columns,
             axes_titles=axis_titles,
@@ -167,7 +180,9 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
         generate_and_save_error_bar_plot(
             dataset_means,
             dataset_standard_errors,
-            png_path=os.path.join(analysis_output_dir, f'linear_models_empirical_wasserstein__{dataset_label}.png'),
+            png_path=os.path.join(
+                analysis_output_dir, f'linear_regression_empirical_wasserstein__{dataset_label}.png',
+            ),
             ylabel='2-Wasserstein distance from empirical distribution',
             axes_columns=empirical_wasserstein_columns,
             axes_titles=axis_titles,
