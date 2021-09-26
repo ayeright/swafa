@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import torch
 
@@ -123,3 +124,24 @@ class TestOnlineFactorAnalysis:
         ])
         actual_covariance = fa.get_covariance()
         assert torch.isclose(actual_covariance, expected_covariance, atol=1e-05).all()
+
+    @pytest.mark.parametrize("observation_dim", [10, 20])
+    @pytest.mark.parametrize("latent_dim", [1, 5, 8])
+    @pytest.mark.parametrize('n_samples', [1, 10, 100])
+    @pytest.mark.parametrize('random_seed', [1, None])
+    def test_sample_shape(self, observation_dim, latent_dim, n_samples, random_seed):
+        fa = OnlineFactorAnalysis(observation_dim=observation_dim, latent_dim=latent_dim)
+        observations = fa.sample(n_samples, random_seed)
+        assert observations.shape == (n_samples, observation_dim)
+
+    def test_sample_mean(self):
+        fa = OnlineFactorAnalysis(observation_dim=10, latent_dim=5)
+        observations = fa.sample(n_samples=1000, random_seed=1)
+        actual_mean = observations.mean(dim=0)
+        assert torch.isclose(actual_mean, fa.get_mean(), atol=1e-1).all()
+
+    def test_sample_covariance(self):
+        fa = OnlineFactorAnalysis(observation_dim=10, latent_dim=5)
+        observations = fa.sample(n_samples=10000, random_seed=1)
+        actual_covar = torch.from_numpy(np.cov(observations.numpy().T)).float()
+        assert torch.isclose(actual_covar, fa.get_covariance(), atol=1e-1).all()

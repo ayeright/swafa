@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer, Adam
 from torch.autograd import Variable
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 
 class OnlineFactorAnalysis(ABC):
@@ -46,47 +47,40 @@ class OnlineFactorAnalysis(ABC):
 
         self.observation_dim = observation_dim
         self.latent_dim = latent_dim
+        self.device = device
         self.t = 0
         self.c = torch.zeros(observation_dim, 1, device=device)
-        self.F = self._init_F(device=device)
-        self.diag_psi = self._init_psi(device=device)
+        self.F = self._init_F()
+        self.diag_psi = self._init_psi()
         self._diag_inv_psi = None
         self._d = None
         self._m = None
         self._sigma = None
         self._I = torch.eye(latent_dim, device=device)
 
-    def _init_F(self, device: Optional[torch.device] = None) -> Tensor:
+    def _init_F(self) -> Tensor:
         """
         Initialise the factor loading matrix.
 
         Initialised to have orthogonal columns.
 
-        Args:
-            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
-                default tensor type.
-
         Returns:
             The initial factor loading matrix. Of shape (observation_dim, latent_dim).
         """
-        A = torch.randn(self.observation_dim, self.latent_dim, device=device)
+        A = torch.randn(self.observation_dim, self.latent_dim, device=self.device)
         F, _ = torch.linalg.qr(A, mode='reduced')
         return F
 
-    def _init_psi(self, device: Optional[torch.device] = None) -> Tensor:
+    def _init_psi(self) -> Tensor:
         """
         Initialise the diagonal entries of the Gaussian noise covariance matrix.
 
         Set all entries to 1.
 
-        Args:
-            device: The device (CPU or GPU) on which to perform the computation. If `None`, uses the device for the
-                default tensor type.
-
         Returns:
             The initial diagonal entries of the Gaussian noise covariance matrix. Of shape (observation_dim, 1).
         """
-        return torch.ones(self.observation_dim, 1, device=device)
+        return torch.ones(self.observation_dim, 1, device=self.device)
 
     def _update_commons(self, theta: Tensor):
         """
@@ -201,6 +195,38 @@ class OnlineFactorAnalysis(ABC):
         """
         psi = torch.diag(self.diag_psi.squeeze())
         return self.F.mm(self.F.t()) + psi
+
+    def sample(self, n_samples: int, random_seed: Optional[int] = None) -> Tensor:
+        """
+        Draw samples from the FA model.
+
+        Observations are of the form Fh + c + noise, where h is a latent variable vector sampled from N(0, I) and the
+        noise vector is sampled from N(0, Psi).
+
+        Args:
+            n_samples: The number of independent samples to draw from the FA model.
+            random_seed: The random seed to use for sampling.
+
+        Returns:
+            Samples of shape (n_samples, observation_dim).
+        """
+        if random_seed is not None:
+            torch.manual_seed(random_seed)
+
+        p_h = MultivariateNormal(
+            loc=torch.zeros(self.latent_dim, device=self.device),
+            covariance_matrix=torch.eye(self.latent_dim, device=self.device),
+        )
+
+        p_noise = MultivariateNormal(
+            loc=torch.zeros(self.observation_dim, device=self.device),
+            covariance_matrix=torch.diag(self.diag_psi.squeeze()),
+        )
+
+        H = p_h.sample((n_samples,))
+        noise = p_noise.sample((n_samples,))
+
+        return H.mm(self.F.t()) + self.c.reshape(1, -1) + noise
 
 
 class OnlineGradientFactorAnalysis(OnlineFactorAnalysis):
