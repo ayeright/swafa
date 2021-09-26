@@ -26,7 +26,7 @@ from experiments.utils.factory import OPTIMISER_FACTORY
 
 
 def run_all_experiments(
-        datasets: List[pd.DataFrame],
+        datasets: pd.DataFrame,
         dataset_labels: List[str],
         min_latent_dim: int,
         max_latent_dim: int,
