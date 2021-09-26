@@ -76,7 +76,7 @@ stages:
     outs:
       - experiments/data/linear_regression_posterior_results.parquet
 
-  linear_models_analysis:
+  linear_regression_posterior_analysis:
     cmd: python experiments/linear_regression_posterior_analysis.py
       --results-input-path experiments/data/linear_regression_posterior_results.parquet
       --analysis-output-dir experiments/data/linear_regression_posterior_analysis
@@ -85,3 +85,35 @@ stages:
       - experiments/data/linear_regression_posterior_results.parquet
     outs:
       - experiments/data/linear_regression_posterior_analysis
+
+  linear_regression_predictions:
+    cmd: python experiments/linear_regression_predictions.py
+      --boston-housing-input-path experiments/data/uci_datasets/boston_housing.parquet
+      --yacht-hydrodynamics-input-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
+      --concrete-strength-input-path experiments/data/uci_datasets/concrete_strength.parquet
+      --energy-efficiency-input-path experiments/data/uci_datasets/energy_efficiency.parquet
+      --results-output-path experiments/data/linear_regression_predictions_results.parquet
+    deps:
+      - experiments/linear_regression_predictions.py
+      - swafa/fa.py
+      - swafa/models.py
+      - swafa/callbacks.py
+      - swafa/posterior.py
+      - experiments/utils/factory.py
+      - experiments/data/uci_datasets
+    params:
+      - linear_regression_predictions.latent_dim
+      - linear_regression_predictions.n_folds
+      - linear_regression_predictions.lr_pretrain
+      - linear_regression_predictions.lr_swa
+      - linear_regression_predictions.n_epochs_pretrain
+      - linear_regression_predictions.n_epochs_swa
+      - linear_regression_predictions.n_batches_per_epoch
+      - linear_regression_predictions.weight_decay
+      - linear_regression_predictions.gradient_optimiser
+      - linear_regression_predictions.gradient_optimiser_kwargs
+      - linear_regression_predictions.gradient_warm_up_time_steps
+      - linear_regression_predictions.em_warm_up_time_steps
+      - linear_regression_predictions.n_posterior_samples
+    outs:
+      - experiments/data/linear_regression_predictions_results.parquet
