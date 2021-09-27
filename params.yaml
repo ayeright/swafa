@@ -39,13 +39,13 @@ linear_regression_posterior:
 
 linear_regression_predictions:
   latent_dim: 3
-  n_folds: 100
+  n_folds: 10
   lr_pretrain: 0.001
   lr_swa: 0.1
   n_epochs_pretrain: 500
   n_epochs_swa: 100
   n_batches_per_epoch: 10
-  weight_decay: 0.0001
+  weight_decay: 0.001
   gradient_optimiser: 'sgd'
   gradient_optimiser_kwargs:
     lr: 0.001

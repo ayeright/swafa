@@ -22,42 +22,62 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             - fold: (int) The index of the cross-validation fold.
         analysis_output_dir: The directory path to save the output of the analysis.
     """
-    plt.rcParams.update({'font.size': 15})
-
     metric_columns = ['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa']
 
     for dataset_label in results['dataset'].unique():
         dataset_results = results[results['dataset'] == dataset_label]
 
-        grouped_results = dataset_results.groupby('fold')
-        group_means = grouped_results[metric_columns].mean().reset_index()
-        group_standard_errors = grouped_results[metric_columns].sem().reset_index()
+        means = dataset_results[metric_columns].mean().reset_index()
+        standard_errors = dataset_results[metric_columns].sem().reset_index()
 
-        group_means.to_csv(os.path.join(
+        means.to_csv(os.path.join(
             analysis_output_dir,
             f'linear_regression_predictions_metric_means__{dataset_label}.csv'),
             index=False,
         )
 
-        group_standard_errors.to_csv(os.path.join(
+        standard_errors.to_csv(os.path.join(
             analysis_output_dir,
             f'linear_regression_predictions_metric_standard_errors__{dataset_label}.csv'),
             index=False,
         )
 
-        fig, ax = plt.subplots(1, 1, figsize=(16, 6))
-        dataset_results.boxplot(
-            column=['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa'],
-            grid=True,
-            whis=(5, 95),
-            showfliers=False,
-            showmeans=True,
+        generate_and_save_error_bar_plot(
+            results=dataset_results,
+            png_path=os.path.join(
+                analysis_output_dir, f'linear_regression_predictions_mse__{dataset_label}.png',
+            ),
         )
-        ax.set_xticklabels(['pre-trained', 'SWA', 'online SGA ensemble', 'online EM ensemble'])
-        plt.ylabel('Mean squared error')
 
-        png_path = os.path.join(analysis_output_dir, f'linear_regression_predictions_mse__{dataset_label}.png')
-        plt.savefig(png_path, format='png')
+
+def generate_and_save_error_bar_plot(results: pd.DataFrame, png_path: str):
+    """
+    For each algorithm, plot the mean of the MSE with standard error bars.
+
+    Save the plot to the given png file.
+
+    Args:
+        results: Should contain columns 'mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa'. For each column,
+            the mean and standard error will be plotted on a single figure.
+        png_path: The file path to save the plot as a png file.
+    """
+    plt.rcParams.update({'font.size': 15})
+
+    fig, ax = plt.subplots(1, 1, figsize=(16, 6))
+    metric_columns = ['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa']
+    labels = ['Pre-trained', 'SWA', 'SGA FA ensemble', 'EM FA Ensemble']
+    markers = ['o', 's', 'v', 'X']
+    for x, metric_name in enumerate(metric_columns):
+        y = results[metric_name].mean()
+        se = results[metric_name].sem()
+
+        ax.errorbar(x, y, se, marker=markers[x], markersize=20, elinewidth=3, capsize=10, capthick=3, label=labels[x])
+
+    ax.set_xticks([])
+    plt.ylabel('Mean squared error')
+    plt.legend()
+
+    plt.savefig(png_path, format='png')
 
 
 @click.command()
