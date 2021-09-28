@@ -63,7 +63,7 @@ def generate_and_save_error_bar_plot(results: pd.DataFrame, png_path: str):
     """
     plt.rcParams.update({'font.size': 15})
 
-    fig, ax = plt.subplots(1, 1, figsize=(16, 6))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
     metric_columns = ['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa']
     labels = ['Pre-trained', 'SWA', 'SGA FA ensemble', 'EM FA Ensemble']
     markers = ['o', 's', 'v', 'X']
@@ -71,7 +71,7 @@ def generate_and_save_error_bar_plot(results: pd.DataFrame, png_path: str):
         y = results[metric_name].mean()
         se = results[metric_name].sem()
 
-        ax.errorbar(x, y, se, marker=markers[x], markersize=20, elinewidth=3, capsize=10, capthick=3, label=labels[x])
+        ax.errorbar(x, y, se, marker=markers[x], markersize=20, elinewidth=3, label=labels[x], capsize=10, capthick=3)
 
     ax.set_xticks([])
     plt.ylabel('Mean squared error')
