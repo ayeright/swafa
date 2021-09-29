@@ -800,7 +800,7 @@ In summary, these results suggest that online EM is in general better at fitting
 
 \chapter{Linear Regression Experiments}\label{ch:linear_regression_experiments}
 
-\section{Sampling from the Posterior}
+\section{Sampling from the Posterior}\label{sec:linear_regression_posterior_experiments}
 
 The ability of the online FA algorithms to learn the posterior of a neural network's parameter vector hinges on obtaining samples of the parameter vector which are representative of the true posterior. In the SWAG approach, such samples are thought to be obtained from the iterates of the parameter vector which are encountered along the SGD trajectory while training the neural network. In the case of linear regression - which is a neural network with no hidden layers - this assumption can be tested directly, since the true posterior of its parameter vector can be computed in closed form. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). The precision $\alpha$ is a hyperparameter which controls the width of the prior $p(\theta)$. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
 \begin{equation}
@@ -863,7 +863,7 @@ The results of each experiment are shown in Table \ref{table:linear_regression_s
 
 Figure \ref{fig:linear_regression_pdfs} shows the pdfs of the true posterior and empirical distribution for each combination of the hyperparameters, for one of the ten trials in each experiment. Note that in each case the pre-trained parameter vector is very close to the true posterior mean. When $\lambda = 0.1$, SGD moves away from the pre-trained solution to a different region of the parameter space (subplots (a) and (c)). When $\lambda = 0.001$, SGD bounces around the pre-trained solution and the empirical mean of the parameter vectors, $\theta_{\text{SWA}}$, is right on the true posterior mean. However, when the learning rate is 0.1 the empirical covariance is in the wrong direction (subplot (b)), and when the learning rate is 0.01 the empirical covariance is far too narrow (subplot (d)).
 
-\renewcommand*\arraystretch{0.01}
+%\renewcommand*\arraystretch{0.01}
 \begin{figure}[!htbp] 
 	\begin{tabular}{c}
 		\includegraphics[width=130mm]{plots/linear_model_weight_iterates__lr=0.1__lambda=0.1.png} \\
@@ -875,19 +875,72 @@ Figure \ref{fig:linear_regression_pdfs} shows the pdfs of the true posterior and
 		\includegraphics[width=130mm]{plots/linear_model_weight_iterates__lr=0.01__lambda=0.001.png} \\
 		(d) Learning rate of 0.01 and $\lambda = 0.001$ \\
 	\end{tabular}
-	\caption{Probability density functions for the true posterior distribution of the parameter vector of a linear model and the empirical distribution of the parameter vectors sampled during SGD, for different combinations of learning rate and regularisation strength. In each plot, the white dot denotes the pre-trained parameter vector, red dots are the sampled parameter vectors and the black star is the empirical mean of the red dots. Contours show the probability density of each distribution.}
+	\caption{Probability density functions for the true posterior distribution of the parameter vector of a linear regression model and the empirical distribution of the parameter vectors sampled during SGD, for different combinations of learning rate and regularisation strength. 
+%	In each plot, the white dot denotes the pre-trained parameter vector, red dots are the sampled parameter vectors and the black star is the empirical mean of the red dots. Contours show the probability density of each distribution.
+	}
 	\label{fig:linear_regression_pdfs}
 \end{figure}
 
-These results suggest that SGD does not sample parameter vectors from the true posterior distribution. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For the right value of $\lambda$, the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected from the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely, since in that case the posterior cannot be compute in closed form, which makes hyperparameter tuning far more difficult. These results suggest that SWAG and similar techniques do not actually do approximate Bayesian inference, but are rather elaborate ensemble methods. 
+These results suggest that SGD does not sample parameter vectors from the true posterior distribution. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For the right value of $\lambda$, the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected from the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely, since in that case the posterior cannot be compute in closed form, which makes hyperparameter tuning far more difficult. These results suggest that SWAG does not actually do approximate Bayesian inference, contrary to what is claimed in \cite{maddox2019}.
 
 
 \section{Making Predictions}
 
+Regardless of whether SWAG does Bayesian inference or not, it was shown in \cite{maddox2019} that this method can lead to more accurate predictions. Once a Gaussian distribution has been learned from the SGD iterates, parameter vectors of the model can easily be sampled. For each sampled parameter vector, the resultant model can be used to make a different set of predictions for the test data. Final predictions are then obtained by averaging the predictions from all models. The aim of the experiments in this section is to test, for linear regression, whether this approach leads to more accurate predictions than standard SGD, when the Gaussian distribution of the parameter vectors is a FA model learned by either online SGA or online EM. 
+
 \subsection{Methodology}
+
+For these experiments, four real regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency}, Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{||c c c ||} 
+			\hline
+ 			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
+			\hline\hline
+			Energy Efficiency & 768 & 8 \\
+ 			\hline
+ 			Boston Housing & 506 & 13 \\ 
+ 			\hline
+ 			Concrete Compressive Strength & 1030 & 8 \\
+ 			\hline
+ 			Yacht Hydrodynamics & 308 & 6 \\ [1ex] 
+ 			\hline
+		\end{tabular}
+		\caption{UCI regression datasets used in experiments with linear regression.}
+		\label{table:uci_datasets}
+	\end{center}
+\end{table}
+
+For each dataset, the model was pre-trained for 500 epochs of SGD with a learning rate of 0.001, as in the synthetic experiments in Section \ref{sec:linear_regression_posterior_experiments}. Then, starting from the pre-trained model, a further 100 epochs of SGD were execute. During this time, the parameter vectors sampled after each mini-batch gradient update were used to fit two FA models, one via online SGA and another via online EM. For these final 100 epochs, a learning rate of 0.1 and weight decay of 0.001 were used. These hyperparameters was chosen since it was observed in Figure \ref{fig:linear_regression_pdfs} that this setting produced samples most representative of the true posterior for the synthetic data. During the pre-training phase, the weight decay was also set to 0.001 to make for a fairer comparison with the pre-trained model. For all epochs, the batch size was set to one tenth of the size of the full dataset. Both FA models had a latent dimension of 3. Following the approach in the experiments in Chapter \ref{ch:online_fa_experiments}, the first 100 sampled parameter vectors were only used to update the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, while $\matr{F}$ and $\Psi$ remained fixed. Again, the FA model updated via online SGA used a learning rate of 0.001. After training, test predictions were made using the pre-trained parameter vector, the empirical mean of the sampled parameter vectors (SWA solution) and two ensembles, one for each FA model. Each ensemble was constructed by sampling 30 parameter vectors from the FA model and averaging the resultant predictions, as in the UCI regression experiments in \cite{maddox2019}. This process was repeated for 10 folds of cross-validation. Within each fold, the input features where standardised why subtracting their mean and dividing by their standard deviation, where these statistics were calculated using the fold's training data only. 
 
 
 \subsection{Results and Discussion}
+
+Figure \ref{fig:linear_regression_mse} shows the average test mean squared error for each dataset and prediction method. The average errors were computed over 10 folds of cross-validation, and standard error bars are also plotted. Across all datasets, the SWA solution and the FA ensemble learned via online EM are the best prediction methods in general in terms of the average error. These two methods achieved almost identical results on all datasets. On three out of the four datasets they achieve lower average error than the pre-trained solution. The difference is relatively large in the case of the Energy Efficiency dataset, but for all other datasets the standard error bars have significant overlap. 
+
+These results suggest that, in the case of linear regression, fitting a FA model to the SGD iterates via online EM can lead to more accurate predictions compared to standard SGD. However, this approach does not seem to improve on the much simpler SWA solution. Note that, in the case of linear regression, an ensemble of $M$ parameter vectors sampled from a FA model can be written as 
+\begin{equation}
+	\frac{1}{M} \sum_{m=1}^M \theta_m^\intercal \matr{x} 
+	= \Bigg( \frac{1}{M} \sum_{m=1}^M \theta_m^\intercal \Bigg) \matr{x} 
+	= \theta_{\text{FA}}^\intercal \matr{x}.
+\end{equation}
+Hence, if the learned FA model is a good approximation of the empirical Gaussian distribution of the SGD iterates, $\theta_{\text{FA}}$ will be similar to $\theta_{\text{SWA}}$ for large $M$. This observation suggests that, if the accuracy of linear regression predictions is all that matters, the best approach is to use $\theta_{\text{SWA}}$.
+
+\begin{figure}[!htbp] 
+	\begin{tabular}{cc}
+		\includegraphics[width=70mm]{plots/linear_regression_predictions_mse__energy_efficiency.png}
+		& \includegraphics[width=70mm]{plots/linear_regression_predictions_mse__boston_housing.png} \\
+		(a) Energy Efficiency 
+		 & (b) Boston Housing \\[6pt] 
+		 \includegraphics[width=70mm]{plots/linear_regression_predictions_mse__concrete_strength.png} 
+		 & \includegraphics[width=70mm]{plots/linear_regression_predictions_mse__yacht_hydrodynamics.png} \\
+		 (c) Concrete Compressive Strength 
+		 & (d) Yacht Hydrodynamics \\[6pt]
+	\end{tabular}
+	\caption{Average test mean squared error of linear regression models on four UCI regression datasets. Results are show for four different prediction methods: using the pre-trained parameter vector, using the SWA solution and two ensembles formed by sampling parameter vectors from FA models fit to the SGD iterates, one via online SGA and another learned via online EM. The markers show the average test error over 10 folds of cross-validation, and standard error bars are also plotted.}
+	\label{fig:linear_regression_mse}
+\end{figure}
 
 
 
@@ -900,25 +953,7 @@ These results suggest that SGD does not sample parameter vectors from the true p
 
 %The aim of these experiments is to test how well the online FA algorithms, fit to the weight vectors sampled during SGD while training a linear regression model, are able to approximate the true posterior distribution of the weights. For this purpose, four real regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength}, Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
 
-%\begin{table}[h!]
-%	\begin{center}
-%		\begin{tabular}{||c c c ||} 
-% 			\hline
-% 			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
-% 			\hline\hline
-% 			Boston Housing & 506 & 13 \\ 
-% 			\hline
-% 			Concrete Compressive Strength & 1030 & 8 \\
-% 			\hline
-% 			Energy Efficiency & 768 & 8 \\
-% 			\hline
-% 			Yacht Hydrodynamics & 308 & 6 \\ [1ex] 
-% 			\hline
-%		\end{tabular}
-%		\caption{UCI regression datasets used in experiments with linear models.}
-%		\label{table:uci_datasets}
-%	\end{center}
-%\end{table}
+
 
 %In each experiment, a linear regression model was trained on one of these datasets via mini-batch SGD for 1000 epochs, with a batch size of 32. The L2 regularisation strength was set to $\lambda = \frac{\alpha}{\beta}$. Recall that $\beta$ is just the reciprocal of the variance of the target variable and $\alpha$ is a hyperparameter which controls the width of the prior on the linear regression weights. Both $\alpha$ and $\beta$ are used when computing $\matr{A}$ in Equation \ref{eqn:linear_model_A_and_b}. In order to balance the effect of the prior term and the data term, $\alpha$ was set to $0.01$ times the mean of the diagonal entries of $\beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal$.
 %
