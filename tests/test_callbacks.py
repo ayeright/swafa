@@ -12,15 +12,20 @@ from swafa.posterior import ModelPosterior
 class TestWeightPosteriorUpdate:
 
     @pytest.mark.parametrize(
-        "n_samples, batch_size, n_epochs, update_epoch_start, expected_n_updates",
+        "n_samples, batch_size, n_epochs, update_epoch_start, iterate_averaging_window_size, expected_n_updates",
         [
-            (32, 4, 5, 1, int(32 / 4) * 5),
-            (32, 4, 5, 3, int(32 / 4) * (5 - 2)),
-            (32, 4, 8, 0.5, int(32 / 4) * (8 - 3)),
-            (32, 4, 9, 0.5, int(32 / 4) * (9 - 3)),
+            (32, 4, 5, 1, 1, int(32 / 4) * 5),
+            (32, 4, 5, 3, 1, int(32 / 4) * (5 - 2)),
+            (32, 4, 8, 0.5, 1, int(32 / 4) * (8 - 3)),
+            (32, 4, 9, 0.5, 1, int(32 / 4) * (9 - 3)),
+            (32, 4, 5, 1, 2, (int(32 / 4) * 5 / 2)),
+            (32, 4, 5, 3, 2, (int(32 / 4) * (5 - 2) / 2)),
+            (32, 4, 8, 0.5, 2, (int(32 / 4) * (8 - 3) / 2)),
+            (32, 4, 9, 0.5, 2, (int(32 / 4) * (9 - 3) / 2)),
         ]
     )
-    def test_posterior_updates(self, n_samples, batch_size, n_epochs, update_epoch_start, expected_n_updates):
+    def test_posterior_updates(self, n_samples, batch_size, n_epochs, update_epoch_start, iterate_averaging_window_size,
+                               expected_n_updates):
         input_dim = 4
         hidden_dims = [8, 8]
         net = FeedForwardNet(input_dim, hidden_dims)
@@ -34,6 +39,7 @@ class TestWeightPosteriorUpdate:
         callback = WeightPosteriorCallback(
             posterior=model_posterior.weight_posterior,
             update_epoch_start=update_epoch_start,
+            iterate_averaging_window_size=iterate_averaging_window_size,
         )
 
         trainer = Trainer(max_epochs=n_epochs, callbacks=[callback])
@@ -84,3 +90,27 @@ class TestWeightPosteriorUpdate:
 
         with pytest.raises(RuntimeError):
             trainer.fit(net, train_dataloader=dataloader)
+
+    def test_update_weight_window_average(self):
+        input_dim = 10
+        net = FeedForwardNet(input_dim=input_dim, bias=False)
+
+        model_posterior = ModelPosterior(
+            model=net,
+            weight_posterior_class=OnlineGradientFactorAnalysis,
+            weight_posterior_kwargs=dict(latent_dim=3),
+        )
+
+        callback = WeightPosteriorCallback(
+            posterior=model_posterior.weight_posterior,
+            update_epoch_start=1,
+        )
+
+        weights1 = torch.randn(input_dim)
+        callback._weight_window_average = torch.clone(weights1)
+        callback._window_index = 1
+        weights2 = torch.randn(input_dim)
+        callback._update_weight_window_average(weights2)
+
+        assert torch.isclose(callback._weight_window_average, (weights1 + weights2) / 2).all()
+        assert callback._window_index == 2
