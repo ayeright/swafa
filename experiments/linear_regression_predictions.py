@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import torch
 from torch import Tensor
@@ -21,6 +21,7 @@ from swafa.callbacks import WeightPosteriorCallback
 from swafa.fa import OnlineGradientFactorAnalysis, OnlineEMFactorAnalysis, OnlineFactorAnalysis
 from swafa.posterior import ModelPosterior
 from experiments.utils.factory import OPTIMISER_FACTORY
+from experiments.utils.metrics import pinball_loss
 
 
 def run_all_experiments(
@@ -82,6 +83,18 @@ def run_all_experiments(
             - mse_swa: (float) The test MSE of the average weight vector (SWA solution).
             - mse_gradient_fa: (float) The test MSE of the ensemble constructed from the online gradient FA posterior.
             - mse_em_fa: (float) The test MSE of the ensemble constructed from the online EM FA posterior.
+            - pinball05_pretrained: (float) The pinball loss with alpha=0.05 of the pre-trained weight vector.
+            - pinball05_swa: (float) The pinball loss with alpha=0.05 of the average weight vector (SWA solution).
+            - pinball05_gradient_fa: (float) The pinball loss with alpha=0.05 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball05_em_fa: (float) The pinball loss with alpha=0.05 of the ensemble constructed from the online EM FA
+                posterior.
+            - pinball95_pretrained: (float) The pinball loss with alpha=0.95 of the pre-trained weight vector.
+            - pinball95_swa: (float) The pinball loss with alpha=0.95 of the average weight vector (SWA solution).
+            - pinball95_gradient_fa: (float) The pinball loss with alpha=0.95 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball95_em_fa: (float) The pinball loss with alpha=0.95 of the ensemble constructed from the online EM FA
+                posterior.
             - dataset: (str) The name of the dataset.
             - fold: (int) The index of the cross-validation fold.
     """
@@ -172,6 +185,18 @@ def run_dataset_experiments(
             - mse_swa: (float) The test MSE of the average weight vector (SWA solution).
             - mse_gradient_fa: (float) The test MSE of the ensemble constructed from the online gradient FA posterior.
             - mse_em_fa: (float) The test MSE of the ensemble constructed from the online EM FA posterior.
+            - pinball05_pretrained: (float) The pinball loss with alpha=0.05 of the pre-trained weight vector.
+            - pinball05_swa: (float) The pinball loss with alpha=0.05 of the average weight vector (SWA solution).
+            - pinball05_gradient_fa: (float) The pinball loss with alpha=0.05 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball05_em_fa: (float) The pinball loss with alpha=0.05 of the ensemble constructed from the online EM FA
+                posterior.
+            - pinball95_pretrained: (float) The pinball loss with alpha=0.95 of the pre-trained weight vector.
+            - pinball95_swa: (float) The pinball loss with alpha=0.95 of the average weight vector (SWA solution).
+            - pinball95_gradient_fa: (float) The pinball loss with alpha=0.95 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball95_em_fa: (float) The pinball loss with alpha=0.95 of the ensemble constructed from the online EM FA
+                posterior.
             - dataset: (str) The name of the dataset.
             - fold: (int) The index of the cross-validation fold.
     """
@@ -285,6 +310,18 @@ def run_cv_fold(
             - mse_swa: (float) The test MSE of the average weight vector (SWA solution).
             - mse_gradient_fa: (float) The test MSE of the ensemble constructed from the online gradient FA posterior.
             - mse_em_fa: (float) The test MSE of the ensemble constructed from the online EM FA posterior.
+            - pinball05_pretrained: The pinball loss with alpha=0.05 of the pre-trained weight vector.
+            - pinball05_swa: The pinball loss with alpha=0.05 of the average weight vector (SWA solution).
+            - pinball05_gradient_fa: The pinball loss with alpha=0.05 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball05_em_fa: The pinball loss with alpha=0.05 of the ensemble constructed from the online EM FA
+                posterior.
+            - pinball95_pretrained: The pinball loss with alpha=0.95 of the pre-trained weight vector.
+            - pinball95_swa: The pinball loss with alpha=0.95 of the average weight vector (SWA solution).
+            - pinball95_gradient_fa: The pinball loss with alpha=0.95 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball95_em_fa: The pinball loss with alpha=0.95 of the ensemble constructed from the online EM FA
+                posterior.
     """
     scaler = StandardScaler()
     X_train = torch.from_numpy(scaler.fit_transform(X_train)).float()
@@ -330,7 +367,7 @@ def run_cv_fold(
         batch_size=batch_size,
     )
 
-    mse_pretrained, mse_swa, mse_gradient_fa, mse_em_fa = evaluate_model(
+    return evaluate_model(
         X=X_test,
         y=y_test,
         w_pretrained=w_pretrained,
@@ -339,13 +376,6 @@ def run_cv_fold(
         em_posterior=em_posterior_update_callback.posterior,
         n_posterior_samples=n_posterior_samples,
         random_seed=posterior_random_seed,
-    )
-
-    return dict(
-        mse_pretrained=mse_pretrained,
-        mse_swa=mse_swa,
-        mse_gradient_fa=mse_gradient_fa,
-        mse_em_fa=mse_em_fa,
     )
 
 
@@ -462,11 +492,10 @@ def evaluate_model(
         em_posterior: OnlineEMFactorAnalysis,
         n_posterior_samples: int,
         random_seed: int,
-) -> (float, float, float, float):
+) -> Dict[str, float]:
     """
-    Compute the mean squared error (MSE) of the pre-trained weights, the average weights (SWA solution) and the two
-    ensembles constructed from the online gradient FA posterior and the online expectation-maximisation (EM) FA
-    posterior.
+    Compute metrics for the pre-trained weights, the average weights (SWA solution) and the two ensembles constructed
+    from the online gradient FA posterior and the online expectation-maximisation (EM) FA posterior.
 
     Args:
         X: The features. Of shape (n_samples, n_features).
@@ -479,11 +508,23 @@ def evaluate_model(
             ensemble.
         random_seed: The random seed to use when drawing samples from the posteriors.
 
-    Returns:
-        mse_pretrained: The MSE of the pre-trained weight vector.
-        mse_swa: The MSE of the average weight vector (SWA solution).
-        mse_gradient_fa: The MSE of the ensemble constructed from the online gradient FA posterior.
-        mse_em_fa: The MSE of the ensemble constructed from the online EM FA posterior.
+    Returns: The metrics. Has the following keys:
+            - mse_pretrained: The MSE of the pre-trained weight vector.
+            - mse_swa: The MSE of the average weight vector (SWA solution).
+            - mse_gradient_fa: The MSE of the ensemble constructed from the online gradient FA posterior.
+            - mse_em_fa: The MSE of the ensemble constructed from the online EM FA posterior.
+            - pinball05_pretrained: The pinball loss with alpha=0.05 of the pre-trained weight vector.
+            - pinball05_swa: The pinball loss with alpha=0.05 of the average weight vector (SWA solution).
+            - pinball05_gradient_fa: The pinball loss with alpha=0.05 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball05_em_fa: The pinball loss with alpha=0.05 of the ensemble constructed from the online EM FA
+                posterior.
+            - pinball95_pretrained: The pinball loss with alpha=0.95 of the pre-trained weight vector.
+            - pinball95_swa: The pinball loss with alpha=0.95 of the average weight vector (SWA solution).
+            - pinball95_gradient_fa: The pinball loss with alpha=0.95 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball95_em_fa: The pinball loss with alpha=0.95 of the ensemble constructed from the online EM FA
+                posterior.
     """
     y_hat_pretrained = affine_transformation(X, w_pretrained, b_pretrained)
 
@@ -503,12 +544,20 @@ def evaluate_model(
         random_seed=random_seed,
     )
 
-    mse_pretrained = mse_loss(y_hat_pretrained, y).item()
-    mse_swa = mse_loss(y_hat_swa, y).item()
-    mse_gradient_fa = mse_loss(y_hat_gradient_fa, y).item()
-    mse_em_fa = mse_loss(y_hat_em_fa, y).item()
-
-    return mse_pretrained, mse_swa, mse_gradient_fa, mse_em_fa
+    return dict(
+        mse_pretrained=mse_loss(y_hat_pretrained, y).item(),
+        mse_swa=mse_loss(y_hat_swa, y).item(),
+        mse_gradient_fa=mse_loss(y_hat_gradient_fa, y).item(),
+        mse_em_fa=mse_loss(y_hat_em_fa, y).item(),
+        pinball05_pretrained=pinball_loss(y, y_hat_pretrained, alpha=0.05),
+        pinball05_swa=pinball_loss(y, y_hat_swa, alpha=0.05),
+        pinball05_gradient_fa=pinball_loss(y, y_hat_gradient_fa, alpha=0.05),
+        pinball05_em_fa=pinball_loss(y, y_hat_em_fa, alpha=0.05),
+        pinball95_pretrained=pinball_loss(y, y_hat_pretrained, alpha=0.95),
+        pinball95_swa=pinball_loss(y, y_hat_swa, alpha=0.95),
+        pinball95_gradient_fa=pinball_loss(y, y_hat_gradient_fa, alpha=0.95),
+        pinball95_em_fa=pinball_loss(y, y_hat_em_fa, alpha=0.95),
+    )
 
 
 def swa_predict(X: Tensor, posterior: OnlineFactorAnalysis) -> Tensor:

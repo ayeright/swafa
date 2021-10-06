@@ -96,3 +96,20 @@ def matrix_sqrt(A: Tensor) -> Tensor:
     psigma_diag = torch.sqrt(eigenvalues[above_cutoff])
     eigenvectors = eigenvectors[:, above_cutoff]
     return eigenvectors.mm(torch.diag(psigma_diag)).mm(eigenvectors.t()).type(A.dtype)
+
+
+def pinball_loss(y: Tensor, y_hat: Tensor, alpha: float) -> float:
+    """
+    Compute the average pinball loss of the given targets and predictions.
+
+    For more details see http://josephsalmon.eu/enseignement/UW/STAT593/QuantileRegression.pdf.
+
+    Args:
+        y: The true targets. Of shape (n,).
+        y_hat: The predicted targets. Of shape (n,).
+        alpha: The quantile for which to compute the loss.
+
+    Returns:
+        The average pinball loss.
+    """
+    return torch.maximum(alpha * (y - y_hat), (1 - alpha) * (y_hat - y)).mean().item()

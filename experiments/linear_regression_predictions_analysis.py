@@ -18,11 +18,25 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str):
             - mse_swa: (float) The test MSE of the average weight vector (SWA solution).
             - mse_gradient_fa: (float) The test MSE of the ensemble constructed from the online gradient FA posterior.
             - mse_em_fa: (float) The test MSE of the ensemble constructed from the online EM FA posterior.
+            - pinball05_pretrained: (float) The pinball loss with alpha=0.05 of the pre-trained weight vector.
+            - pinball05_swa: (float) The pinball loss with alpha=0.05 of the average weight vector (SWA solution).
+            - pinball05_gradient_fa: (float) The pinball loss with alpha=0.05 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball05_em_fa: (float) The pinball loss with alpha=0.05 of the ensemble constructed from the online EM FA
+                posterior.
+            - pinball95_pretrained: (float) The pinball loss with alpha=0.95 of the pre-trained weight vector.
+            - pinball95_swa: (float) The pinball loss with alpha=0.95 of the average weight vector (SWA solution).
+            - pinball95_gradient_fa: (float) The pinball loss with alpha=0.95 of the ensemble constructed from the online
+                gradient FA posterior.
+            - pinball95_em_fa: (float) The pinball loss with alpha=0.95 of the ensemble constructed from the online EM FA
+                posterior.
             - dataset: (str) The name of the dataset.
             - fold: (int) The index of the cross-validation fold.
         analysis_output_dir: The directory path to save the output of the analysis.
     """
-    metric_columns = ['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa']
+    metric_columns = ['mse_pretrained', 'mse_swa', 'mse_gradient_fa', 'mse_em_fa'] + \
+                     ['pinball05_pretrained', 'pinball05_swa', 'pinball05_gradient_fa', 'pinball05_em_fa'] + \
+                     ['pinball95_pretrained', 'pinball95_swa', 'pinball95_gradient_fa', 'pinball95_em_fa']
 
     for dataset_label in results['dataset'].unique():
         dataset_results = results[results['dataset'] == dataset_label]
