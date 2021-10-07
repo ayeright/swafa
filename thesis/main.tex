@@ -919,20 +919,12 @@ For these experiments, four real regression datasets from the UCI Machine Learni
 	\end{center}
 \end{table}
 
-For each dataset, the model was pre-trained for 500 epochs of SGD with a learning rate of 0.001, as in the synthetic experiments in Section \ref{sec:linear_regression_posterior_experiments}. Then, starting from the pre-trained model, a further 100 epochs of SGD were execute. During this time, the parameter vectors sampled after each mini-batch gradient update were used to fit two FA models, one via online SGA and another via online EM. For these final 100 epochs, a learning rate of 0.1 and weight decay of 0.001 were used. These hyperparameters was chosen since it was observed in Figure \ref{fig:linear_regression_pdfs} that this setting produced samples most representative of the true posterior for the synthetic data. During the pre-training phase, the weight decay was also set to 0.001 to make for a fairer comparison with the pre-trained model. For all epochs, the batch size was set to one tenth of the size of the full dataset. Both FA models had a latent dimension of 3. Following the approach in the experiments in Chapter \ref{ch:online_fa_experiments}, the first 100 sampled parameter vectors were only used to update the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, while $\matr{F}$ and $\Psi$ remained fixed. Again, the FA model updated via online SGA used a learning rate of 0.001. After training, test predictions were made using the pre-trained parameter vector, the empirical mean of the sampled parameter vectors (SWA solution) and two ensembles, one for each FA model. Each ensemble was constructed by sampling 30 parameter vectors from the FA model and averaging the resultant predictions, as in the UCI regression experiments in \cite{maddox2019}. This process was repeated for 10 folds of cross-validation. Within each fold, the input features where standardised why subtracting their mean and dividing by their standard deviation, where these statistics were calculated using the fold's training data only. 
+For each dataset, the model was pre-trained for 500 epochs of SGD with a learning rate of 0.001, as in the synthetic experiments in Section \ref{sec:linear_regression_posterior_experiments}. Then, starting from the pre-trained model, a further 100 epochs of SGD were execute. During this time, the parameter vectors sampled after each mini-batch gradient update were used to fit two FA models, one via online SGA and another via online EM. For these final 100 epochs, a learning rate of 0.1 and weight decay of 0.001 were used. These hyperparameters were chosen since it was observed in Figure \ref{fig:linear_regression_pdfs} that this setting produced samples most representative of the true posterior for the synthetic data. During the pre-training phase, the weight decay was also set to 0.001 to make for a fairer comparison with the pre-trained model. For all epochs, the batch size was set to one tenth of the size of the full dataset. Both FA models had a latent dimension of 3. Following the approach in the experiments in Chapter \ref{ch:online_fa_experiments}, the first 100 sampled parameter vectors were only used to update the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, while $\matr{F}$ and $\Psi$ remained fixed. Again, the FA model updated via online SGA used a learning rate of 0.001. After training, test predictions were made using the pre-trained parameter vector, the empirical mean of the sampled parameter vectors (SWA solution) and two ensembles, one for each FA model. Each ensemble was constructed by sampling 30 parameter vectors from the FA model and averaging the resultant predictions, as in the UCI regression experiments in \cite{maddox2019}. This process was repeated for 10 folds of cross-validation. Within each fold, the input features where standardised why subtracting their mean and dividing by their standard deviation, where these statistics were calculated using the fold's training data only. 
 
 
 \subsection{Results and Discussion}
 
-Figure \ref{fig:linear_regression_mse} shows the average test mean squared error for each dataset and prediction method. The average errors were computed over 10 folds of cross-validation, and standard error bars are also plotted. Across all datasets, the SWA solution and the FA ensemble learned via online EM are the best prediction methods in general in terms of the average error. These two methods achieved almost identical results on all datasets. On three out of the four datasets they achieve lower average error than the pre-trained solution. The difference is relatively large in the case of the Energy Efficiency dataset, but for all other datasets the standard error bars have significant overlap. 
-
-These results suggest that, in the case of linear regression, fitting a FA model to the SGD iterates via online EM can lead to more accurate predictions compared to standard SGD. However, this approach does not seem to improve on the much simpler SWA solution. Note that, in the case of linear regression, an ensemble of $M$ parameter vectors sampled from a FA model can be written as 
-\begin{equation}
-	\frac{1}{M} \sum_{m=1}^M \theta_m^\intercal \matr{x} 
-	= \Bigg( \frac{1}{M} \sum_{m=1}^M \theta_m^\intercal \Bigg) \matr{x} 
-	= \theta_{\text{FA}}^\intercal \matr{x}.
-\end{equation}
-Hence, if the learned FA model is a good approximation of the empirical Gaussian distribution of the SGD iterates, $\theta_{\text{FA}}$ will be similar to $\theta_{\text{SWA}}$ for large $M$. This observation suggests that, if the accuracy of linear regression predictions is all that matters, the best approach is to use $\theta_{\text{SWA}}$.
+Figure \ref{fig:linear_regression_mse} shows the average test mean squared error (MSE) for each dataset and prediction method. The average errors were computed over 10 folds of cross-validation, and standard error bars are also plotted. Across all datasets, the SWA solution and the FA ensemble learned via online EM are the best prediction methods in general in terms of the average error. These two methods achieved almost identical results on all datasets. On three out of the four datasets they achieve lower average error than the pre-trained solution. The difference is relatively large in the case of the Energy Efficiency dataset, but for all other datasets the standard error bars have significant overlap. The MSE results, along with the quantile loss, are also given in tabular format in Section \ref{appendix:linear_regression_predictions} of the appendix. 
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
@@ -949,120 +941,13 @@ Hence, if the learned FA model is a good approximation of the empirical Gaussian
 	\label{fig:linear_regression_mse}
 \end{figure}
 
-
-
-%\begin{figure}[!htbp] 
-%		\includegraphics[width=160mm]{plots/linear_model_weight_iterates__lr=0.1__lambda=0.001.png}
-%	\caption{yjyjy}
-%	\label{fig:yjytj}
-%\end{figure}
-
-
-%The aim of these experiments is to test how well the online FA algorithms, fit to the weight vectors sampled during SGD while training a linear regression model, are able to approximate the true posterior distribution of the weights. For this purpose, four real regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength}, Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
-
-
-
-%In each experiment, a linear regression model was trained on one of these datasets via mini-batch SGD for 1000 epochs, with a batch size of 32. The L2 regularisation strength was set to $\lambda = \frac{\alpha}{\beta}$. Recall that $\beta$ is just the reciprocal of the variance of the target variable and $\alpha$ is a hyperparameter which controls the width of the prior on the linear regression weights. Both $\alpha$ and $\beta$ are used when computing $\matr{A}$ in Equation \ref{eqn:linear_model_A_and_b}. In order to balance the effect of the prior term and the data term, $\alpha$ was set to $0.01$ times the mean of the diagonal entries of $\beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal$.
-%
-%Before training began, the factors of two FA models were initialised as described in Section \ref{sec:F_init}. Their observation dimension was set to the number of weights in the linear regression model, as their purpose was to approximate the posterior distribution of the weights. After an initial warm-up period of training the linear model for 10 epochs, the two FA models began to be updated, one via online SGA and the other via online EM (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}, respectively). An update to each FA model was performed using the weight vector sampled after each mini-batch update to the linear model. As in the experiments in Chapter \ref{ch:online_fa_experiments}, $\matr{F}$ and $\Psi$ remained fixed during the first 100 updates to the FA models, with only the running average being updated in this period. The SGA updates were performed with a learning rate of 0.001. 
-%
-%The mean and covariance of the true posterior of the linear regression weights, for the specific values of $\alpha$ and $\beta$, were computed prior to training according to Equation \ref{eqn:linear_regression_posterior_params}. After each set of 10 training epochs, the distance between the parameters of the true posterior and the posteriors estimated by the online FA algorithms was computed. For each dataset, this experiment was run with the latent dimension of the FA models set to $K=1, 2, 3$. Each experiment was repeated ten times. In each trial a different random seed was used for initialising the weights of the linear model and also initialising the parameters of the FA models.
-
-
-%Figures \ref{fig:linear_models_empirical_boston_housing}, \ref{fig:linear_models_empirical_concrete_strength}, \ref{fig:linear_models_empirical_energy_efficiency} and \ref{fig:linear_models_empirical_yacht_hydrodynamics} show the results for the Boston Housing, Concrete Compressive Strength, Energy Efficiency and Yacht Hydrodynamics datasets, respectively. 
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__boston_housing} \\
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__boston_housing} 
-%	\end{tabular}
-%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Boston Housing} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_empirical_boston_housing}
-%\end{figure}
-%
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__concrete_strength} \\
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__concrete_strength} 
-%	\end{tabular}
-%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Concrete Compressive Strength} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_empirical_concrete_strength}
-%\end{figure}
-%
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__energy_efficiency} \\
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__energy_efficiency} 
-%	\end{tabular}
-%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Energy Efficiency} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_empirical_energy_efficiency}
-%\end{figure}
-%
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_covar_distance__yacht_hydrodynamics} \\
-%		\includegraphics[width=140mm]{plots/linear_models_empirical_wasserstein__yacht_hydrodynamics} 
-%	\end{tabular}
-%	\caption{Learning the empirical covariance matrix of the weight vectors sampled during SGD while training a linear model on the \textbf{Yacht Hydrodynamics} dataset. Results for batch SVD, online SGA and online EM are show in the left, centre and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the empirical covariance matrix and the learned covariance matrix, divided by the Frobenius norm of the empirical covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the empirical Gaussian distribution and the learned Gaussian distribution. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_empirical_yacht_hydrodynamics}
-%\end{figure}
-
-
-%Figures \ref{fig:linear_models_boston_housing}, \ref{fig:linear_models_concrete_strength}, \ref{fig:linear_models_energy_efficiency} and \ref{fig:linear_models_yacht_hydrodynamics} show the results for the Boston Housing, Concrete Compressive Strength, Energy Efficiency and Yacht Hydrodynamics datasets, respectively. 
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__boston_housing} \\
-%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__boston_housing} \\
-%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__boston_housing} 
-%	\end{tabular}
-%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Boston Housing} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_boston_housing}
-%\end{figure}
-%
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__concrete_strength} \\
-%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__concrete_strength} \\
-%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__concrete_strength} 
-%	\end{tabular}
-%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Concrete Compressive Strength} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_concrete_strength}
-%\end{figure}
-%
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__energy_efficiency} \\
-%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__energy_efficiency} \\
-%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__energy_efficiency} 
-%	\end{tabular}
-%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Energy Efficiency} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_energy_efficiency}
-%\end{figure}
-%
-%
-%\begin{figure}[!htbp] 
-%	\centering
-%	\begin{tabular}{cc}
-%		\includegraphics[width=140mm]{plots/linear_models_mean_distance__yacht_hydrodynamics} \\
-%		\includegraphics[width=140mm]{plots/linear_models_covariance_distance__yacht_hydrodynamics} \\
-%		\includegraphics[width=140mm]{plots/linear_models_wasserstein__yacht_hydrodynamics} 
-%	\end{tabular}
-%	\caption{This figure show how well the online FA algorithms are able to learn the posterior distribution of the weights of a linear model trained on the \textbf{Yacht Hydrodynamics} dataset. Results for online SGA and online EM are show in the left and right axes, respectively. \textbf{Top row}: the Frobenius norm of the difference between the true mean and the estimated mean divided by the Frobenius norm of the true mean. \textbf{Middle row}: the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. \textbf{Bottom row}: the 2-Wasserstein distance between the true posterior and the estimated posterior. Each line corresponds to a different latent dimension for the learned FA models. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted.}
-%	\label{fig:linear_models_yacht_hydrodynamics}
-%\end{figure}
+These results suggest that, in the case of linear regression, fitting a FA model to the SGD iterates via online EM can lead to more accurate predictions compared to standard SGD. However, this approach does not seem to improve on the much simpler SWA solution. Note that, in the case of linear regression, an ensemble of $M$ parameter vectors sampled from a FA model can be written as 
+\begin{equation}
+	\frac{1}{M} \sum_{m=1}^M \theta_m^\intercal \matr{x} 
+	= \Bigg( \frac{1}{M} \sum_{m=1}^M \theta_m^\intercal \Bigg) \matr{x} 
+	= \theta_{\text{FA}}^\intercal \matr{x}.
+\end{equation}
+Hence, if the learned FA model is a good approximation of the empirical Gaussian distribution of the SGD iterates, $\theta_{\text{FA}}$ will be similar to $\theta_{\text{SWA}}$ for large $M$. This observation suggests that, if the accuracy of linear regression predictions is all that matters, the best approach is to use $\theta_{\text{SWA}}$.
 
 
 %\chapter{Gaussian Processes Experiments}
@@ -1096,14 +981,46 @@ usual late penalties based on your final submission time.
 \bibliographystyle{plain}
 \bibliography{main}
 
-%% You can include appendices like this:
-% \appendix
-%
-% \chapter{First appendix}
-%
-% \section{First section}
-%
-% Markers do not have to consider appendices. Make sure that your contributions
-% are made clear in the main body of the dissertation (within the page limit).
+% You can include appendices like this:
+ \appendix
+
+ \chapter{Supplementary Results}
+
+ \section{Linear Regression Predictions}\label{appendix:linear_regression_predictions}
+ 
+ \begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{|| p{0.21\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} ||} 
+ 			\hline
+ 			Dataset & Pre-trained & SWA & SGA-FA & EM-FA \\ [0.5ex] 
+ 			\hline\hline
+			Energy Efficiency & $10.13 \pm 0.55$ & $8.74 \pm 0.54$ & $8.93 \pm 0.53$ & $\bf{8.73 \pm 0.54}$ \\
+			Boston Housing & $23.69 \pm 2.25$ & $\bf{23.27 \pm 2.07}$ & $23.69 \pm 2.06$ & $23.46 \pm 2.06$ \\
+			Concrete Strength & $112.44 \pm 6.93$ & $109.83 \pm 6.44$ & $109.84 \pm 6.30$ & $\bf{109.79 \pm 6.41}$ \\
+			Yacht Hydro. & $\bf{82.43 \pm 7.28}$ & $82.54 \pm 7.27$ & $83.35 \pm 7.78$ & $82.83 \pm 7.42$ \\ [1ex] 
+			\hline
+		\end{tabular}
+		\caption{}
+		\label{table:linear_regression_mse}
+	\end{center}
+\end{table}
+
+%\begin{table}[h!]
+%	\begin{center}
+%		\begin{tabular}{|| p{0.25\linewidth} p{0.15\linewidth} p{0.15\linewidth} p{0.15\linewidth} p{0.15\linewidth} ||} 
+% 			\hline
+% 			Dataset & Pre-trained & SWA & SGA-FA & EM-FA \\ [0.5ex] 
+% 			\hline\hline
+%			Energy Efficiency & $10.13 \pm 0.55$ & $8.74 \pm 0.54$ & $8.93 \pm 0.53$ & $8.73 \pm 0.54$ \\
+%			Boston Housing & $ \pm $ & $ \pm $ & $ \pm $ & $ \pm $ \\
+%			Concrete Strength & $ \pm $ & $ \pm $ & $ \pm $ & $ \pm $ \\
+%			Yacht Hydro. & $ \pm $ & $ \pm $ & $ \pm $ & $ \pm $ \\ [1ex] 
+%			\hline
+%		\end{tabular}
+%		\caption{}
+%		\label{table:linear_regression_mse}
+%	\end{center}
+%\end{table}
+
 
 \end{document}
