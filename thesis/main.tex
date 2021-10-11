@@ -31,6 +31,7 @@
 \newcommand{\E}{\mathbb E}
 \newcommand{\V}{\mathbb V}
 \newcommand{\N}{\mathbb N}
+\newcommand{\D}{\mathbb D}
 \newcommand{\diag}{\mathop{\mathrm{diag}}}
 
 % algorithms
@@ -257,6 +258,30 @@ Hence, the posterior distribution of $\theta$ is
 	p(\theta | \mathcal{D}) = \mathcal{N}(\matr{m}, \matr{S}).
 \end{split}
 \end{align}
+
+
+\section{Variational Inference}\label{sec:vi}
+
+For linear regression, computing the posterior in Equation (\ref{eqn:linear_regression_posterior}) is possible because the log-likelihood, $p(\mathcal{D} | \theta)$, is a quadratic expression of $\theta$. However, when $\theta$ is the parameter vector of a neural network with even a single non-linear hidden layer, the log-likelihood is not so simple and the posterior cannot be written in closed form. Instead, the marginal likelihood, $p(\mathcal{D}) = \int_\theta p(\mathcal{D} | \theta) p(\theta)$, must be evaluated, which is intractable for high-dimensional $\theta$. 
+
+An alternative strategy is to approximate the posterior directly with a Gaussian distribution $q(\theta) = \mathcal{N}(\mu, \Sigma)$, where the parameters $\mu$ and $\Sigma$ are chosen to minimise some measure of distance between $q(\theta)$ and $p(\theta | \mathcal{D})$. Because $q(\theta)$ is essentially a variable in an optimisation procedure, this approach is known as \emph{variational inference} (VI) \cite{barber2007}. A common measure of distance between two distributions is the Kullback-Leibler (KL) divergence \cite{barber2007}, which in this case is
+\begin{align}
+\begin{split}
+	\D_{KL}[q(\theta) \Vert p(\theta | \mathcal{D})] 
+	& = \E_{q(\theta)} \Big[\log \frac{q(\theta)}{p(\theta | \mathcal{D})}\Big] \\
+	& = \E_{q(\theta)} \Big[\log \frac{q(\theta) p(\mathcal{D})}{p(\mathcal{D} | \theta) p(\theta)}\Big] \\
+	& = \E_{q(\theta)} [\log q(\theta) - \log p(\theta) - \log p(\mathcal{D} | \theta) + \log p(\mathcal{D})].
+\end{split}
+\end{align}
+Since $p(\mathcal{D})$ is a constant, the optimal distribution can be obtained by solving 
+\begin{equation}\label{eqn:vi_objective}
+	\min_{\mu, \Sigma} \big[ \E_{q(\theta)} [\log q(\theta)] - \E_{q(\theta)} [\log p(\theta) ] - \E_{q(\theta)} [\log p(\mathcal{D} | \theta)] \big].
+\end{equation}
+One way to do this is by using a stochastic gradient algorithm, which approximates the true gradient of the objective function with Monte Carlo estimates of the form
+\begin{equation}\label{eqn:vi_derivatives}
+	\frac{1}{ML} \sum_{m=1}^M \sum_{l=1}^L \big[ \nabla_{\mu, \Sigma} \log q(\theta_l) - \nabla_{\mu, \Sigma} \log p(\theta_l) -  \nabla_{\mu, \Sigma} \log p(y_m | \matr{x}_m, \theta_l) \big],
+\end{equation}
+where $\{(y_m, \matr{x}_m)\}_{m=1}^M$ is a batch of observed data sampled from $\mathcal{D}$ and $\theta_l \sim \mathcal{N}(\mu, \Sigma)$. Normally it would not be possible to compute partial derivatives with respect to $\mu$ and $\Sigma$, given that they only take part via the random sampling operation. However, this can in fact be done by using the \emph{re-parameterisation trick} \cite{goodfellow2016}. Instead of sampling from $\mathcal{N}(\mu, \Sigma)$ directly, a random variable $\matr{z}_l$ is sampled from $\mathcal{N}(\matr{0}, \matr{I})$ and then transformed to $\theta_l$ via a deterministic operation involving $\mu$ and $\Sigma$. This simple trick means that Equation (\ref{eqn:vi_derivatives}) can be evaluated and used in conjunction with SGD or any of its variants to optimise the objective in Equation (\ref{eqn:vi_objective}). This is the idea behind the \emph{auto-encoding variational Bayes} algorithm \cite{kingma2013}.
 
 
 %\section{Gaussian Processes}\label{sec:gps}
