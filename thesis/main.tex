@@ -731,12 +731,78 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$.
 
 
+\chapter{No Name Yet}
+
+Chapter \ref{ch:online_fa} provides two algorithms which can be used to approximate the posterior distribution of the parameters of a neural network with a FA model, assuming that samples from the true posterior can be obtained via some separate procedure. This chapter describes an alternative method based on VI which learns a FA posterior directly.  
+
+\section{Re-parameterisation Trick for Factor Analysis}
+
+In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate posterior with a Gaussian form. Suppose that the approximate posterior is actually a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Then the Monte Carlo gradient estimates in Equation (\ref{eqn:vi_derivatives}) are constructed from samples of the form 
+\begin{equation}
+	\nabla_{\matr{c}, \matr{F}, \Psi} \log q(\theta) 
+	- \nabla_{\matr{c}, \matr{F}, \Psi} \log p(\theta) 
+	-  \nabla_{\matr{c}, \matr{F}, \Psi} \log p(y_m | \matr{x}_m, \theta),
+\end{equation}
+where $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Using the re-parameterisation trick with Equation (\ref{eqn:fa_model}), the sampling operation can be made an explicit function of $\matr{c}$, $\matr{F}$ and $\Psi$ by setting
+\begin{equation}
+	\theta = \matr{Fh} + \matr{c} + \matr{z} \odot \sqrt{\diag({\Psi})}
+\end{equation}
+from some $\matr{h}, \matr{z} \sim \mathcal{N}(\matr{0}, \matr{I})$, where the square root is applied element-wise. 
+
+\section{Partial Derivatives of Variational Distribution}
+
+Having sampled $\theta$, the partial derivatives $\nabla_{\matr{c}, \matr{F}, \Psi} \log q(\theta)$ can be obtained by starting from modified versions of Equations (\ref{eqn:simplified_grad_log_likelihood}) and (\ref{eqn:log_fa_cond_dist}). Formally,  
+\begin{equation}\label{eqn:partial_derivatives_of_q}
+	\nabla_{\matr{c}, \matr{F}, \Psi} \log q(\theta)
+	= \E_{p(\matr{h} | \theta, \matr{c}, \matr{F}, \Psi)} \big[ \nabla_{\matr{c}, \matr{F}, \Psi} \log p(\theta | \matr{h}, \matr{c}, \matr{F}, \Psi) \big],
+\end{equation}
+where 
+\begin{equation}\label{eqn:log_fa_cond_dist_with_c}
+	\log p(\theta | \matr{h}, \matr{c}, \matr{F}, \Psi)
+	= -\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi.
+\end{equation}
+From here, the derivation of $\nabla_{\matr{F}, \Psi} \log q(\theta)$ is the same as that in Section \ref{sec:gradient_fa}, except all instances of $\theta_{\text{SWA}}$ are replaced by $\matr{c}$. To obtain $\nabla_{\matr{c}} \log q(\theta)$, first note that the partial derivates of Equation (\ref{eqn:log_fa_cond_dist_with_c}) with respect to $\matr{c}$ are 
+\begin{equation}
+	\nabla_{\matr{c}} \log p(\theta | \matr{h}, \matr{c}, \matr{F}, \Psi) = \Psi^{-1} (\theta - \matr{Fh} - \matr{c}),
+\end{equation}
+which follows from the fact that
+\begin{equation}
+	\nabla_\matr{s} (\matr{x} - \matr{s})^\intercal \matr{W} (\matr{x} - \matr{s}) = -2\matr{W} (\matr{x} - \matr{s})
+\end{equation}
+for any symmetric matrix $\matr{W}$ \cite{petersen2012}. Hence, substituting into Equation (\ref{eqn:partial_derivatives_of_q}),
+\begin{align}
+\begin{split}
+	\nabla_{\matr{c}} \log q(\theta) 
+	& = \E_{p(\matr{h} | \theta, \matr{c}, \matr{F}, \Psi)} \big[ \Psi^{-1} (\theta - \matr{Fh} - \matr{c}) \big] \\
+	& = \Psi^{-1} (\theta - \matr{F} \E_{p(\matr{h} | \theta, \matr{c}, \matr{F}, \Psi)}[\matr{h}]  - \matr{c}) \\
+	& = \Psi^{-1} (\theta - \matr{Fm} - \matr{c}),
+\end{split}
+\end{align}
+where $\matr{m}$ is given by replacing $\theta_{\text{SWA}}$ with $\matr{c}$ in Equation \ref{eqn:variational_params}.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 \chapter{Online Factor Analysis Experiments}\label{ch:online_fa_experiments}
 
 
 \section{Methodology}
 
-The aim of these experiments is to test how well the online FA algorithms from Section \ref{sec:fa} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both online FA algorithms (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}) by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
+The aim of these experiments is to test how well the online FA algorithms from Chapter \ref{ch:online_fa} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both online FA algorithms (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}) by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
 \begin{equation}
 	(\matr{F} \matr{A}) (\matr{F} \matr{A})^\intercal + \Psi
 	= \matr{F} \matr{A} \matr{A}^\intercal \matr{F}^\intercal + \Psi
