@@ -737,50 +737,81 @@ Chapter \ref{ch:online_fa} provides two algorithms which can be used to approxim
 
 \section{Re-parameterisation Trick for Factor Analysis}
 
-In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate posterior with a Gaussian form. Suppose that the approximate posterior is actually a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Then the Monte Carlo gradient estimates in Equation (\ref{eqn:vi_derivatives}) are constructed from samples of the form 
-\begin{equation}
+In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate posterior with a Gaussian form. Suppose that the approximate posterior is actually a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ for some $\matr{c} \in \R^D$, $\matr{F} \in \R^{D \times K}$ and $D \times D$ diagonal matrix $\Psi$. Then the Monte Carlo gradient estimates in Equation (\ref{eqn:vi_derivatives}) are constructed from samples of the form 
+\begin{equation}\label{eqn:vi_fa_derivatives}
 	\nabla_{\matr{c}, \matr{F}, \Psi} \log q(\theta) 
 	- \nabla_{\matr{c}, \matr{F}, \Psi} \log p(\theta) 
 	-  \nabla_{\matr{c}, \matr{F}, \Psi} \log p(y_m | \matr{x}_m, \theta),
 \end{equation}
 where $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Using the re-parameterisation trick with Equation (\ref{eqn:fa_model}), the sampling operation can be made an explicit function of $\matr{c}$, $\matr{F}$ and $\Psi$ by setting
-\begin{equation}
-	\theta = \matr{Fh} + \matr{c} + \matr{z} \odot \sqrt{\diag({\Psi})}
+\begin{equation}\label{eqn:fa_reparam_trick}
+	\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
 \end{equation}
-from some $\matr{h}, \matr{z} \sim \mathcal{N}(\matr{0}, \matr{I})$, where the square root is applied element-wise. 
+from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$. Given $\theta$, the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}) can then be evaluated. 
 
-\section{Partial Derivatives of Variational Distribution}
+\section{Computing the Partial Derivatives}
 
-Having sampled $\theta$, the partial derivatives $\nabla_{\matr{c}, \matr{F}, \Psi} \log q(\theta)$ can be obtained by starting from modified versions of Equations (\ref{eqn:simplified_grad_log_likelihood}) and (\ref{eqn:log_fa_cond_dist}). Formally,  
-\begin{equation}\label{eqn:partial_derivatives_of_q}
-	\nabla_{\matr{c}, \matr{F}, \Psi} \log q(\theta)
-	= \E_{p(\matr{h} | \theta, \matr{c}, \matr{F}, \Psi)} \big[ \nabla_{\matr{c}, \matr{F}, \Psi} \log p(\theta | \matr{h}, \matr{c}, \matr{F}, \Psi) \big],
-\end{equation}
-where 
-\begin{equation}\label{eqn:log_fa_cond_dist_with_c}
-	\log p(\theta | \matr{h}, \matr{c}, \matr{F}, \Psi)
-	= -\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi.
-\end{equation}
-From here, the derivation of $\nabla_{\matr{F}, \Psi} \log q(\theta)$ is the same as that in Section \ref{sec:gradient_fa}, except all instances of $\theta_{\text{SWA}}$ are replaced by $\matr{c}$. To obtain $\nabla_{\matr{c}} \log q(\theta)$, first note that the partial derivates of Equation (\ref{eqn:log_fa_cond_dist_with_c}) with respect to $\matr{c}$ are 
-\begin{equation}
-	\nabla_{\matr{c}} \log p(\theta | \matr{h}, \matr{c}, \matr{F}, \Psi) = \Psi^{-1} (\theta - \matr{Fh} - \matr{c}),
-\end{equation}
-which follows from the fact that
-\begin{equation}
-	\nabla_\matr{s} (\matr{x} - \matr{s})^\intercal \matr{W} (\matr{x} - \matr{s}) = -2\matr{W} (\matr{x} - \matr{s})
-\end{equation}
-for any symmetric matrix $\matr{W}$ \cite{petersen2012}. Hence, substituting into Equation (\ref{eqn:partial_derivatives_of_q}),
+Having generated $\theta$ according to Equation (\ref{eqn:fa_reparam_trick}),
 \begin{align}
 \begin{split}
-	\nabla_{\matr{c}} \log q(\theta) 
-	& = \E_{p(\matr{h} | \theta, \matr{c}, \matr{F}, \Psi)} \big[ \Psi^{-1} (\theta - \matr{Fh} - \matr{c}) \big] \\
-	& = \Psi^{-1} (\theta - \matr{F} \E_{p(\matr{h} | \theta, \matr{c}, \matr{F}, \Psi)}[\matr{h}]  - \matr{c}) \\
-	& = \Psi^{-1} (\theta - \matr{Fm} - \matr{c}),
+	\log q(\theta)
+	& = -\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
+	& = -\frac{1}{2} (\Psi^{1/2} \matr{z})^\intercal \Psi^{-1} (\Psi^{1/2} \matr{z}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
+	& = -\frac{1}{2} \matr{z}^\intercal (\Psi^{1/2} \Psi^{-1} \Psi^{1/2}) \matr{z} - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
+	& = -\frac{1}{2} \matr{z}^\intercal \matr{z} - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi.
 \end{split}
 \end{align}
-where $\matr{m}$ is given by replacing $\theta_{\text{SWA}}$ with $\matr{c}$ in Equation \ref{eqn:variational_params}.
+Hence, $\nabla_{\matr{c}} \log q(\theta) = \matr{0}^D$, $\nabla_{\matr{F}} \log q(\theta) = \matr{0}^{D \times K}$ and 
+\begin{align}
+\begin{split}
+	\nabla_{\Psi} \log q(\theta)
+	& = \nabla_\Psi \Big( -\frac{1}{2} \log |\Psi| \Big) \\
+	& = -\frac{1}{2} \Psi^{-1}.
+\end{split}
+\end{align}
+Since these derivatives do not depend on $\matr{h}$ and $\matr{z}$, and using the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$, it follows that
+\begin{equation}
+	\nabla_{\matr{c}} \E[\log q(\theta)] = \matr{0}^D
+\end{equation}
+\begin{equation}
+	\nabla_{\matr{F}} \E[\log q(\theta)] = \matr{0}^{D \times K}
+\end{equation}
+\begin{equation}
+	\nabla_{\Psi} \E[\log q(\theta)] = -\frac{1}{2} \Psi^{-1}.
+\end{equation}
+This means that the partial derivatives of $\log q(\theta)$ can be computed exactly without the need to form a Monte Carlo estimate from samples of $\theta$. 
+
+Now let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ for some precision $\alpha > 0$. Then
+\begin{align}
+\begin{split}
+	\log p(\theta)
+	& = -\frac{1}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})^\intercal \alpha \matr{I} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})  - \frac{1}{2} \log |\alpha^{-1} \matr{I}| - \frac{D}{2} \log 2\pi \\
+	& = -\frac{\alpha}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})^\intercal (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) + \frac{n}{2} \log \alpha - \frac{D}{2} \log 2\pi.
+\end{split}
+\end{align}
+Hence, using the matrix calculus identities in \cite{petersen2012},
+\begin{equation}
+	\nabla_\matr{c} \log p(\theta) = \alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}),
+\end{equation}
+\begin{equation}
+	\nabla_\matr{F} \log p(\theta) = \alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{h}^\intercal,
+\end{equation}
+\begin{equation}
+	\nabla_\Psi \log p(\theta) = \alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{z}^\intercal.
+\end{equation}
+Since $\matr{h}$ and $\matr{z}$ are independent variables with zero mean and unit covariance, it follows that
+\begin{equation}
+	\nabla_\matr{c} \E[\log p(\theta)] = \alpha (\matr{Fh} + \matr{c}),
+\end{equation}
+\begin{equation}
+	\nabla_\matr{F} \E[\log p(\theta)] = \alpha \matr{F},
+\end{equation}
+\begin{equation}
+	\nabla_\Psi \E[\log p(\theta)] = \Psi^{1/2}.
+\end{equation}
 
 
+\section{Partial Derivatives of the Likelihood}
 
 
 
