@@ -390,12 +390,11 @@ where $\{(y_m, \matr{x}_m)\}_{m=1}^M$ is a batch of observed data sampled from $
 
 \chapter{Online Factor Analysis}\label{ch:online_fa}
 
+This chapter describes three algorithms which can be used to approximate the posterior distribution of the parameter vector of a neural network with a FA model. The first two algorithms fit a FA model to samples of the posterior obtained via some separate procedure, while the third algorithm estimates the FA posterior directly. Crucially, all three algorithms are executed online in an iterative fashion, making them suitable for high-dimensional deep neural networks. 
 
 \section{Online Stochastic Gradient Ascent}\label{sec:gradient_fa}
 
-In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. 
-
-In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ given the observed data, $\theta_1,\dots,\theta_T$, is 
+Suppose first that samples from the posterior, $\theta_1,\dots,\theta_T$, are readily available. In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ given the observed data is 
 \begin{equation}
 	L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \log p(\theta_t | \matr{F}, \Psi).
 \end{equation}
@@ -585,9 +584,7 @@ One final point is that the elements of $\psi$ must be positive, since they repr
 	& = \nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi) \odot \psi,
 \end{split}
 \end{align} 
-where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\ref{eqn:efficient_derivatives_wrt_Psi}).
-
-Pseudo code for online stochastic gradient ascent (SGA) for FA is given in Algorithm \ref{alg:gradient_fa}.
+where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\ref{eqn:efficient_derivatives_wrt_Psi}). Pseudo code for the practical implementation is given in Algorithm \ref{alg:gradient_fa}.
 
 \begin{algorithm}[!htbp] 
 	\caption{Online Stochastic Gradient Ascent for Factor Analysis}
@@ -620,7 +617,7 @@ Pseudo code for online stochastic gradient ascent (SGA) for FA is given in Algor
 
 \section{Online Expectation-Maximisation}\label{sec:online_em}
 
-The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
+Again suppose that samples from the posterior, $\theta_1,\dots,\theta_T$, are available. The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
 \begin{equation}\label{eqn:EM_bound}
 	L(\matr{F}, \Psi) \geq 
 	- \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log q(\matr{h}_t | \theta_t)\big]
@@ -669,7 +666,7 @@ and
 \begin{equation}\label{eqn:em_Psi_incremental_update}
 	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{t} \sum_{i=1}^t \matr{d}_i \matr{d}_i^\intercal - 2 \matr{F}\overline{\matr{A}}_t^\intercal + \matr{F}\overline{\matr{H}}_t \matr{F}^\intercal \Bigg)\Bigg).
 \end{equation}
-As in the online SGA algorithm from Section \ref{sec:gradient_fa}, it suffices to work with $\psi = \diag(\Psi)$ instead of $\Psi$. 
+As in Algorithm \ref{alg:gradient_fa}, it suffices to work with $\psi = \diag(\Psi)$ instead of $\Psi$. 
 The diagonal entries of Equation (\ref{eqn:em_Psi_incremental_update}) can be computed more efficiently as 
 \begin{align}
 \begin{split}\label{eqn:em_Psi_efficient_update}
@@ -686,15 +683,14 @@ All that remains to complete the online algorithm is to define the incremental u
 \begin{split}
 	\overline{\matr{A}}_t 
 	& = \frac{1}{t} \sum_{i=1}^t \matr{d}_i \matr{m}_i^\intercal \\
-	& = \frac{1}{t}\Bigg(\sum_{i=1}^{t-1} \matr{d}_i \matr{m}_i^\intercal + \matr{d}_t \matr{m}_t^\intercal \Bigg) \\
+	%& = \frac{1}{t}\Bigg(\sum_{i=1}^{t-1} \matr{d}_i \matr{m}_i^\intercal + \matr{d}_t \matr{m}_t^\intercal \Bigg) \\
 	& = \frac{1}{t}\Bigg(\frac{t-1}{t-1} \sum_{i=1}^{t-1} \matr{d}_i \matr{m}_i^\intercal + \matr{d}_t \matr{m}_t^\intercal \Bigg) \\
 	& = \frac{1}{t}\Bigg(t \cdot \frac{1}{t-1} \sum_{i=1}^{t-1} \matr{d}_i \matr{m}_i^\intercal - \frac{1}{t-1} \sum_{i=1}^{t-1} \matr{d}_i \matr{m}_i^\intercal + \matr{d}_t \matr{m}_t^\intercal \Bigg) \\
 	& = \frac{1}{t}\Big(t \overline{\matr{A}}_{t-1} - \overline{\matr{A}}_{t-1} + \matr{d}_t \matr{m}_t^\intercal \Big) \\
 	& = \overline{\matr{A}}_{t-1} + \frac{1}{t} \big(\matr{d}_t \matr{m}_t^\intercal - \overline{\matr{A}}_{t-1} \big).
 \end{split}
 \end{align}
-
-Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
+Pseudo code for the practical implementation is given in Algorithm \ref{alg:online_em}.
 
 \begin{algorithm}[!htbp] 
 	\caption{Online Expectation-Maximisation for Factor Analysis}
@@ -726,32 +722,28 @@ Pseudo code for online EM for FA is given in Algorithm \ref{alg:online_em}.
 	\end{algorithmic}
 \end{algorithm}
 
-\section{Factors Initialisation}\label{sec:F_init}
 
-One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$.
+\section{Auto-Encoding Variational Bayes}
 
+Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} both assume that samples from the true posterior can be obtained via some separate procedure. This section describes an alternative method based on VI which learns a FA posterior directly.  
 
-\chapter{No Name Yet}
+\subsection{Re-parameterisation Trick for Factor Analysis}
 
-Chapter \ref{ch:online_fa} provides two algorithms which can be used to approximate the posterior distribution of the parameters of a neural network with a FA model, assuming that samples from the true posterior can be obtained via some separate procedure. This chapter describes an alternative method based on VI which learns a FA posterior directly.  
-
-\section{Re-parameterisation Trick for Factor Analysis}
-
-In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate posterior with a Gaussian form. Suppose that the approximate posterior is actually a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ for some $\matr{c} \in \R^D$, $\matr{F} \in \R^{D \times K}$ and $D \times D$ diagonal matrix $\Psi$. Then the Monte Carlo gradient estimates in Equation (\ref{eqn:vi_derivatives}) are constructed from samples of the form 
+In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate Gaussian posterior of the parameter vector of a neural network. The variational auto-encoder is based on this approach, but with a diagonal covariance matrix \cite{kingma2013}. Suppose instead that the approximate posterior is a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ for some $\matr{c} \in \R^D$, $\matr{F} \in \R^{D \times K}$ and $D \times D$ diagonal matrix $\Psi$. Then the gradient of the VI objective in Equation (\ref{eqn:vi_objective}) becomes 
 \begin{equation}\label{eqn:vi_fa_derivatives}
-	\nabla_{\matr{c}, \matr{F}, \Psi} \log q(\theta) 
-	- \nabla_{\matr{c}, \matr{F}, \Psi} \log p(\theta) 
-	-  \nabla_{\matr{c}, \matr{F}, \Psi} \log p(y_m | \matr{x}_m, \theta),
+	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log q(\theta)]
+	- \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\theta)]
+	-  \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(y_m | \matr{x}_m, \theta)],
 \end{equation}
-where $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Using the re-parameterisation trick with Equation (\ref{eqn:fa_model}), the sampling operation can be made an explicit function of $\matr{c}$, $\matr{F}$ and $\Psi$ by setting
+where the expectation is taken over samples $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Using the re-parameterisation trick to re-write Equation (\ref{eqn:fa_model}), the sampling operation can be made an explicit function of $\matr{c}$, $\matr{F}$ and $\Psi$ by setting
 \begin{equation}\label{eqn:fa_reparam_trick}
 	\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
 \end{equation}
-from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$. Given $\theta$, the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}) can then be evaluated. 
+from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$. Using this trick, the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}) can either be evaluated exactly or approximated by Monte Carlo estimates. 
 
-\section{Computing the Partial Derivatives}
+\subsection{Partial Derivatives of the Variational Distribution}
 
-Having generated $\theta$ according to Equation (\ref{eqn:fa_reparam_trick}),
+Let $\theta$  be generated according to Equation (\ref{eqn:fa_reparam_trick}). Then
 \begin{align}
 \begin{split}
 	\log q(\theta)
@@ -766,22 +758,23 @@ Hence, $\nabla_{\matr{c}} \log q(\theta) = \matr{0}^D$, $\nabla_{\matr{F}} \log 
 \begin{split}
 	\nabla_{\Psi} \log q(\theta)
 	& = \nabla_\Psi \Big( -\frac{1}{2} \log |\Psi| \Big) \\
-	& = -\frac{1}{2} \Psi^{-1}.
+	& = -\frac{1}{2} \Psi^{-1},
 \end{split}
 \end{align}
-Since these derivatives do not depend on $\matr{h}$ and $\matr{z}$, and using the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$, it follows that
+which follows from Equation (\ref{eqn:derivatives_wrt_Psi_2}). Since these derivatives do not depend on $\matr{h}$ and $\matr{z}$, and using the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$ for any differentiable function $f$, 
 \begin{equation}
-	\nabla_{\matr{c}} \E[\log q(\theta)] = \matr{0}^D
+	\nabla_{\matr{c}} \E_{q(\theta)} [\log q(\theta)] = \matr{0}^D,
 \end{equation}
 \begin{equation}
-	\nabla_{\matr{F}} \E[\log q(\theta)] = \matr{0}^{D \times K}
+	\nabla_{\matr{F}} \E_{q(\theta)} [\log q(\theta)] = \matr{0}^{D \times K},
 \end{equation}
 \begin{equation}
-	\nabla_{\Psi} \E[\log q(\theta)] = -\frac{1}{2} \Psi^{-1}.
+	\nabla_{\Psi} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} \Psi^{-1}.
 \end{equation}
-This means that the partial derivatives of $\log q(\theta)$ can be computed exactly without the need to form a Monte Carlo estimate from samples of $\theta$. 
 
-Now let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ for some precision $\alpha > 0$. Then
+\subsection{Partial Derivatives of the Prior}
+
+Let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ for some precision $\alpha > 0$. Then
 \begin{align}
 \begin{split}
 	\log p(\theta)
@@ -791,41 +784,92 @@ Now let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ f
 \end{align}
 Hence, using the matrix calculus identities in \cite{petersen2012},
 \begin{equation}
-	\nabla_\matr{c} \log p(\theta) = \alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}),
+	\nabla_\matr{c} \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}),
 \end{equation}
 \begin{equation}
-	\nabla_\matr{F} \log p(\theta) = \alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{h}^\intercal,
+	\nabla_\matr{F} \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{h}^\intercal,
 \end{equation}
 \begin{equation}
-	\nabla_\Psi \log p(\theta) = \alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{z}^\intercal.
+	\nabla_\Psi \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{z}^\intercal.
 \end{equation}
-Since $\matr{h}$ and $\matr{z}$ are independent variables with zero mean and unit covariance, it follows that
+Since $\matr{h}$ and $\matr{z}$ are independent random variables with zero mean and unit covariance, it follows that
 \begin{equation}
-	\nabla_\matr{c} \E[\log p(\theta)] = \alpha (\matr{Fh} + \matr{c}),
-\end{equation}
-\begin{equation}
-	\nabla_\matr{F} \E[\log p(\theta)] = \alpha \matr{F},
+	\nabla_\matr{c} \E_{q(\theta)} [\log p(\theta)] = -\alpha (\matr{Fh} + \matr{c}),
 \end{equation}
 \begin{equation}
-	\nabla_\Psi \E[\log p(\theta)] = \Psi^{1/2}.
+	\nabla_\matr{F} \E_{q(\theta)} [\log p(\theta)] = -\alpha \matr{F},
+\end{equation}
+\begin{equation}
+	\nabla_\Psi \E_{q(\theta)} [\log p(\theta)] = -\alpha \Psi^{1/2}.
 \end{equation}
 
 
-\section{Partial Derivatives of the Likelihood}
+\subsection{Partial Derivatives of the Likelihood}
+
+Let the log-likelihood, $\log p(y_m | \matr{x}_m, \theta)$, be parameterised by a neural network with parameters $\theta$. Then the back-propagation algorithm \cite{rumelhart1986} can be used to compute $\nabla_\theta \log p(y_m | \matr{x}_m, \theta)$. Since $\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}$, it follows from the chain rule of calculus that
+\begin{equation}
+	\nabla_{\matr{c}} \log p(y_m | \matr{x}_m, \theta) = \nabla_\theta \log p(y_m | \matr{x}_m, \theta),
+\end{equation}
+\begin{equation}
+	\nabla_{\matr{F}} \log p(y_m | \matr{x}_m, \theta) = \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \matr{h}^\intercal,
+\end{equation}
+\begin{equation}
+	\nabla_{\Psi} \log p(y_m | \matr{x}_m, \theta) = \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \matr{z}^\intercal \Psi^{-1/2}.
+\end{equation}
+Due to the functional form of a non-linear neural network, the expectation of these derivatives over $p(\theta)$ cannot be compute in closed-form and must be approximate by Monte Carlo estimates. 
+
+\subsection{Practical Implementation}
+
+As in Algorithm \ref{alg:gradient_fa}, it is far more efficient to work with $\psi = \diag(\Psi)$ rather than $\Psi$ itself. The required partial derivatives with respect to $\psi$ are
+\begin{equation}
+	\nabla_{\psi} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} \psi^{-1},
+\end{equation}
+\begin{equation}
+	\nabla_\psi \E_{q(\theta)} [\log p(\theta)] = -\alpha \psi^{1/2},
+\end{equation}
+\begin{equation}
+	\nabla_{\psi} \log p(y_m | \matr{x}_m, \theta) = \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \odot \big(\matr{z} \odot \psi^{-1/2}\big).
+\end{equation}
+Also, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Similar to Equation (\ref{eqn:efficient_derivatives_wrt_beta}), it then follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
+\begin{equation}
+	\nabla_{\beta} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2},
+\end{equation}
+\begin{equation}
+	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\alpha \psi^{3/2},
+\end{equation}
+\begin{equation}
+	\nabla_{\beta} \log p(y_m | \matr{x}_m, \theta) = \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \odot \big(\matr{z} \odot \psi^{1/2}\big).
+\end{equation}
+Pseudo code for the practical implementation is given in Algorithm \ref{alg:aevb_fa}.
+
+\begin{algorithm}[!htbp] 
+	\caption{Auto-Encoding Variational Bayes with Factor Analysis Posterior}
+	\label{alg:aevb_fa}
+	\begin{algorithmic}[1]
+		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, learning rate $\eta$} 
+		\State Initialise $\matr{c} = \matr{0}^D$, $\matr{F} \in \R^{D \times K}$, $\psi = \matr{1}^D$
+		\For {$t=1,\dots,T$}
+			\State Sample a mini-batch $\mathcal{B}$ from $\mathcal{D}$
+			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
+			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
+			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
+			\State $\matr{g}_\theta \leftarrow \frac{1}{|\mathcal{B}|} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
+			\State $\matr{g}_\matr{c} \leftarrow \alpha (\matr{Fh} + \matr{c}) - \matr{g}_\theta$
+			\State $\matr{G}_\matr{F} \leftarrow \alpha \matr{F} - \matr{g}_\theta \matr{h}^\intercal$
+			\State $\matr{g}_\beta \leftarrow -\frac{1}{2} + \alpha \psi^{3/2} - \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \odot \big(\matr{z} \odot \psi^{1/2}\big)$
+			\State $\matr{c} \leftarrow \matr{c} - \eta \matr{g}_\matr{c}$
+			\State $\matr{F} \leftarrow \matr{F} - \eta \matr{G}_\matr{F}$
+			\State $\beta \leftarrow \beta - \eta \matr{g}_\beta$
+			\State $\psi \leftarrow \exp \beta$
+		\EndFor
+	\State \Return $\matr{c}, \matr{F}, \psi$
+	\end{algorithmic}
+\end{algorithm}
 
 
+\section{Factors Initialisation}\label{sec:F_init}
 
-
-
-
-
-
-
-
-
-
-
-
+One detail missing from Algorithms \ref{alg:gradient_fa}, \ref{alg:online_em} and \ref{alg:aevb_fa} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$.
 
 
 \chapter{Online Factor Analysis Experiments}\label{ch:online_fa_experiments}
