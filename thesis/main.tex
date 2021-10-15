@@ -264,7 +264,7 @@ Hence, the posterior distribution of $\theta$ is
 
 For linear regression, computing the posterior in Equation (\ref{eqn:linear_regression_posterior}) is possible because the log-likelihood, $p(\mathcal{D} | \theta)$, is a quadratic expression of $\theta$. However, when $\theta$ is the parameter vector of a neural network with even a single non-linear hidden layer, the log-likelihood is not so simple and the posterior cannot be written in closed form. Instead, the marginal likelihood, $p(\mathcal{D}) = \int_\theta p(\mathcal{D} | \theta) p(\theta)$, must be evaluated, which is intractable for high-dimensional $\theta$. 
 
-An alternative strategy is to approximate the posterior directly with a Gaussian distribution $q(\theta) = \mathcal{N}(\mu, \Sigma)$, where the parameters $\mu$ and $\Sigma$ are chosen to minimise some measure of distance between $q(\theta)$ and $p(\theta | \mathcal{D})$. Because $q(\theta)$ is essentially a variable in an optimisation procedure, this approach is known as \emph{variational inference} (VI) \cite{barber2007}. A common measure of distance between two distributions is the Kullback-Leibler (KL) divergence \cite{barber2007}, which in this case is
+An alternative strategy is to approximate the posterior directly with a Gaussian distribution $q(\theta) = \mathcal{N}(\mu, \Sigma)$, where the parameters $\mu$ and $\Sigma$ are chosen to minimise some measure of dissimilarity between $q(\theta)$ and $p(\theta | \mathcal{D})$. Because $q(\theta)$ is essentially a variable in an optimisation procedure, this approach is known as \emph{variational inference} (VI) \cite{barber2007}. A common measure of dissimilarity between two distributions is the Kullback-Leibler (KL) divergence \cite{barber2007}, which in this case is
 \begin{align}
 \begin{split}
 	\D_{KL}[q(\theta) \Vert p(\theta | \mathcal{D})] 
@@ -273,7 +273,7 @@ An alternative strategy is to approximate the posterior directly with a Gaussian
 	& = \E_{q(\theta)} [\log q(\theta) - \log p(\theta) - \log p(\mathcal{D} | \theta) + \log p(\mathcal{D})].
 \end{split}
 \end{align}
-Since $p(\mathcal{D})$ is a constant, the optimal distribution can be obtained by solving 
+Since $p(\mathcal{D})$ is a constant, it can be ignored and the optimal distribution can be obtained by solving 
 \begin{equation}\label{eqn:vi_objective}
 	\min_{\mu, \Sigma} \big[ \E_{q(\theta)} [\log q(\theta)] - \E_{q(\theta)} [\log p(\theta) ] - \E_{q(\theta)} [\log p(\mathcal{D} | \theta)] \big].
 \end{equation}
@@ -617,7 +617,7 @@ where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\r
 
 \section{Online Expectation-Maximisation}\label{sec:online_em}
 
-Again suppose that samples from the posterior, $\theta_1,\dots,\theta_T$, are available. The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
+Again, suppose that samples from the posterior, $\theta_1,\dots,\theta_T$, are available. The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
 \begin{equation}\label{eqn:EM_bound}
 	L(\matr{F}, \Psi) \geq 
 	- \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log q(\matr{h}_t | \theta_t)\big]
@@ -733,17 +733,17 @@ In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an app
 \begin{equation}\label{eqn:vi_fa_derivatives}
 	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log q(\theta)]
 	- \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\theta)]
-	-  \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(y_m | \matr{x}_m, \theta)],
+	-  \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)],
 \end{equation}
 where the expectation is taken over samples $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Using the re-parameterisation trick to re-write Equation (\ref{eqn:fa_model}), the sampling operation can be made an explicit function of $\matr{c}$, $\matr{F}$ and $\Psi$ by setting
 \begin{equation}\label{eqn:fa_reparam_trick}
 	\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
 \end{equation}
-from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$. Using this trick, the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}) can either be evaluated exactly or approximated by Monte Carlo estimates. 
+from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied element-wise. Using this trick, the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}) can either be evaluated exactly or approximated by Monte Carlo estimates. 
 
 \subsection{Partial Derivatives of the Variational Distribution}
 
-Let $\theta$  be generated according to Equation (\ref{eqn:fa_reparam_trick}). Then
+Let $\theta$  be generated according to Equation (\ref{eqn:fa_reparam_trick}). Then from Equation (\ref{eqn:fa_cond_dist}),
 \begin{align}
 \begin{split}
 	\log q(\theta)
@@ -779,10 +779,10 @@ Let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ for s
 \begin{split}
 	\log p(\theta)
 	& = -\frac{1}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})^\intercal \alpha \matr{I} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})  - \frac{1}{2} \log |\alpha^{-1} \matr{I}| - \frac{D}{2} \log 2\pi \\
-	& = -\frac{\alpha}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})^\intercal (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) + \frac{n}{2} \log \alpha - \frac{D}{2} \log 2\pi.
+	& = -\frac{\alpha}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})^\intercal (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) + \frac{D}{2} \log \alpha - \frac{D}{2} \log 2\pi.
 \end{split}
 \end{align}
-Hence, using the matrix calculus identities in \cite{petersen2012},
+Hence, using the matrix calculus identities from \cite{petersen2012},
 \begin{equation}
 	\nabla_\matr{c} \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}),
 \end{equation}
@@ -790,33 +790,33 @@ Hence, using the matrix calculus identities in \cite{petersen2012},
 	\nabla_\matr{F} \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{h}^\intercal,
 \end{equation}
 \begin{equation}
-	\nabla_\Psi \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{z}^\intercal.
+	\nabla_\Psi \log p(\theta) = \diag\Big(\diag\Big(-\frac{\alpha}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{z}^\intercal \Psi^{-1/2}\Big)\Big).
 \end{equation}
 Since $\matr{h}$ and $\matr{z}$ are independent random variables with zero mean and unit covariance, it follows that
 \begin{equation}
-	\nabla_\matr{c} \E_{q(\theta)} [\log p(\theta)] = -\alpha (\matr{Fh} + \matr{c}),
+	\nabla_\matr{c} \E_{q(\theta)} [\log p(\theta)] = -\alpha \matr{c},
 \end{equation}
 \begin{equation}
 	\nabla_\matr{F} \E_{q(\theta)} [\log p(\theta)] = -\alpha \matr{F},
 \end{equation}
 \begin{equation}
-	\nabla_\Psi \E_{q(\theta)} [\log p(\theta)] = -\alpha \Psi^{1/2}.
+	\nabla_\Psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{I}.
 \end{equation}
 
 
 \subsection{Partial Derivatives of the Likelihood}
 
-Let the log-likelihood, $\log p(y_m | \matr{x}_m, \theta)$, be parameterised by a neural network with parameters $\theta$. Then the back-propagation algorithm \cite{rumelhart1986} can be used to compute $\nabla_\theta \log p(y_m | \matr{x}_m, \theta)$. Since $\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}$, it follows from the chain rule of calculus that
+Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Then the back-propagation algorithm \cite{rumelhart1986} can be used to compute $\nabla_\theta \log p(\mathcal{D} | \theta)$. Since $\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}$, it follows from the chain rule of calculus that
 \begin{equation}
-	\nabla_{\matr{c}} \log p(y_m | \matr{x}_m, \theta) = \nabla_\theta \log p(y_m | \matr{x}_m, \theta),
+	\nabla_{\matr{c}} \log p(\mathcal{D} | \theta) = \nabla_\theta \log p(\mathcal{D} | \theta),
 \end{equation}
 \begin{equation}
-	\nabla_{\matr{F}} \log p(y_m | \matr{x}_m, \theta) = \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \matr{h}^\intercal,
+	\nabla_{\matr{F}} \log p(\mathcal{D} | \theta) = \nabla_\theta \log p(\mathcal{D} | \theta) \matr{h}^\intercal,
 \end{equation}
 \begin{equation}
-	\nabla_{\Psi} \log p(y_m | \matr{x}_m, \theta) = \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \matr{z}^\intercal \Psi^{-1/2}.
+	\nabla_{\Psi} \log p(\mathcal{D} | \theta) =  \diag\Big(\diag\Big(\frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \matr{z}^\intercal \Psi^{-1/2}\Big)\Big).
 \end{equation}
-Due to the functional form of a non-linear neural network, the expectation of these derivatives over $p(\theta)$ cannot be compute in closed-form and must be approximate by Monte Carlo estimates. 
+Due to the functional form of a non-linear neural network, the expectation of these derivatives over $q(\theta)$ cannot be computed in closed-form and must be approximate by Monte Carlo estimates. According to \cite{kingma2013}, on each iteration of the algorithm it suffices to compute these estimates using a single $\theta \sim q(\theta)$ and a mini-batch of training data sampled from $\mathcal{D}$. 
 
 \subsection{Practical Implementation}
 
@@ -825,20 +825,20 @@ As in Algorithm \ref{alg:gradient_fa}, it is far more efficient to work with $\p
 	\nabla_{\psi} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} \psi^{-1},
 \end{equation}
 \begin{equation}
-	\nabla_\psi \E_{q(\theta)} [\log p(\theta)] = -\alpha \psi^{1/2},
+	\nabla_\psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{1}^D,
 \end{equation}
 \begin{equation}
-	\nabla_{\psi} \log p(y_m | \matr{x}_m, \theta) = \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \odot \big(\matr{z} \odot \psi^{-1/2}\big).
+	\nabla_{\psi} \log p(\mathcal{D} | \theta) = \frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \odot \big(\psi^{-1/2} \odot \matr{z} \big).
 \end{equation}
-Also, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Similar to Equation (\ref{eqn:efficient_derivatives_wrt_beta}), it then follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
+Also, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
 \begin{equation}
 	\nabla_{\beta} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2},
 \end{equation}
 \begin{equation}
-	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\alpha \psi^{3/2},
+	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
 \end{equation}
 \begin{equation}
-	\nabla_{\beta} \log p(y_m | \matr{x}_m, \theta) = \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \odot \big(\matr{z} \odot \psi^{1/2}\big).
+	\nabla_{\beta} \log p(\mathcal{D} | \theta) = \frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \odot \big(\psi^{1/2} \odot \matr{z}\big).
 \end{equation}
 Pseudo code for the practical implementation is given in Algorithm \ref{alg:aevb_fa}.
 
@@ -846,17 +846,17 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:aevb
 	\caption{Auto-Encoding Variational Bayes with Factor Analysis Posterior}
 	\label{alg:aevb_fa}
 	\begin{algorithmic}[1]
-		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, learning rate $\eta$} 
+		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, mini-batch size $M$, learning rate $\eta > 0$} 
 		\State Initialise $\matr{c} = \matr{0}^D$, $\matr{F} \in \R^{D \times K}$, $\psi = \matr{1}^D$
 		\For {$t=1,\dots,T$}
-			\State Sample a mini-batch $\mathcal{B}$ from $\mathcal{D}$
+			\State Sample a mini-batch $\mathcal{B}$ of $M$ training examples from $\mathcal{D}$
 			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
 			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
-			\State $\matr{g}_\theta \leftarrow \frac{1}{|\mathcal{B}|} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
-			\State $\matr{g}_\matr{c} \leftarrow \alpha (\matr{Fh} + \matr{c}) - \matr{g}_\theta$
+			\State $\matr{g}_\theta \leftarrow \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
+			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} - \matr{g}_\theta$
 			\State $\matr{G}_\matr{F} \leftarrow \alpha \matr{F} - \matr{g}_\theta \matr{h}^\intercal$
-			\State $\matr{g}_\beta \leftarrow -\frac{1}{2} + \alpha \psi^{3/2} - \frac{1}{2} \nabla_\theta \log p(y_m | \matr{x}_m, \theta) \odot \big(\matr{z} \odot \psi^{1/2}\big)$
+			\State $\matr{g}_\beta \leftarrow -\frac{1}{2} + \frac{\alpha}{2} \psi - \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\State $\matr{c} \leftarrow \matr{c} - \eta \matr{g}_\matr{c}$
 			\State $\matr{F} \leftarrow \matr{F} - \eta \matr{G}_\matr{F}$
 			\State $\beta \leftarrow \beta - \eta \matr{g}_\beta$
