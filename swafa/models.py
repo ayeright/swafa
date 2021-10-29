@@ -10,7 +10,7 @@ from pytorch_lightning import LightningModule
 
 class FeedForwardNet(LightningModule):
     """
-    A feed forward neural network will a single output.
+    A feed forward neural network with a single output.
 
     Implements functionality which allows it to be used with a PyTorch Lightning Trainer.
 
