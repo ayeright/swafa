@@ -373,3 +373,24 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             The updated parameter. Same shape as the input.
         """
         return param - self.learning_rate * grad
+
+    def get_variational_mean(self) -> Tensor:
+        """
+        Get the mean of the factor analysis variational distribution.
+
+        Returns:
+            The mean vector. Of shape (self.weight_dim,).
+        """
+        return self.c.squeeze()
+
+    def get_variational_covariance(self) -> Tensor:
+        """
+        Get the full covariance matrix of the factor analysis variational distribution.
+
+        Note: if the network dimension is large, this may result in a memory error.
+
+        Returns:
+            The covariance matrix. Of shape (self.weight_dim, self.weight_dim).
+        """
+        psi = torch.diag(self.diag_psi.squeeze())
+        return self.F.mm(self.F.t()) + psi
