@@ -97,3 +97,22 @@ def set_weights(model: nn.Module, weights: torch.Tensor):
         elements = weights[weight_count:weight_count + n_elements]
         w.data = elements.reshape(w.shape)
         weight_count += n_elements
+
+
+def normalise_gradient(grad: Tensor, max_grad_norm: float) -> Tensor:
+    """
+    If the gradient norm is greater than the maximum value, normalise the gradient such that its norm is equal to the
+    maximum value.
+
+    Args:
+        grad: The gradient.
+        max_grad_norm: The maximum allowed gradient norm.
+
+    Returns:
+        The normalised gradient.
+    """
+    grad_norm = torch.linalg.norm(grad)
+    if grad_norm > max_grad_norm:
+        return max_grad_norm * grad / grad_norm
+
+    return grad

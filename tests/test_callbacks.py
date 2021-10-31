@@ -230,20 +230,20 @@ class TestFactorAnalysisVariationalInferenceCallback:
     )
     def test_variational_distribution_params_shape(self, input_dim, hidden_dims, latent_dim, precision, learning_rate):
         net = FeedForwardNet(input_dim, hidden_dims)
-        callback = FactorAnalysisVariationalInferenceCallback(latent_dim, precision, learning_rate)
+        callback = FactorAnalysisVariationalInferenceCallback(latent_dim, precision, learning_rate, max_grad_norm=1.0)
 
         n_samples = 8
         dataset = TensorDataset(torch.randn(n_samples, input_dim), torch.randn(n_samples))
         dataloader = DataLoader(dataset, batch_size=4)
 
-        trainer = Trainer(max_epochs=1, callbacks=[callback], gradient_clip_val=1)
+        trainer = Trainer(max_epochs=1, callbacks=[callback])
         trainer.fit(net, train_dataloader=dataloader)
 
         c_before = torch.clone(callback.c)
         F_before = torch.clone(callback.F)
         diag_psi_before = torch.clone(callback.diag_psi)
 
-        trainer = Trainer(max_epochs=1, callbacks=[callback], gradient_clip_val=1)
+        trainer = Trainer(max_epochs=1, callbacks=[callback])
         trainer.fit(net, train_dataloader=dataloader)
 
         c_after = torch.clone(callback.c)

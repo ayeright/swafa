@@ -9,6 +9,7 @@ from swafa.utils import (
     vectorise_gradients,
     set_weights,
     get_weight_dimension,
+    normalise_gradient,
 )
 
 
@@ -96,3 +97,16 @@ def test_set_weights(input_dim, hidden_dims):
 
     assert not torch.isclose(actual_weights, original_weights).all()
     assert torch.isclose(actual_weights, expected_weights).all()
+
+
+@pytest.mark.parametrize(
+    "grad, max_grad_norm, expected_grad_norm",
+    [
+        (torch.tensor([1, 1]).float(), 100, torch.sqrt(torch.tensor(2))),
+        (torch.tensor([10, 10]).float(), 5, torch.tensor(5).float()),
+    ]
+)
+def test_set_weights(grad, max_grad_norm, expected_grad_norm):
+    actual_grad_norm = torch.linalg.norm(normalise_gradient(grad, max_grad_norm))
+
+    assert torch.isclose(actual_grad_norm, expected_grad_norm)

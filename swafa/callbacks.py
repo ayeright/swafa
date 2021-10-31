@@ -13,6 +13,7 @@ from swafa.utils import (
     vectorise_gradients,
     get_weight_dimension,
     set_weights,
+    normalise_gradient,
 )
 from swafa.fa import OnlineGradientFactorAnalysis
 
@@ -165,6 +166,8 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         precision: The precision of the prior of the true posterior.
         learning_rate: The step size used to update the parameters of the variational distribution via vanilla
             stochastic gradient descent.
+        max_grad_norm: Optional maximum norm for gradients which are used to update the parameters of the variational
+            distribution.
         device: The device (CPU or GPU) on which to perform the computation. If None, uses the device for the default
             tensor type.
         random_seed: The random seed for reproducibility.
@@ -183,11 +186,12 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             2021.
     """
 
-    def __init__(self, latent_dim: int, precision: float, learning_rate: float, device: Optional[torch.device] = None,
-                 random_seed: Optional[int] = None):
+    def __init__(self, latent_dim: int, precision: float, learning_rate: float, max_grad_norm: Optional[float] = None,
+                 device: Optional[torch.device] = None, random_seed: Optional[int] = None):
         self.latent_dim = latent_dim
         self.precision = precision
         self.learning_rate = learning_rate
+        self.max_grad_norm = max_grad_norm
         self.device = device
         self.random_seed = random_seed
 
@@ -319,7 +323,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         grad = self._compute_gradient_wrt_F(grad_weights)
         self.F = self._perform_sgd_step(self.F, grad)
 
-    def _compute_gradient_wrt_F(self, grad_weights: Tensor):
+    def _compute_gradient_wrt_F(self, grad_weights: Tensor) -> Tensor:
         """
         Compute the gradient of the variational objective wrt the factors matrix of the factor analysis variational
         distribution.
@@ -346,7 +350,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         self._log_diag_psi = self._perform_sgd_step(self._log_diag_psi, grad)
         self.diag_psi = torch.exp(self._log_diag_psi)
 
-    def _compute_gradient_wrt_log_diag_psi(self, grad_weights: Tensor):
+    def _compute_gradient_wrt_log_diag_psi(self, grad_weights: Tensor) -> Tensor:
         """
         Compute the gradient of the variational objective wrt the noise covariance matrix of the factor analysis
         variational distribution.
@@ -361,7 +365,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         """
         return (-1 / 2) + (self.precision / 2) * self.diag_psi - (1 / 2) * grad_weights * self._sqrt_diag_psi_dot_z
 
-    def _perform_sgd_step(self, param: Tensor, grad: Tensor):
+    def _perform_sgd_step(self, param: Tensor, grad: Tensor) -> Tensor:
         """
         Perform a single step of vanilla stochastic gradient descent on the given parameter.
 
@@ -372,6 +376,9 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         Returns:
             The updated parameter. Same shape as the input.
         """
+        if self.max_grad_norm is not None:
+            grad = normalise_gradient(grad, self.max_grad_norm)
+
         return param - self.learning_rate * grad
 
     def get_variational_mean(self) -> Tensor:
