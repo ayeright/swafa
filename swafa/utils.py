@@ -54,6 +54,23 @@ def vectorise_weights(model: nn.Module) -> Tensor:
     return torch.cat([w.data.reshape(-1) for w in model.parameters()])
 
 
+def vectorise_gradients(model: nn.Module) -> Tensor:
+    """
+    Concatenate all gradients of the given model's weights into a single vector.
+
+    Each individual set of gradients is reshaped into a single vector and then these vectors are stacked together.
+
+    The gradients are stacked in the order that the weights are returned by model.parameters().
+
+    Args:
+        model: A PyTorch model.
+
+    Returns:
+        All the model's gradients stacked together. Of shape (n_weights,).
+    """
+    return torch.cat([w.grad.reshape(-1) for w in model.parameters()])
+
+
 def get_weight_dimension(model: nn.Module) -> int:
     """
     Get the total combined dimension of all the weights in the model.
@@ -62,3 +79,21 @@ def get_weight_dimension(model: nn.Module) -> int:
         The total dimension of the model's weights.
     """
     return sum([w.numel() for w in model.parameters()])
+
+
+def set_weights(model: nn.Module, weights: torch.Tensor):
+    """
+    Set the learnable parameters of the given model to the given weights.
+
+    The order of the given weights should be the same as that returned by vectorise_weights().
+
+    Args:
+        model: A PyTorch model with n_weights learnable parameters.
+        weights: A version of the model's weights stacked together. Of shape (n_weights,).
+    """
+    weight_count = 0
+    for w in model.parameters():
+        n_elements = w.numel()
+        elements = weights[weight_count:weight_count + n_elements]
+        w.data = elements.reshape(w.shape)
+        weight_count += n_elements
