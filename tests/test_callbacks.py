@@ -174,7 +174,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback = FactorAnalysisVariationalInferenceCallback(latent_dim, precision, learning_rate=0.1)
         callback.c = torch.tensor([[1, 2, 3]]).t()
         grad_weights = torch.tensor([[-1, 2, 1]]).t()
-        expected_grad = torch.tensor([[1.1, -1.8, -0.7]]).t()
+        expected_grad = torch.tensor([[-0.9, 2.2, 1.3]]).t()
 
         actual_grad = callback._compute_gradient_wrt_c(grad_weights)
 
@@ -187,7 +187,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback.F = torch.tensor([[1, 2], [3, 4], [5, 6]])
         callback._h = torch.tensor([[1, 3]]).t()
         grad_weights = torch.tensor([[-1, 2, 1]]).t()
-        expected_grad = torch.tensor([[1.1, 3.2], [-1.7, -5.6], [-0.5, -2.4]])
+        expected_grad = torch.tensor([[-0.9, -2.8], [2.3, 6.4], [1.5, 3.6]])
 
         actual_grad = callback._compute_gradient_wrt_F(grad_weights)
 
@@ -201,7 +201,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback._z = torch.tensor([[1, 3, -1]]).t()
         callback._sqrt_diag_psi_dot_z = torch.sqrt(callback.diag_psi) * callback._z
         grad_weights = torch.tensor([[-1, 2, 1]]).t()
-        expected_grad = torch.tensor([[0.05, -0.4 - 3 * np.sqrt(2), -0.35 + np.sqrt(3) / 2]]).float().t()
+        expected_grad = torch.tensor([[-0.95, -0.4 + 3 * np.sqrt(2), -0.35 - np.sqrt(3) / 2]]).float().t()
 
         actual_grad = callback._compute_gradient_wrt_log_diag_psi(grad_weights)
 

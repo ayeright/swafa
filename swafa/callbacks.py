@@ -310,7 +310,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             The gradient of the variational objective wrt the bias term of the factor analysis variational
             distribution. Of shape (self.weight_dim, 1).
         """
-        return self.precision * self.c - grad_weights
+        return self.precision * self.c + grad_weights
 
     def _update_F(self, grad_weights: Tensor):
         """
@@ -336,7 +336,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             The gradient of the variational objective wrt the factors matrix of the factor analysis variational
             distribution. Of shape (self.weight_dim, self.latent_dim).
         """
-        return self.precision * self.F - grad_weights.mm(self._h.t())
+        return self.precision * self.F + grad_weights.mm(self._h.t())
 
     def _update_diag_psi(self, grad_weights: Tensor):
         """
@@ -363,7 +363,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             The gradient of the variational objective wrt the noise covariance matrix of the factor analysis variational
             distribution. Of shape (self.weight_dim, 1).
         """
-        return (-1 / 2) + (self.precision / 2) * self.diag_psi - (1 / 2) * grad_weights * self._sqrt_diag_psi_dot_z
+        return (-1 / 2) + (self.precision / 2) * self.diag_psi + (1 / 2) * grad_weights * self._sqrt_diag_psi_dot_z
 
     def _perform_sgd_step(self, param: Tensor, grad: Tensor) -> Tensor:
         """
