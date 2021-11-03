@@ -848,15 +848,16 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:aevb
 	\begin{algorithmic}[1]
 		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, mini-batch size $M$, learning rate $\eta > 0$} 
 		\State Initialise $\matr{c} = \matr{0}^D$, $\matr{F} \in \R^{D \times K}$, $\psi = \matr{1}^D$
+		\State $\beta \leftarrow \log \psi$
 		\For {$t=1,\dots,T$}
 			\State Sample a mini-batch $\mathcal{B}$ of $M$ training examples from $\mathcal{D}$
 			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
 			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
-			\State $\matr{g}_\theta \leftarrow \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
-			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} - \matr{g}_\theta$
-			\State $\matr{G}_\matr{F} \leftarrow \alpha \matr{F} - \matr{g}_\theta \matr{h}^\intercal$
-			\State $\matr{g}_\beta \leftarrow -\frac{1}{2} + \frac{\alpha}{2} \psi - \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\State $\matr{g}_\theta \leftarrow -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
+			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} + \matr{g}_\theta$
+			\State $\matr{G}_\matr{F} \leftarrow \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
+			\State $\matr{g}_\beta \leftarrow -\frac{1}{2} + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\State $\matr{c} \leftarrow \matr{c} - \eta \matr{g}_\matr{c}$
 			\State $\matr{F} \leftarrow \matr{F} - \eta \matr{G}_\matr{F}$
 			\State $\beta \leftarrow \beta - \eta \matr{g}_\beta$
