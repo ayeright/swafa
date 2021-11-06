@@ -5,6 +5,8 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 import torch
 from torch import Tensor
+from torch.optim import Optimizer, SGD
+from torch.autograd import Variable
 
 from swafa.custom_types import POSTERIOR_TYPE
 from swafa.utils import (
@@ -164,8 +166,10 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
     Args:
         latent_dim: The latent dimension of the factor analysis model used as the variational distribution.
         precision: The precision of the prior of the true posterior.
-        learning_rate: The step size used to update the parameters of the variational distribution via vanilla
-            stochastic gradient descent.
+        n_gradients_per_update: The number of mini-batch gradients to use to form the expectation of the true gradient
+            for each parameter update.
+        optimiser_class: The class of the optimiser to use for gradient updates.
+        optimiser_kwargs: Keyword arguments for the optimiser. If not given, will default to dict(lr=1e-3).
         max_grad_norm: Optional maximum norm for gradients which are used to update the parameters of the variational
             distribution.
         device: The device (CPU or GPU) on which to perform the computation. If None, uses the device for the default
@@ -186,11 +190,15 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             2021.
     """
 
-    def __init__(self, latent_dim: int, precision: float, learning_rate: float, max_grad_norm: Optional[float] = None,
-                 device: Optional[torch.device] = None, random_seed: Optional[int] = None):
+    def __init__(self, latent_dim: int, precision: float, n_gradients_per_update: int = 1,
+                 optimiser_class: Optimizer = SGD, optimiser_kwargs: Optional[dict] = None,
+                 max_grad_norm: Optional[float] = None, device: Optional[torch.device] = None,
+                 random_seed: Optional[int] = None):
         self.latent_dim = latent_dim
         self.precision = precision
-        self.learning_rate = learning_rate
+        self.n_gradients_per_update = n_gradients_per_update
+        self.optimiser_class = optimiser_class
+        self.optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
         self.max_grad_norm = max_grad_norm
         self.device = device
         self.random_seed = random_seed
@@ -204,12 +212,15 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         self._h = None
         self._z = None
         self._sqrt_diag_psi_dot_z = None
+        self._optimiser = None
+        self._batch_counter = 0
 
     def on_fit_start(self, trainer: Trainer, pl_module: LightningModule):
         """
         Called when fit begins.
 
-        If parameters of variational distribution have not already been initialised, do it now.
+        If parameters of variational distribution have not already been initialised, initialise them and the optimiser
+        which will update them.
 
         Args:
             trainer: A PyTorch Lightning Trainer which trains the model.
@@ -218,6 +229,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         if self.weight_dim is None:
             self.weight_dim = get_weight_dimension(pl_module)
             self._init_variational_params()
+            self._init_optimiser()
 
     def on_batch_start(self, trainer: Trainer, pl_module: LightningModule):
         """
@@ -236,15 +248,22 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         """
         Called after loss.backward() and before optimisers are stepped.
 
-        Use the back propagated gradient of the network's loss wrt the network's weights to update the parameters of the
-        variational distribution.
+        Use the back propagated gradient of the network's loss wrt the network's weights to compute the gradient wrt
+        the parameters of the variational distribution. Accumulate these gradients.
+
+        Periodically, use the accumulated gradients to approximate the expected gradients and update the parameters of
+        the variational distribution.
 
         Args:
             trainer: A PyTorch Lightning Trainer which trains the model.
             pl_module: The model being trained.
         """
         grad_weights = vectorise_gradients(pl_module)[:, None]
-        self._update_variational_params(grad_weights)
+        self._accumulate_gradients(grad_weights)
+
+        self._batch_counter += 1
+        if self._batch_counter % self.n_gradients_per_update == 0:
+            self._update_variational_params()
 
     def _init_variational_params(self):
         """
@@ -257,10 +276,20 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             random_seed=self.random_seed,
         )
 
-        self.c = fa.c.data
-        self.F = fa.F.data
-        self.diag_psi = fa.diag_psi.data
-        self._log_diag_psi = torch.log(self.diag_psi)
+        self.c = Variable(fa.c.data, requires_grad=False)  # we will compute our own gradients
+        self.F = Variable(fa.F.data, requires_grad=False)
+        self.diag_psi = fa.diag_psi
+        self._log_diag_psi = Variable(torch.log(self.diag_psi), requires_grad=False)
+
+        self.c.grad = torch.zeros_like(self.c.data)
+        self.F.grad = torch.zeros_like(self.F.data)
+        self._log_diag_psi.grad = torch.zeros_like(self._log_diag_psi.data)
+
+    def _init_optimiser(self):
+        """
+        Initialise the optimiser which will be used to update the parameters of the variational distribution.
+        """
+        self._optimiser = self.optimiser_class([self.c, self.F, self._log_diag_psi], **self.optimiser_kwargs)
 
     def _sample_weight_vector(self) -> Tensor:
         """
@@ -274,28 +303,35 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         self._sqrt_diag_psi_dot_z = torch.sqrt(self.diag_psi) * self._z
         return (self.F.mm(self._h) + self.c + self._sqrt_diag_psi_dot_z).squeeze(dim=1)
 
-    def _update_variational_params(self, grad_weights: Tensor):
+    def _accumulate_gradients(self, grad_weights: Tensor):
+        """
+        Accumulate gradients wrt the parameters of the variational distribution.
+
+        Args:
+            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
+                (self.weight_dim, 1).
+        """
+        self.c.grad += self._compute_gradient_wrt_c(grad_weights)
+        self.F.grad += self._compute_gradient_wrt_F(grad_weights)
+        self._log_diag_psi.grad += self._compute_gradient_wrt_log_diag_psi(grad_weights)
+
+    def _update_variational_params(self):
         """
         Update the parameters of the factor analysis variational distribution.
 
-        Args:
-            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
-                (self.weight_dim, 1).
-        """
-        self._update_c(grad_weights)
-        self._update_F(grad_weights)
-        self._update_diag_psi(grad_weights)
+        This is done by using the accumulated gradients to approximate the expected gradients and then performing a
+        gradient step.
 
-    def _update_c(self, grad_weights: Tensor):
+        After performing the updates, the gradients are reset to zero.
         """
-        Update the bias term of the factor analysis variational distribution.
+        self._average_and_normalise_gradient(self.c)
+        self._average_and_normalise_gradient(self.F)
+        self._average_and_normalise_gradient(self._log_diag_psi)
 
-        Args:
-            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
-                (self.weight_dim, 1).
-        """
-        grad = self._compute_gradient_wrt_c(grad_weights)
-        self.c = self._perform_sgd_step(self.c, grad)
+        self._optimiser.step()
+        self._optimiser.zero_grad()
+
+        self.diag_psi = torch.exp(self._log_diag_psi)
 
     def _compute_gradient_wrt_c(self, grad_weights: Tensor) -> Tensor:
         """
@@ -312,17 +348,6 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         """
         return self.precision * self.c + grad_weights
 
-    def _update_F(self, grad_weights: Tensor):
-        """
-        Update the factors matrix of the factor analysis variational distribution.
-
-        Args:
-            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
-                (self.weight_dim, 1).
-        """
-        grad = self._compute_gradient_wrt_F(grad_weights)
-        self.F = self._perform_sgd_step(self.F, grad)
-
     def _compute_gradient_wrt_F(self, grad_weights: Tensor) -> Tensor:
         """
         Compute the gradient of the variational objective wrt the factors matrix of the factor analysis variational
@@ -337,18 +362,6 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             distribution. Of shape (self.weight_dim, self.latent_dim).
         """
         return self.precision * self.F + grad_weights.mm(self._h.t())
-
-    def _update_diag_psi(self, grad_weights: Tensor):
-        """
-        Update the diagonal of the noise covariance matrix of the factor analysis variational distribution.
-
-        Args:
-            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
-                (self.weight_dim, 1).
-        """
-        grad = self._compute_gradient_wrt_log_diag_psi(grad_weights)
-        self._log_diag_psi = self._perform_sgd_step(self._log_diag_psi, grad)
-        self.diag_psi = torch.exp(self._log_diag_psi)
 
     def _compute_gradient_wrt_log_diag_psi(self, grad_weights: Tensor) -> Tensor:
         """
@@ -365,21 +378,18 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         """
         return (-1 / 2) + (self.precision / 2) * self.diag_psi + (1 / 2) * grad_weights * self._sqrt_diag_psi_dot_z
 
-    def _perform_sgd_step(self, param: Tensor, grad: Tensor) -> Tensor:
+    def _average_and_normalise_gradient(self, var: Variable):
         """
-        Perform a single step of vanilla stochastic gradient descent on the given parameter.
+        Average the gradients accumulated in the variable by dividing by self.n_gradients_per_update and normalise if
+        required.
 
         Args:
-            param: The parameter to update.
-            grad: The gradient of the loss wrt the parameter. Must be the same shape as param.
-
-        Returns:
-            The updated parameter. Same shape as the input.
+            var: The variable whose gradient to average and normalise.
         """
-        if self.max_grad_norm is not None:
-            grad = normalise_gradient(grad, self.max_grad_norm)
+        var.grad /= self.n_gradients_per_update
 
-        return param - self.learning_rate * grad
+        if self.max_grad_norm is not None:
+            var.grad = normalise_gradient(var.grad, self.max_grad_norm)
 
     def get_variational_mean(self) -> Tensor:
         """
