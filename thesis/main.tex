@@ -727,72 +727,214 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:onli
 
 Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} both assume that samples from the true posterior can be obtained via some separate procedure. This section describes an alternative method based on VI which learns a FA posterior directly.  
 
-\subsection{Re-parameterisation Trick for Factor Analysis}
-
 In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate Gaussian posterior of the parameter vector of a neural network. The variational auto-encoder is based on this approach, but with a diagonal covariance matrix \cite{kingma2013}. Suppose instead that the approximate posterior is a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ for some $\matr{c} \in \R^D$, $\matr{F} \in \R^{D \times K}$ and $D \times D$ diagonal matrix $\Psi$. Then the gradient of the VI objective in Equation (\ref{eqn:vi_objective}) becomes 
 \begin{equation}\label{eqn:vi_fa_derivatives}
 	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log q(\theta)]
 	- \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\theta)]
 	-  \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)],
 \end{equation}
-where the expectation is taken over samples $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. Using the re-parameterisation trick to re-write Equation (\ref{eqn:fa_model}), the sampling operation can be made an explicit function of $\matr{c}$, $\matr{F}$ and $\Psi$ by setting
-\begin{equation}\label{eqn:fa_reparam_trick}
-	\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
-\end{equation}
-from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied element-wise. Using this trick, the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}) can either be evaluated exactly or approximated by Monte Carlo estimates. 
+where the expectation is taken over samples $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. These derivatives are derived in the following sections. 
 
-\subsection{Partial Derivatives of the Variational Distribution}
+\subsection{Derivatives of the Variational Distribution with respect to $\matr{F}$}
 
-Let $\theta$  be generated according to Equation (\ref{eqn:fa_reparam_trick}). Then from Equation (\ref{eqn:fa_cond_dist}),
+Using Equation (\ref{eqn:derivatives_wrt_F}) and the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$ for any differentiable function $f$,  it follows that
 \begin{align}
-\begin{split}
-	\log q(\theta)
-	& = -\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
-	& = -\frac{1}{2} (\Psi^{1/2} \matr{z})^\intercal \Psi^{-1} (\Psi^{1/2} \matr{z}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
-	& = -\frac{1}{2} \matr{z}^\intercal (\Psi^{1/2} \Psi^{-1} \Psi^{1/2}) \matr{z} - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
-	& = -\frac{1}{2} \matr{z}^\intercal \matr{z} - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi.
+\begin{split}\label{eqn:vi_expected_derivatives_wrt_F}
+	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
+	& = \E_{q(\theta)} [\nabla_\matr{F} \log q(\theta)] \\
+	& = \E_{q(\theta)} \big[\Psi^{-1} \big(\matr{d} \matr{m}^\intercal - \matr{F}  (\Sigma + \matr{m} \matr{m}^\intercal)\big)\big] \\
+	& = \Psi^{-1}\big( \E_{q(\theta)}[\matr{d} \matr{m}^\intercal] -\matr{F}\Sigma -\matr{F}\E_{q(\theta)}[\matr{m} \matr{m}^\intercal] \big),
 \end{split}
 \end{align}
-Hence, $\nabla_{\matr{c}} \log q(\theta) = \matr{0}^D$, $\nabla_{\matr{F}} \log q(\theta) = \matr{0}^{D \times K}$ and 
+where
+\begin{equation}
+	\matr{d} = \theta - \matr{c} \quad \text{and} \quad \matr{m} = \Sigma \matr{F}^\intercal \Psi^{-1} \matr{d}.
+\end{equation}
+Now, 
 \begin{align}
 \begin{split}
-	\nabla_{\Psi} \log q(\theta)
-	& = \nabla_\Psi \Big( -\frac{1}{2} \log |\Psi| \Big) \\
-	& = -\frac{1}{2} \Psi^{-1},
+	\E_{q(\theta)}[\matr{d} \matr{m}^\intercal] 
+	& = \E_{q(\theta)}[\matr{d} \matr{d}^\intercal \Psi^{-1} \matr{F} \Sigma ] \\
+	& = \E_{q(\theta)}[\matr{d} \matr{d}^\intercal] \Psi^{-1} \matr{F} \Sigma \\
+	& = (\matr{FF}^{\intercal} + \Psi) \Psi^{-1} \matr{F} \Sigma
 \end{split}
 \end{align}
-which follows from Equation (\ref{eqn:derivatives_wrt_Psi_2}). Since these derivatives do not depend on $\matr{h}$ and $\matr{z}$, and using the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$ for any differentiable function $f$, 
-\begin{equation}
-	\nabla_{\matr{c}} \E_{q(\theta)} [\log q(\theta)] = \matr{0}^D,
-\end{equation}
-\begin{equation}
-	\nabla_{\matr{F}} \E_{q(\theta)} [\log q(\theta)] = \matr{0}^{D \times K},
-\end{equation}
-\begin{equation}
-	\nabla_{\Psi} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} \Psi^{-1}.
-\end{equation}
+and
+\begin{align}
+\begin{split}\label{eq:E_mmt}
+	\E_{q(\theta)}[\matr{m} \matr{m}^\intercal] 
+	& = \E_{q(\theta)}[\Sigma \matr{F}^\intercal \Psi^{-1} \matr{d} \matr{d}^\intercal \Psi^{-1} \matr{F} \Sigma]  \\
+	& = \Sigma \matr{F}^\intercal \Psi^{-1} \E_{q(\theta)}[\matr{d} \matr{d}^\intercal] \Psi^{-1} \matr{F} \Sigma \\
+	& = \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma.
+\end{split}
+\end{align}
+Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_F}),
+\begin{align}
+\begin{split}
+	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
+	& = \Psi^{-1}\big( 
+	(\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma 
+	-\matr{F}\Sigma -
+	\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma 
+	\big) \\
+	& = \Psi^{-1}\matr{FF}^{\intercal}\Psi^{-1} \matr{F} \Sigma 
+	+ \Psi^{-1} \Psi \Psi^{-1} \matr{F} \Sigma 
+	- \Psi^{-1}\matr{F}\Sigma \\
+	& \quad - \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} \Psi^{-1} \matr{F} \Sigma
+	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \Psi \Psi^{-1} \matr{F} \Sigma \\
+	& = \Psi^{-1}\matr{FF}^{\intercal}\Psi^{-1} \matr{F} \Sigma
+	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} \Psi^{-1} \matr{F} \Sigma
+	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma.
+\end{split}
+\end{align}
+Now let $\matr{A} = \Psi^{-1} \matr{F} \in \R^{D \times K}$ and note that $\matr{A}^\intercal = \matr{F}^\intercal \Psi^{-1} \in \R^{K \times D}$. Setting $\matr{B} = \matr{A}^\intercal \matr{F} \in \R^{K \times K}$, 
+\begin{align}
+\begin{split}
+	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
+	& = \matr{A} \matr{A}^\intercal \matr{F} \Sigma
+	- \matr{A} \Sigma \matr{A}^\intercal \matr{F} \matr{A}^\intercal \matr{F} \Sigma
+	- \matr{A} \Sigma \matr{A}^\intercal \matr{F} \Sigma \\
+	& = \matr{A}\matr{B} \Sigma 
+	- \matr{A} \Sigma \matr{B} \matr{B} \Sigma
+	- \matr{A} \Sigma \matr{B} \Sigma \\
+	& = \matr{A}(\matr{I} -\Sigma \matr{B} - \Sigma) \matr{B} \Sigma.
+\end{split}
+\end{align}
+%Since $\matr{A} = \diag(\Psi^{-1}) \odot \matr{F}$, this expression can be computed without working with any $D \times D$ matrices. 
 
-\subsection{Partial Derivatives of the Prior}
+\subsection{Derivatives of the Variational Distribution with respect to $\Psi$}
+
+It follows from Equation (\ref{eqn:derivatives_wrt_Psi}) that
+\begin{align}
+\begin{split}\label{eqn:vi_expected_derivatives_wrt_Psi}
+	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)] 
+	& = \E_{q(\theta)} \Bigg[
+	\diag\Bigg(\frac{1}{2} \diag(\Psi^{-2}) \odot \Big(\matr{d} \odot \matr{d} - 2\matr{d} \odot (\matr{F} \matr{m}) \\
+	& \quad 
+	 + \diag\big( \matr{F} (\Sigma + \matr{m} \matr{m}^\intercal) \matr{F}^\intercal \big) \Big) \Bigg)
+	 - \frac{1}{2} \Psi^{-1}
+	 \Bigg] \\
+	 & = \diag\Bigg(
+	 \frac{1}{2} \diag(\Psi^{-2}) \odot \Big(
+	 \E_{q(\theta)}[\matr{d} \odot \matr{d}]
+	 -2\E_{q(\theta)}[\matr{d} \odot (\matr{F} \matr{m})] \\
+	 & \quad 
+	 + \diag(\matr{F} \Sigma \matr{F}^\intercal + \matr{F}  \E_{q(\theta)}[\matr{m} \matr{m}^\intercal] \matr{F}^\intercal)
+	 \Big)
+	 \Bigg)  - \frac{1}{2} \Psi^{-1}.
+\end{split}
+\end{align}
+Note that $\E_{q(\theta)}[\matr{m} \matr{m}^\intercal]$ is given in Equation (\ref{eq:E_mmt}). Also,
+\begin{equation}
+	\E_{q(\theta)}[\matr{d} \odot \matr{d}] = \diag(\matr{FF}^{\intercal} + \Psi)
+\end{equation}
+and 
+\begin{align}
+\begin{split}
+	\E_{q(\theta)}[\matr{d} \odot (\matr{F} \matr{m})] 
+	& = \E_{q(\theta)}[\diag(\matr{F} \matr{m} \matr{d}^\intercal)] \\
+	& = \diag\big(\E_{q(\theta)}[\matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{d} \matr{d}^\intercal] \big) \\
+	& = \diag\big(\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \E_{q(\theta)}[\matr{d} \matr{d}^\intercal] \big) \\
+	& = \diag\big(\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi) \big).
+\end{split}
+\end{align}
+Letting $\matr{x} =  \E_{q(\theta)}[\matr{d} \odot \matr{d}] -2\E_{q(\theta)}[\matr{d} \odot (\matr{F} \matr{m})] + \diag(\matr{F} \Sigma \matr{F}^\intercal + \matr{F}  \E_{q(\theta)}[\matr{m} \matr{m}^\intercal] \matr{F}^\intercal)$,
+\begin{align}
+\begin{split}
+	\matr{x} 
+	 & = \diag(\matr{FF}^{\intercal} + \Psi)
+	 -2 \diag\big(\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi) \big) \\
+	 & \quad 
+	 + \diag\big(\matr{F} \Sigma \matr{F}^\intercal 
+	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
+	 & = \diag\big(
+	 \matr{FF}^{\intercal} + \Psi
+	 -2 \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi) 
+	 + \matr{F} \Sigma \matr{F}^\intercal 
+	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
+	 & = \diag\big(
+	 \matr{FF}^{\intercal} + \Psi
+	 -2 \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} 
+	 -2 \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F} \Sigma \matr{F}^\intercal \\
+	 & \quad + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
+	 & = \diag\big(
+	 \matr{FF}^{\intercal} + \Psi
+	 -2 \matr{F} \Sigma \matr{B} \matr{F}^{\intercal} 
+	 - \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{B} \matr{B} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{B} \Sigma \matr{F}^\intercal \big) \\
+	 & = \diag\big(
+	 \matr{FF}^{\intercal} + \Psi
+	 - \matr{F} \Sigma (
+	 2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma
+	 ) \matr{F}^\intercal \big) \\
+	 & =\diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \Sigma \matr{C} \matr{F}^\intercal \big),
+\end{split}
+\end{align}
+where $\matr{C} = 2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma \in \R^{K \times K}$. Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi}),
+\begin{align}
+\begin{split}
+	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)] 
+	 & = \diag\Bigg(
+	 \frac{1}{2} \diag(\Psi^{-2}) \odot \Big(
+	 \diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \Sigma \matr{C} \matr{F}^\intercal \big)
+	 \Big)
+	 \Bigg)  - \frac{1}{2} \Psi^{-1}.
+\end{split}
+\end{align}
+%Finally, note that
+%\begin{align}
+%\begin{split}
+%	\diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \Sigma \matr{C} \matr{F}^\intercal \big)
+%	& = \text{sum}\big(\matr{F} \odot \matr{F}, \text{ dim} = 1\big)
+%	+ \diag{\Psi} \\
+%	& \quad - \text{sum}\big(\matr{F} \odot (\matr{F} \matr{C}^\intercal \Sigma), \text{ dim} = 1\big)
+%\end{split}
+%\end{align}	
+
+%Let $\theta$  be generated according to Equation (\ref{eqn:fa_reparam_trick}). Then from Equation (\ref{eqn:fa_cond_dist}),
+%\begin{align}
+%\begin{split}
+%	\log q(\theta)
+%	& = -\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
+%	& = -\frac{1}{2} (\Psi^{1/2} \matr{z})^\intercal \Psi^{-1} (\Psi^{1/2} \matr{z}) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
+%	& = -\frac{1}{2} \matr{z}^\intercal (\Psi^{1/2} \Psi^{-1} \Psi^{1/2}) \matr{z} - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi \\
+%	& = -\frac{1}{2} \matr{z}^\intercal \matr{z} - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi.
+%\end{split}
+%\end{align}
+%Hence, $\nabla_{\matr{c}} \log q(\theta) = \matr{0}^D$, $\nabla_{\matr{F}} \log q(\theta) = \matr{0}^{D \times K}$ and 
+%\begin{align}
+%\begin{split}
+%	\nabla_{\Psi} \log q(\theta)
+%	& = \nabla_\Psi \Big( -\frac{1}{2} \log |\Psi| \Big) \\
+%	& = -\frac{1}{2} \Psi^{-1},
+%\end{split}
+%\end{align}
+%which follows from Equation (\ref{eqn:derivatives_wrt_Psi_2}). Since these derivatives do not depend on $\matr{h}$ and $\matr{z}$, and using the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$ for any differentiable function $f$, 
+%\begin{equation}
+%	\nabla_{\matr{c}} \E_{q(\theta)} [\log q(\theta)] = \matr{0}^D,
+%\end{equation}
+%\begin{equation}
+%	\nabla_{\matr{F}} \E_{q(\theta)} [\log q(\theta)] = \matr{0}^{D \times K},
+%\end{equation}
+%\begin{equation}
+%	\nabla_{\Psi} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} \Psi^{-1}.
+%\end{equation}
+
+\subsection{Derivatives of the Prior}
 
 Let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ for some precision $\alpha > 0$. Then
 \begin{align}
 \begin{split}
-	\log p(\theta)
-	& = -\frac{1}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})^\intercal \alpha \matr{I} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})  - \frac{1}{2} \log |\alpha^{-1} \matr{I}| - \frac{D}{2} \log 2\pi \\
-	& = -\frac{\alpha}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z})^\intercal (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) + \frac{D}{2} \log \alpha - \frac{D}{2} \log 2\pi.
+	\E_{q(\theta)} [\log p(\theta)]
+	& = \E_{q(\theta)} \Big[-\frac{1}{2} \theta^\intercal \alpha \matr{I} \theta  - \frac{1}{2} \log |\alpha^{-1} \matr{I}| - \frac{D}{2} \log 2\pi\Big] \\
+	& = -\frac{\alpha}{2} \E_{q(\theta)} \Big[ \theta^\intercal \theta \Big] + \text{constant} \\
+	& = -\frac{\alpha}{2} (\matr{c}\matr{c}^\intercal + \matr{F}\matr{F}^\intercal + \Psi) + \text{constant},
 \end{split}
 \end{align}
-Hence, using the matrix calculus identities from \cite{petersen2012},
-\begin{equation}
-	\nabla_\matr{c} \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}),
-\end{equation}
-\begin{equation}
-	\nabla_\matr{F} \log p(\theta) = -\alpha (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{h}^\intercal,
-\end{equation}
-\begin{equation}
-	\nabla_\Psi \log p(\theta) = \diag\Big(\diag\Big(-\frac{\alpha}{2} (\matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}) \matr{z}^\intercal \Psi^{-1/2}\Big)\Big).
-\end{equation}
-Since $\matr{h}$ and $\matr{z}$ are independent random variables with zero mean and unit covariance, it follows that
+where the last line follows from the identities in \cite{petersen2012}. Hence, 
 \begin{equation}
 	\nabla_\matr{c} \E_{q(\theta)} [\log p(\theta)] = -\alpha \matr{c},
 \end{equation}
@@ -804,9 +946,13 @@ Since $\matr{h}$ and $\matr{z}$ are independent random variables with zero mean 
 \end{equation}
 
 
-\subsection{Partial Derivatives of the Likelihood}
+\subsection{Derivatives of the Likelihood}
 
-Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Then the back-propagation algorithm \cite{rumelhart1986} can be used to compute $\nabla_\theta \log p(\mathcal{D} | \theta)$. Since $\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}$, it follows from the chain rule of calculus that
+Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Then the back-propagation algorithm \cite{rumelhart1986} can compute $\nabla_\theta \log p(\mathcal{D} | \theta)$. From here, the re-parameterisation trick \cite{goodfellow2016} can be used to obtain the partial derivatives with respect to $\matr{c}$, $\matr{F}$ and $\Psi$. First note that, by re-writing Equation (\ref{eqn:fa_model}), sampling $\theta \sim q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ is equivalent to setting  
+\begin{equation}\label{eqn:fa_reparam_trick}
+	\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
+\end{equation}
+from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied element-wise to $\Psi$. Given $\matr{h}$ and $\matr{z}$, this is a deterministic function of $\matr{c}$, $\matr{F}$ and $\Psi$. It then follows from the chain rule of calculus that
 \begin{equation}
 	\nabla_{\matr{c}} \log p(\mathcal{D} | \theta) = \nabla_\theta \log p(\mathcal{D} | \theta),
 \end{equation}
