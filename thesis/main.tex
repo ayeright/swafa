@@ -745,12 +745,13 @@ The logarithm of the pdf of the FA posterior is
 	- \frac{1}{2} \log |\matr{FF}^{\intercal} + \Psi| 
 	- \frac{D}{2} \log 2\pi .
 \end{equation}
-Hence, using the identities in \cite{petersen2012} and the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$ for any differentiable function $f$,
+Hence, using the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$ for any differentiable function $f$ and the matrix calculus identities in \cite{petersen2012},
 \begin{align}
 \begin{split}
 	\nabla_\matr{c} \E_{q(\theta)} [\log q(\theta)] 
 	& = \E_{q(\theta)} [\nabla_\matr{c} \log q(\theta)] \\
-	& = \E_{q(\theta)} [-(\matr{FF}^{\intercal} + \Psi)^{-1} (\theta - \matr{c})] \\
+	& = \E_{q(\theta)} [(\matr{FF}^{\intercal} + \Psi)^{-1} (\theta - \matr{c})] \\
+	& = (\matr{FF}^{\intercal} + \Psi)^{-1} \E_{q(\theta)} [ \theta - \matr{c}] \\
 	& = \matr{0}.
 \end{split}
 \end{align}
@@ -789,7 +790,7 @@ and
 	& = \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma.
 \end{split}
 \end{align}
-Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_F}),
+Hence, substituting these expectations into Equation (\ref{eqn:vi_expected_derivatives_wrt_F}),
 \begin{align}
 \begin{split}
 	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
@@ -808,7 +809,7 @@ Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_F}),
 	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma.
 \end{split}
 \end{align}
-Now let $\matr{A} = \Psi^{-1} \matr{F} \in \R^{D \times K}$ and note that $\matr{A}^\intercal = \matr{F}^\intercal \Psi^{-1} \in \R^{K \times D}$. Setting $\matr{B} = \matr{A}^\intercal \matr{F} \in \R^{K \times K}$, 
+Now let $\matr{A} = \Psi^{-1} \matr{F} \in \R^{D \times K}$ and note that $\matr{A}^\intercal = \matr{F}^\intercal \Psi^{-1} \in \R^{K \times D}$. Also, setting $\matr{B} = \matr{A}^\intercal \matr{F} \in \R^{K \times K}$, it follows that
 \begin{align}
 \begin{split}
 	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
@@ -881,6 +882,12 @@ Letting $\matr{s} =  \E_{q(\theta)}[\matr{d} \odot \matr{d}] -2\E_{q(\theta)}[\m
 	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
 	 & = \diag\big(
 	 \matr{FF}^{\intercal} + \Psi
+	 -2 \matr{F} \Sigma \matr{A}^\intercal \matr{FF}^{\intercal} 
+	 - \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{A}^\intercal \matr{F} \matr{A}^{\intercal} \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{A}^\intercal \matr{F} \Sigma \matr{F}^\intercal \big) \\
+	 & = \diag\big(
+	 \matr{FF}^{\intercal} + \Psi
 	 -2 \matr{F} \Sigma \matr{B} \matr{F}^{\intercal} 
 	 - \matr{F} \Sigma \matr{F}^\intercal
 	 + \matr{F}  \Sigma \matr{B} \matr{B} \Sigma \matr{F}^\intercal
@@ -890,16 +897,16 @@ Letting $\matr{s} =  \E_{q(\theta)}[\matr{d} \odot \matr{d}] -2\E_{q(\theta)}[\m
 	 - \matr{F} \Sigma (
 	 2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma
 	 ) \matr{F}^\intercal \big) \\
-	 & =\diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \Sigma \matr{C} \matr{F}^\intercal \big),
+	 & =\diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \matr{C} \big),
 \end{split}
 \end{align}
-where $\matr{C} = 2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma \in \R^{K \times K}$. Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi}),
+where $\matr{C} = \Sigma (2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma) \matr{F}^\intercal \in \R^{K \times D}$. Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi}),
 \begin{align}
 \begin{split}
 	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)] 
 	 & = \diag\Bigg(
 	 \frac{1}{2} \diag(\Psi^{-2}) \odot \Big(
-	 \diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \Sigma \matr{C} \matr{F}^\intercal \big)
+	 \diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \matr{C} \big)
 	 \Big)
 	 \Bigg)  - \frac{1}{2} \Psi^{-1}.
 \end{split}
@@ -934,7 +941,7 @@ Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a ne
 \begin{equation}\label{eqn:fa_reparam_trick}
 	\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
 \end{equation}
-from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied element-wise to $\Psi$. Given $\matr{h}$ and $\matr{z}$, this is a deterministic function of $\matr{c}$, $\matr{F}$ and $\Psi$. It then follows from the chain rule of calculus that
+from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied to $\Psi$ element-wise. Given $\matr{h}$ and $\matr{z}$, this is a deterministic function of $\matr{c}$, $\matr{F}$ and $\Psi$. It then follows from the chain rule of calculus that
 \begin{equation}
 	\nabla_{\matr{c}} \log p(\mathcal{D} | \theta) = \nabla_\theta \log p(\mathcal{D} | \theta),
 \end{equation}
@@ -953,7 +960,7 @@ In order for the algorithm to be practical, explicit use of $D \times D$ matrice
 	\matr{s} = 
 	\text{sum}\big(\matr{F} \odot \matr{F}, \text{ dim} = 1\big)
 	 + \psi
-	 - \text{sum}\big(\matr{F} \odot (\matr{F} \matr{C}^\intercal \Sigma), \text{ dim} = 1\big),
+	 - \text{sum}\big(\matr{F} \odot \matr{C}^\intercal, \text{ dim} = 1\big),
 \end{equation}
 the required partial derivatives with respect to $\psi$ are
 \begin{equation}
@@ -969,7 +976,7 @@ the required partial derivatives with respect to $\psi$ are
 Also, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
 \begin{equation}
 	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] 
-	 = \frac{1}{2} \psi^{-1} \odot \matr{s} - \frac{1}{2}.
+	 = \frac{1}{2} \Big(\psi^{-1} \odot \matr{s} - \matr{1} \Big).
 \end{equation}
 \begin{equation}
 	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
@@ -991,14 +998,14 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:aevb
 			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
 			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
-			\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$
+			\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
 			\State $\matr{B} \leftarrow \matr{A}^\intercal \matr{F}$
-			\State $\matr{C} = 2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma$
-			\State $\matr{s} \leftarrow \text{sum}\big(\matr{F} \odot \matr{F}, \text{ dim} = 1\big) + \psi - \text{sum}\big(\matr{F} \odot (\matr{F} \matr{C}^\intercal \Sigma), \text{ dim} = 1\big)$
+			\State $\matr{C} = \Sigma (2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma) \matr{F}^\intercal$
+			\State $\matr{s} \leftarrow \text{sum}\big(\matr{F} \odot \matr{F}, \text{ dim} = 1\big) + \psi - \text{sum}\big(\matr{F} \odot  \matr{C}^\intercal, \text{ dim} = 1\big)$
 			\State $\matr{g}_\theta \leftarrow -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
 			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} + \matr{g}_\theta$
 			\State $\matr{G}_\matr{F} \leftarrow \matr{A}(\matr{I} -\Sigma \matr{B} - \Sigma) \matr{B} \Sigma + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
-			\State $\matr{g}_\beta \leftarrow \frac{1}{2}\psi^{-1} \odot \matr{s} -\frac{1}{2} + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\State $\matr{g}_\beta \leftarrow \frac{1}{2} \big(\psi^{-1} \odot \matr{s} - \matr{1} \big) + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\State $\matr{c} \leftarrow \matr{c} - \eta \matr{g}_\matr{c}$
 			\State $\matr{F} \leftarrow \matr{F} - \eta \matr{G}_\matr{F}$
 			\State $\beta \leftarrow \beta - \eta \matr{g}_\beta$
