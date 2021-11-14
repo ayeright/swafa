@@ -169,7 +169,13 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         n_gradients_per_update: The number of mini-batch gradients to use to form the expectation of the true gradient
             for each parameter update.
         optimiser_class: The class of the optimiser to use for gradient updates.
-        optimiser_kwargs: Keyword arguments for the optimiser. If not given, will default to dict(lr=1e-3).
+        bias_optimiser_kwargs: Keyword arguments for the optimiser which updates the bias term of the factor analysis
+            variational distribution. If not given, will default to dict(lr=1e-3).
+        factors_optimiser_kwargs: Keyword arguments for the optimiser which updates the factor loading matrix of the
+            factor analysis variational distribution. If not given, will default to dict(lr=1e-3).
+        noise_optimiser_kwargs: Keyword arguments for the optimiser which updates the logarithm of the diagonal entries
+            of the Gaussian noise covariance matrix of the factor analysis variational distribution. If not given, will
+            default to dict(lr=1e-3).
         max_grad_norm: Optional maximum norm for gradients which are used to update the parameters of the variational
             distribution.
         device: The device (CPU or GPU) on which to perform the computation. If None, uses the device for the default
@@ -191,14 +197,17 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
     """
 
     def __init__(self, latent_dim: int, precision: float, n_gradients_per_update: int = 1,
-                 optimiser_class: Optimizer = SGD, optimiser_kwargs: Optional[dict] = None,
+                 optimiser_class: Optimizer = SGD, bias_optimiser_kwargs: Optional[dict] = None,
+                 factors_optimiser_kwargs: Optional[dict] = None, noise_optimiser_kwargs: Optional[dict] = None,
                  max_grad_norm: Optional[float] = None, device: Optional[torch.device] = None,
                  random_seed: Optional[int] = None):
         self.latent_dim = latent_dim
         self.precision = precision
         self.n_gradients_per_update = n_gradients_per_update
         self.optimiser_class = optimiser_class
-        self.optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
+        self.bias_optimiser_kwargs = bias_optimiser_kwargs or dict(lr=1e-3)
+        self.factors_optimiser_kwargs = factors_optimiser_kwargs or dict(lr=1e-3)
+        self.noise_optimiser_kwargs = noise_optimiser_kwargs or dict(lr=1e-3)
         self.max_grad_norm = max_grad_norm
         self.device = device
         self.random_seed = random_seed
@@ -304,7 +313,13 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         """
         Initialise the optimiser which will be used to update the parameters of the variational distribution.
         """
-        self._optimiser = self.optimiser_class([self.c, self.F, self._log_diag_psi], **self.optimiser_kwargs)
+        self._optimiser = self.optimiser_class(
+            [
+                {'params': [self.c], **self.bias_optimiser_kwargs},
+                {'params': [self.F], **self.factors_optimiser_kwargs},
+                {'params': [self._log_diag_psi], **self.noise_optimiser_kwargs},
+            ],
+        )
 
     def _sample_weight_vector(self) -> Tensor:
         """
