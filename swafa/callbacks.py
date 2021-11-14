@@ -212,6 +212,19 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         self._h = None
         self._z = None
         self._sqrt_diag_psi_dot_z = None
+        self._A = None
+        self._B = None
+        self._C = None
+        self._sigma = None
+        self._diag_inv_psi = None
+        self._I = torch.eye(latent_dim, device=device)
+        self._s = None
+        self._var_grad_wrt_F = None
+        self._var_grad_wrt_log_diag_psi = None
+        self._prior_grad_wrt_c = None
+        self._prior_grad_wrt_F = None
+        self._prior_grad_wrt_log_diag_psi = None
+
         self._optimiser = None
         self._batch_counter = 0
 
@@ -229,6 +242,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         if self.weight_dim is None:
             self.weight_dim = get_weight_dimension(pl_module)
             self._init_variational_params()
+            self._update_expected_gradients()
             self._init_optimiser()
 
     def on_batch_start(self, trainer: Trainer, pl_module: LightningModule):
@@ -264,6 +278,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         self._batch_counter += 1
         if self._batch_counter % self.n_gradients_per_update == 0:
             self._update_variational_params()
+            self._update_expected_gradients()
 
     def _init_variational_params(self):
         """
@@ -315,6 +330,81 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         self.F.grad += self._compute_gradient_wrt_F(grad_weights)
         self._log_diag_psi.grad += self._compute_gradient_wrt_log_diag_psi(grad_weights)
 
+    def _compute_gradient_wrt_c(self, grad_weights: Tensor) -> Tensor:
+        """
+        Compute the gradient of the variational objective wrt the bias term of the factor analysis variational
+        distribution.
+
+        Args:
+            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
+                (self.weight_dim, 1).
+
+        Returns:
+            The gradient of the variational objective wrt the bias term of the factor analysis variational
+            distribution. Of shape (self.weight_dim, 1).
+        """
+        return -self._prior_grad_wrt_c + grad_weights
+
+    def _compute_gradient_wrt_F(self, grad_weights: Tensor) -> Tensor:
+        """
+        Compute the gradient of the variational objective wrt the factors matrix of the factor analysis variational
+        distribution.
+
+        Args:
+            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
+                (self.weight_dim, 1).
+
+        Returns:
+            The gradient of the variational objective wrt the factors matrix of the factor analysis variational
+            distribution. Of shape (self.weight_dim, self.latent_dim).
+        """
+        loss_grad = self._compute_loss_gradient_wrt_F(grad_weights)
+
+        return self._var_grad_wrt_F - self._prior_grad_wrt_F + loss_grad
+
+    def _compute_loss_gradient_wrt_F(self, grad_weights: Tensor) -> Tensor:
+        """
+        Compute the gradient of the network's loss wrt the factors matrix.
+
+        Args:
+            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
+                (self.weight_dim, 1).
+
+        Returns:
+            The gradient of the network's loss wrt the factors matrix. Of shape (self.weight_dim, self.latent_dim).
+        """
+        return grad_weights.mm(self._h.t())
+
+    def _compute_gradient_wrt_log_diag_psi(self, grad_weights: Tensor) -> Tensor:
+        """
+        Compute the gradient of the variational objective wrt the logarithm of the diagonal of the noise covariance
+        matrix of the factor analysis variational distribution.
+
+        Args:
+            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
+                (self.weight_dim, 1).
+
+        Returns:
+            The gradient of the variational objective wrt the logarithm of the diagonal of the noise covariance
+            matrix of the factor analysis variational distribution. Of shape (self.weight_dim, 1).
+        """
+        loss_grad = self._compute_loss_gradient_wrt_log_diag_psi(grad_weights)
+        return self._var_grad_wrt_log_diag_psi - self._prior_grad_wrt_log_diag_psi + loss_grad
+
+    def _compute_loss_gradient_wrt_log_diag_psi(self, grad_weights: Tensor) -> Tensor:
+        """
+        Compute the gradient of the network's loss wrt the logarithm of the diagonal of the noise covariance matrix.
+
+        Args:
+            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
+                (self.weight_dim, 1).
+
+        Returns:
+            The gradient of the network's loss wrt the logarithm of the diagonal of the noise covariance matrix. Of
+            shape (self.weight_dim, 1).
+        """
+        return (1 / 2) * grad_weights * self._sqrt_diag_psi_dot_z
+
     def _update_variational_params(self):
         """
         Update the parameters of the factor analysis variational distribution.
@@ -333,51 +423,6 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
 
         self.diag_psi = torch.exp(self._log_diag_psi)
 
-    def _compute_gradient_wrt_c(self, grad_weights: Tensor) -> Tensor:
-        """
-        Compute the gradient of the variational objective wrt the bias term of the factor analysis variational
-        distribution.
-
-        Args:
-            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
-                (self.weight_dim, 1).
-
-        Returns:
-            The gradient of the variational objective wrt the bias term of the factor analysis variational
-            distribution. Of shape (self.weight_dim, 1).
-        """
-        return self.precision * self.c + grad_weights
-
-    def _compute_gradient_wrt_F(self, grad_weights: Tensor) -> Tensor:
-        """
-        Compute the gradient of the variational objective wrt the factors matrix of the factor analysis variational
-        distribution.
-
-        Args:
-            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
-                (self.weight_dim, 1).
-
-        Returns:
-            The gradient of the variational objective wrt the factors matrix of the factor analysis variational
-            distribution. Of shape (self.weight_dim, self.latent_dim).
-        """
-        return self.precision * self.F + grad_weights.mm(self._h.t())
-
-    def _compute_gradient_wrt_log_diag_psi(self, grad_weights: Tensor) -> Tensor:
-        """
-        Compute the gradient of the variational objective wrt the noise covariance matrix of the factor analysis
-        variational distribution.
-
-        Args:
-            grad_weights: The back propagated gradient of the network's loss wrt the network's weights. Of shape
-                (self.weight_dim, 1).
-
-        Returns:
-            The gradient of the variational objective wrt the noise covariance matrix of the factor analysis variational
-            distribution. Of shape (self.weight_dim, 1).
-        """
-        return (-1 / 2) + (self.precision / 2) * self.diag_psi + (1 / 2) * grad_weights * self._sqrt_diag_psi_dot_z
-
     def _average_and_normalise_gradient(self, var: Variable):
         """
         Average the gradients accumulated in the variable by dividing by self.n_gradients_per_update and normalise if
@@ -390,6 +435,94 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
 
         if self.max_grad_norm is not None:
             var.grad = normalise_gradient(var.grad, self.max_grad_norm)
+
+    def _update_expected_gradients(self):
+        """
+        Update the expected gradients used in the algorithm which do not depend on the sampled network weights.
+        """
+        self._update_inverse_psi()
+        self._update_A()
+        self._update_B()
+        self._update_sigma()
+        self._update_C()
+        self._update_s()
+        self._update_variational_gradient_wrt_F()
+        self._update_variational_gradient_wrt_log_diag_psi()
+        self._update_prior_gradient_wrt_c()
+        self._update_prior_gradient_wrt_F()
+        self._update_prior_gradient_wrt_log_diag_psi()
+
+    def _update_inverse_psi(self):
+        """
+        Invert the diagonal Gaussian noise covariance matrix.
+        """
+        self._diag_inv_psi = 1 / self.diag_psi
+
+    def _update_A(self):
+        """
+        Update A = psi^(-1) * F.
+        """
+        self._A = self._diag_inv_psi * self.F
+
+    def _update_B(self):
+        """
+        Update B = A^T * F.
+        """
+        self._B = self._A.t().mm(self.F)
+
+    def _update_sigma(self):
+        """
+        Update sigma = (I + B)^(-1).
+        """
+        self._sigma = torch.linalg.inv(self._I + self._B)
+
+    def _update_C(self):
+        """
+        Update C = sigma * (2B + I - (B + I) * B * sigma) * F^T.
+        """
+        B_times_sigma = self._B.mm(self._sigma)
+        B_plus_I = self._B + self._I
+        inner_term = 2 * self._B + self._I - B_plus_I.mm(B_times_sigma)
+        self._C = (self._sigma.mm(inner_term)).mm(self.F.t())
+
+    def _update_s(self):
+        """
+        Update s = diag(F * F^T + sigma - F * C).
+        """
+        inner_term = self.F * (self.F - self._C.t())
+        sum_term = torch.sum(inner_term, dim=1, keepdim=True)
+        self._s = self.diag_psi + sum_term
+
+    def _update_variational_gradient_wrt_F(self):
+        """
+        Update d(variational distribution) / d(F) = A * (I - sigma * B - sigma) * B * sigma
+        """
+        inner_term = self._I - self._sigma.mm(self._B) - self._sigma
+        self._var_grad_wrt_F = self._A.mm(inner_term).mm(self._B).mm(self._sigma)
+
+    def _update_variational_gradient_wrt_log_diag_psi(self):
+        """
+        Update d(variational distribution) / d(log diag psi) = (1 / 2) * (psi ^(-1) * s - 1)
+        """
+        self._var_grad_wrt_log_diag_psi = (1 / 2) * (self._diag_inv_psi * self._s - 1)
+
+    def _update_prior_gradient_wrt_c(self):
+        """
+        Update d(prior distribution) / d(c) = -precision * c
+        """
+        self._prior_grad_wrt_c = -self.precision * self.c
+
+    def _update_prior_gradient_wrt_F(self):
+        """
+        Update d(prior distribution) / d(F) = -precision * F
+        """
+        self._prior_grad_wrt_F = -self.precision * self.F
+
+    def _update_prior_gradient_wrt_log_diag_psi(self):
+        """
+        Update d(prior distribution) / d(log diag psi) = (-precision / 2) * diag_psi
+        """
+        self._prior_grad_wrt_log_diag_psi = (-self.precision / 2) * self.diag_psi
 
     def get_variational_mean(self) -> Tensor:
         """
