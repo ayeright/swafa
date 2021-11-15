@@ -723,11 +723,11 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:onli
 \end{algorithm}
 
 
-\section{Auto-Encoding Variational Bayes}
+\section{Variational Inference}
 
 Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} both assume that samples from the true posterior can be obtained via some separate procedure. This section describes an alternative method based on VI which learns a FA posterior directly.  
 
-In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate Gaussian posterior of the parameter vector of a neural network. The variational auto-encoder is based on this approach, but with a diagonal covariance matrix \cite{kingma2013}. Suppose instead that the approximate posterior is a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ for some $\matr{c} \in \R^D$, $\matr{F} \in \R^{D \times K}$ and $D \times D$ diagonal matrix $\Psi$. Then the gradient of the VI objective in Equation (\ref{eqn:vi_objective}) becomes 
+In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate Gaussian posterior of the parameter vector of a neural network. Suppose that the approximate posterior is a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ for some $\matr{c} \in \R^D$, $\matr{F} \in \R^{D \times K}$ and $D \times D$ diagonal matrix $\Psi$. Then the gradient of the VI objective in Equation (\ref{eqn:vi_objective}) becomes 
 \begin{equation}\label{eqn:vi_fa_derivatives}
 	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log q(\theta)]
 	- \nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\theta)]
@@ -957,10 +957,7 @@ Due to the functional form of a non-linear neural network, the expectation of th
 
 In order for the algorithm to be practical, explicit use of $D \times D$ matrices must be avoided. As in Algorithm \ref{alg:gradient_fa}, it is far more efficient to work with $\psi = \diag(\Psi)$ rather than $\Psi$ itself. Re-writing Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi_inner}) as
 \begin{equation}
-	\matr{s} = 
-	\text{sum}\big(\matr{F} \odot \matr{F}, \text{ dim} = 1\big)
-	 + \psi
-	 - \text{sum}\big(\matr{F} \odot \matr{C}^\intercal, \text{ dim} = 1\big),
+	\matr{s} = \psi + \text{sum}\big(\matr{F} \odot (\matr{F} - \matr{C}^\intercal), \text{ dim} = 1\big),
 \end{equation}
 the required partial derivatives with respect to $\psi$ are
 \begin{equation}
@@ -984,13 +981,13 @@ Also, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure th
 \begin{equation}
 	\nabla_{\beta} \log p(\mathcal{D} | \theta) = \frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \odot \big(\psi^{1/2} \odot \matr{z}\big).
 \end{equation}
-Pseudo code for the practical implementation is given in Algorithm \ref{alg:aevb_fa}.
+Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_fa}.
 
 \begin{algorithm}[!htbp] 
-	\caption{Auto-Encoding Variational Bayes with Factor Analysis Posterior}
-	\label{alg:aevb_fa}
+	\caption{Variational Inference with Factor Analysis Posterior}
+	\label{alg:vi_fa}
 	\begin{algorithmic}[1]
-		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, mini-batch size $M$, learning rate $\eta > 0$} 
+		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, mini-batch size $M$, learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\beta > 0$} 
 		\State Initialise $\matr{c} = \matr{0}^D$, $\matr{F} \in \R^{D \times K}$, $\psi = \matr{1}^D$
 		\State $\beta \leftarrow \log \psi$
 		\For {$t=1,\dots,T$}
@@ -1000,15 +997,16 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:aevb
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
 			\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
 			\State $\matr{B} \leftarrow \matr{A}^\intercal \matr{F}$
+			\State $\Sigma \leftarrow (\matr{I} + \matr{B})^{-1}$ 
 			\State $\matr{C} = \Sigma (2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma) \matr{F}^\intercal$
-			\State $\matr{s} \leftarrow \text{sum}\big(\matr{F} \odot \matr{F}, \text{ dim} = 1\big) + \psi - \text{sum}\big(\matr{F} \odot  \matr{C}^\intercal, \text{ dim} = 1\big)$
+			\State $\matr{s} \leftarrow \psi + \text{sum}\big(\matr{F} \odot (\matr{F} - \matr{C}^\intercal), \text{ dim} = 1\big)$
 			\State $\matr{g}_\theta \leftarrow -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
 			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} + \matr{g}_\theta$
 			\State $\matr{G}_\matr{F} \leftarrow \matr{A}(\matr{I} -\Sigma \matr{B} - \Sigma) \matr{B} \Sigma + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
 			\State $\matr{g}_\beta \leftarrow \frac{1}{2} \big(\psi^{-1} \odot \matr{s} - \matr{1} \big) + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
-			\State $\matr{c} \leftarrow \matr{c} - \eta \matr{g}_\matr{c}$
-			\State $\matr{F} \leftarrow \matr{F} - \eta \matr{G}_\matr{F}$
-			\State $\beta \leftarrow \beta - \eta \matr{g}_\beta$
+			\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \matr{g}_\matr{c}$
+			\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \matr{G}_\matr{F}$
+			\State $\beta \leftarrow \beta - \eta_\beta \matr{g}_\beta$
 			\State $\psi \leftarrow \exp \beta$
 		\EndFor
 	\State \Return $\matr{c}, \matr{F}, \psi$
@@ -1115,9 +1113,9 @@ In summary, these results suggest that online EM is in general better at fitting
 
 \chapter{Linear Regression Experiments}\label{ch:linear_regression_experiments}
 
-\section{Sampling from the Posterior}\label{sec:linear_regression_posterior_experiments}
+\section{Posterior Estimation}\label{sec:linear_regression_posterior_experiments}
 
-The ability of the online FA algorithms to learn the posterior of a neural network's parameter vector hinges on obtaining samples of the parameter vector which are representative of the true posterior. In the SWAG approach, such samples are thought to be obtained from the iterates of the parameter vector which are encountered along the SGD trajectory while training the neural network with a high constant learning rate, following an initial pre-training phase \cite{maddox2019}. In the case of linear regression - which is a neural network with no hidden layers - this assumption can be tested directly, since the true posterior of its parameter vector can be computed in closed form. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). The precision $\alpha$ is a hyperparameter which controls the width of the prior $p(\theta)$. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
+The ability of Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} to learn the posterior of a neural network's parameter vector hinges on obtaining samples of the parameter vector which are representative of the true posterior. In the SWAG approach, such samples are thought to be obtained from the iterates of the parameter vector which are encountered along the SGD trajectory while training the neural network with a high constant learning rate, following an initial pre-training phase \cite{maddox2019}. In the case of linear regression - which is a neural network with no hidden layers - this assumption can be tested directly, since the true posterior of its parameter vector can be computed in closed form. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). The precision $\alpha$ is a hyperparameter which controls the width of the prior $p(\theta)$. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
 \begin{equation}
 	\log p(\theta | \mathcal{D}) 
 	= -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
@@ -1139,7 +1137,7 @@ This objective function is analogous to the L2-regularised training loss often u
 	\sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
 	+ \lambda \theta^\intercal \theta 
 \end{equation}
-for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$. The purpose of the experiments in this section is to test this hypothesis. 
+for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$. Also, for the same data $\mathcal{D}$ and precision $\alpha$, the VI approach in Algorithm \ref{alg:vi_fa} should be able to approximate $p(\theta | \mathcal{D})$ directly. The purpose of the experiments in this section is to test this hypotheses. 
  
 \subsection{Methodology}
 
@@ -1150,11 +1148,17 @@ Synthetic data was generated for these experiments as follows. First, 1000 input
 		0.5 & 1
 	\end{bmatrix}.
 \end{equation}
-Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to Equation (\ref{eqn:linear_regression}) with $\beta = 0.1$. Using this data, the true posterior in Equation (\ref{eqn:linear_regression_posterior}) was evaluated. Before collecting samples, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. Each experiment was repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
+Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to Equation (\ref{eqn:linear_regression}) with $\beta = 0.1$. Using this data, the true posterior in Equation (\ref{eqn:linear_regression_posterior}) was evaluated. 
+
+For the purpose of obtaining samples from the posterior, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. 
+
+In order to approximate the posterior directly via VI, Algorithm \ref{alg:vi_fa} was executed with the same data and precision $\alpha$. In this case, the algorithm ran for 2000 epochs with a batch size of 100. The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.001 and 0.01, respectively, and the approximate FA posterior had latent dimension $K=2$. 
+
+All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
 
 \subsection{Results and Discussion}
 
-The results of each experiment are shown in Table \ref{table:linear_regression_samples}. It is apparent from the third column that the empirical mean of the sampled parameter vectors does not match the true posterior mean when the theoretically motivated value of $\lambda = 0.1$ is used. However, if the regularisation strength is reduced to $\lambda = 0.001$, the distance between the means is much smaller. Unfortunately, the distance between the covariance matrices of the two distributions is relatively large for all combinations of the hyperparameters, as can be seen in the fourth column. The best result is achieved when using a learning rate of 0.1 with $\lambda = 0.1$, but even then the average relative distance is 0.62. 
+The results of the posterior sampling experiment are shown in Table \ref{table:linear_regression_samples}. It is apparent from the third column that the empirical mean of the sampled parameter vectors does not match the true posterior mean when the theoretically motivated value of $\lambda = 0.1$ is used. However, if the regularisation strength is reduced to $\lambda = 0.001$, the distance between the means is much smaller. Unfortunately, the distance between the covariance matrices of the two distributions is relatively large for all combinations of the hyperparameters, as can be seen in the fourth column. The best result is achieved when using a learning rate of 0.1 with $\lambda = 0.1$, but even then the average relative distance is 0.62. 
 
 \begin{table}[h!]
 	\begin{center}
@@ -1176,7 +1180,7 @@ The results of each experiment are shown in Table \ref{table:linear_regression_s
 	\end{center}
 \end{table}
 
-Figure \ref{fig:linear_regression_pdfs} shows, for each combination of the hyperparameters, the sampled parameter vectors for one of the ten trials in each experiment. These are plotted on top of the contours of the pdf of the true posterior distribution. Note that in each case the pre-trained parameter vector is very close to the true posterior mean. When $\lambda = 0.1$, SGD moves away from the pre-trained solution to a different region of the parameter space (subplots (a) and (c)). When $\lambda = 0.001$, SGD bounces around the pre-trained solution and the empirical mean of the parameter vectors, $\theta_{\text{SWA}}$, is right on the true posterior mean. However, when the learning rate is 0.1 the empirical covariance is in the wrong direction (subplot (b)), and when the learning rate is 0.01 the empirical covariance is far too narrow (subplot (d)).
+Figure \ref{fig:linear_regression_pdfs} shows, for each combination of the hyperparameters, the sampled parameter vectors for one of the ten trials in each posterior sampling experiment. These are plotted on top of the contours of the pdf of the true posterior distribution. Note that in each case the pre-trained parameter vector is very close to the true posterior mean. When $\lambda = 0.1$, SGD moves away from the pre-trained solution to a different region of the parameter space (subplots (a) and (c)). When $\lambda = 0.001$, SGD bounces around the pre-trained solution and the empirical mean of the parameter vectors, $\theta_{\text{SWA}}$, is right on the true posterior mean. However, when the learning rate is 0.1 the empirical covariance is in the wrong direction (subplot (b)), and when the learning rate is 0.01 the empirical covariance is far too narrow (subplot (d)).
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
@@ -1206,6 +1210,28 @@ It was also observed in \cite{mandt2017} that the empirical covariance of the li
 	\end{tabular}
 	\caption{Samples constructed via finite window iterate averaging for different combinations of batch size and window size. Each red dot is the mean of a set of linear regression parameter vectors sampled during consecutive mini-batch updates of SGD, with a learning rate of 0.1 and the regularisation strength set to 0.001. The contours show the pdf of the true posterior distribution. The white dot denotes the pre-trained parameter vector and the black star is the empirical mean of the red dots.}
 	\label{fig:linear_regression_average_iterates}
+\end{figure}
+
+The results of the VI experiments are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to the results in Table \ref{table:linear_regression_samples}, the VI algorithm does a much better job of approximating the true covariance matrix. The average relative distance from the true covariance in this case is 0.2055, much lower than the best result of 0.6200 in Table \ref{table:linear_regression_samples}. This superior approximation can also be observed in Figure \ref{fig:linear_regression_vi_posterior}, which shows the contours of the pdf of the true posterior (left) and the approximate FA posterior (right) estimated via VI for one of the ten trials.  
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{|| p{0.3\linewidth} p{0.3\linewidth} p{0.3\linewidth} ||} 
+ 			\hline
+ 			Relative Distance from Mean & Relative Distance from Covariance & Wasserstein Distance \\ [0.5ex] 
+ 			\hline\hline
+ 			$0.0072 \pm 0.0010$ & $ 0.2055 \pm 0.0369$ & $ 0.0162 \pm 0.0063$ \\ [1ex] 
+			\hline
+		\end{tabular}
+		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated via VI. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
+		\label{table:linear_regression_vi_posterior}
+	\end{center}
+\end{table}
+
+\begin{figure}[h]
+	\includegraphics[width=15cm]{plots/linear_model_vi_posterior__latent_dim=2.png}
+	\caption{The true posterior pdf (left) of a linear regression model and the approximate FA pdf (right) of the same model, estimated via VI.}
+	\label{fig:linear_regression_vi_posterior}
 \end{figure}
 
 
