@@ -1137,7 +1137,7 @@ This objective function is analogous to the L2-regularised training loss often u
 	\sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
 	+ \lambda \theta^\intercal \theta 
 \end{equation}
-for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$. Also, for the same data $\mathcal{D}$ and precision $\alpha$, the VI approach in Algorithm \ref{alg:vi_fa} should be able to approximate $p(\theta | \mathcal{D})$ directly. The purpose of the experiments in this section is to test this hypotheses. 
+for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$. Also, for the same data $\mathcal{D}$ and precision $\alpha$, the VI approach in Algorithm \ref{alg:vi_fa} should be able to approximate $p(\theta | \mathcal{D})$ directly. The purpose of the experiments in this section is to test these hypotheses. 
  
 \subsection{Methodology}
 
@@ -1152,13 +1152,13 @@ Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\
 
 For the purpose of obtaining samples from the posterior, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. 
 
-In order to approximate the posterior directly via VI, Algorithm \ref{alg:vi_fa} was executed with the same data and precision $\alpha$. In this case, the algorithm ran for 2000 epochs with a batch size of 100. The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.001 and 0.01, respectively, and the approximate FA posterior had latent dimension $K=2$. 
+For the VI experiments, Algorithm \ref{alg:vi_fa} was executed with the same synthetic data and precision $\alpha$. In this case, the training process ran for 2000 epochs with a batch size of 100. The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.001 and 0.01, respectively, and the approximate FA posterior had latent dimension $K=2$. 
 
 All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
 
 \subsection{Results and Discussion}
 
-The results of the posterior sampling experiment are shown in Table \ref{table:linear_regression_samples}. It is apparent from the third column that the empirical mean of the sampled parameter vectors does not match the true posterior mean when the theoretically motivated value of $\lambda = 0.1$ is used. However, if the regularisation strength is reduced to $\lambda = 0.001$, the distance between the means is much smaller. Unfortunately, the distance between the covariance matrices of the two distributions is relatively large for all combinations of the hyperparameters, as can be seen in the fourth column. The best result is achieved when using a learning rate of 0.1 with $\lambda = 0.1$, but even then the average relative distance is 0.62. 
+The results of the posterior sampling experiments are shown in Table \ref{table:linear_regression_samples}. It is apparent from the third column that the empirical mean of the sampled parameter vectors does not match the true posterior mean when the theoretically motivated value of $\lambda = 0.1$ is used. However, if the regularisation strength is reduced to $\lambda = 0.001$, the distance between the means is much smaller. Unfortunately, the distance between the covariance matrices of the two distributions is relatively large for all combinations of the hyperparameters, as can be seen in the fourth column. The best result is achieved when using a learning rate of 0.1 with $\lambda = 0.1$, but even then the average relative distance is 0.62. 
 
 \begin{table}[h!]
 	\begin{center}
@@ -1197,7 +1197,7 @@ Figure \ref{fig:linear_regression_pdfs} shows, for each combination of the hyper
 	\label{fig:linear_regression_pdfs}
 \end{figure}
 
-These results suggest that, in general, SGD does not sample parameter vectors from the true posterior distribution. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For the certain values of $\lambda$ (but not the theoretically motivated one), the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected from the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely, since in that case the posterior cannot be compute in closed form, which makes hyperparameter tuning far more difficult. These results suggest that, in general, SWAG does not actually do approximate Bayesian inference, contrary to what is claimed in \cite{maddox2019}.
+These results suggest that, in general, SGD does not sample parameter vectors from the true posterior distribution. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For certain values of $\lambda$ (but not the theoretically motivated one), the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected of the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely. Since the ground truth cannot be compute in closed form, hyperparameter tuning would be far more difficult. Therefore, contrary to what is claimed in \cite{maddox2019}, this suggest that SWAG does not actually do approximate Bayesian inference in general.
 
 It was also observed in \cite{mandt2017} that the empirical covariance of the linear regression SGD iterates does not match the true posterior covariance. As such, the authors proposed a different technique for posterior sampling called \emph{finite window iterate averaging}. Instead of using the individual parameter vectors sampled after each mini-batch update of SGD, this algorithm averages the parameter vectors in fixed-length disjoint windows. These average parameter vectors are then considered samples from the posterior. Figure \ref{fig:linear_regression_average_iterates} shows examples of such samples for the same learning rate and regularisation strength as that in Figure \ref{fig:linear_regression_pdfs} (b). The theoretical work in \cite{mandt2017} suggests that the window size should be set to the number of training examples divided by the batch size, so that all training examples are use to generate a single posterior sample. In these experiments this value is $1000 / 100 = 10$. However, this setting does not produce samples which are representative of the true posterior, as observed in Figure \ref{fig:linear_regression_average_iterates} (a). Better samples can be obtained by setting the batch size to 10 and the window size to 50, as shown in Figure \ref{fig:linear_regression_average_iterates} (b). Unfortunately, this result is not theoretically motivated and was only obtained after significant tuning of both the batch size and window size. In the case of non-linear neural networks for which the true posterior is not known, this would not be possible. Therefore, this algorithm does not seem to be a viable option in practice. 
 
@@ -1212,7 +1212,7 @@ It was also observed in \cite{mandt2017} that the empirical covariance of the li
 	\label{fig:linear_regression_average_iterates}
 \end{figure}
 
-The results of the VI experiments are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to the results in Table \ref{table:linear_regression_samples}, the VI algorithm does a much better job of approximating the true covariance matrix. The average relative distance from the true covariance in this case is 0.2055, much lower than the best result of 0.6200 in Table \ref{table:linear_regression_samples}. This superior approximation can also be observed in Figure \ref{fig:linear_regression_vi_posterior}, which shows the contours of the pdf of the true posterior (left) and the approximate FA posterior (right) estimated via VI for one of the ten trials.  
+Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to using the SGD iterates, the more direct VI approach does a much better job of approximating the true covariance matrix. The average distance of the estimated covariance from the ground truth is 0.2055, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrix are similar to the ground truth and the means of the two pdfs are relatively close. 
 
 \begin{table}[h!]
 	\begin{center}
@@ -1227,6 +1227,20 @@ The results of the VI experiments are shown in Table \ref{table:linear_regressio
 		\label{table:linear_regression_vi_posterior}
 	\end{center}
 \end{table}
+
+
+\begin{figure}[!htbp] 
+	\begin{tabular}{cc}
+		 \includegraphics[width=70mm]{plots/linear_model_true_posterior.png}
+		 & \includegraphics[width=70mm]{plots/linear_model_vi_posterior__latent_dim=2.png} \\
+		 (a) True posterior
+		 & (b) Approximate posterior \\[6pt]
+	\end{tabular}
+	\caption{The true posterior pdf of a linear regression model and the approximate FA pdf of the same model, estimated via VI.}
+	\label{fig:linear_regression_vi_posterior}
+\end{figure}
+
+
 
 \begin{figure}[h]
 	\includegraphics[width=15cm]{plots/linear_model_vi_posterior__latent_dim=2.png}
