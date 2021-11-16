@@ -1241,14 +1241,6 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
 \end{figure}
 
 
-
-\begin{figure}[h]
-	\includegraphics[width=15cm]{plots/linear_model_vi_posterior__latent_dim=2.png}
-	\caption{The true posterior pdf (left) of a linear regression model and the approximate FA pdf (right) of the same model, estimated via VI.}
-	\label{fig:linear_regression_vi_posterior}
-\end{figure}
-
-
 \section{Making Predictions}
 
 Regardless of whether SWAG does Bayesian inference or not, it was shown in \cite{maddox2019} that this method can lead to more accurate predictions. Once a Gaussian distribution has been learned from the SGD iterates, parameter vectors of the model can easily be sampled. For each sampled parameter vector, the resultant model can be used to make a different set of predictions for the test data. Final predictions are then obtained by averaging the predictions from all models. The aim of the experiments in this section is to test, for linear regression, whether this approach leads to more accurate predictions than standard SGD, when the Gaussian distribution of the parameter vectors is a FA model learned by either online SGA or online EM. 
