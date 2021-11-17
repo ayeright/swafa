@@ -806,22 +806,19 @@ Hence, substituting these expectations into Equation (\ref{eqn:vi_expected_deriv
 	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \Psi \Psi^{-1} \matr{F} \Sigma \\
 	& = \Psi^{-1}\matr{FF}^{\intercal}\Psi^{-1} \matr{F} \Sigma
 	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} \Psi^{-1} \matr{F} \Sigma
-	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma.
+	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
+	& =  \Psi^{-1}\matr{F}\big(
+	\matr{I} - \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} - \Sigma
+	\big)\matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
+	& =  \Psi^{-1}\matr{F}\big(
+	\matr{I} - \Sigma (\matr{F}^\intercal \Psi^{-1} \matr{F} + \matr{I})
+	\big)\matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
+	& =  \Psi^{-1}\matr{F}\big(
+	\matr{I} - \Sigma \Sigma^{-1}
+	\big)\matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
+	& = \matr{0}.
 \end{split}
 \end{align}
-Now let $\matr{A} = \Psi^{-1} \matr{F} \in \R^{D \times K}$ and note that $\matr{A}^\intercal = \matr{F}^\intercal \Psi^{-1} \in \R^{K \times D}$. Also, setting $\matr{B} = \matr{A}^\intercal \matr{F} \in \R^{K \times K}$, it follows that
-\begin{align}
-\begin{split}
-	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
-	& = \matr{A} \matr{A}^\intercal \matr{F} \Sigma
-	- \matr{A} \Sigma \matr{A}^\intercal \matr{F} \matr{A}^\intercal \matr{F} \Sigma
-	- \matr{A} \Sigma \matr{A}^\intercal \matr{F} \Sigma \\
-	& = \matr{A}\matr{B} \Sigma 
-	- \matr{A} \Sigma \matr{B} \matr{B} \Sigma
-	- \matr{A} \Sigma \matr{B} \Sigma \\
-	& = \matr{A}(\matr{I} -\Sigma \matr{B} - \Sigma) \matr{B} \Sigma.
-\end{split}
-\end{align} 
 
 \subsection{Derivatives of the Variational Distribution with respect to $\Psi$}
 
@@ -861,7 +858,7 @@ and
 \end{align}
 Letting $\matr{s} =  \E_{q(\theta)}[\matr{d} \odot \matr{d}] -2\E_{q(\theta)}[\matr{d} \odot (\matr{F} \matr{m})] + \diag(\matr{F} \Sigma \matr{F}^\intercal + \matr{F}  \E_{q(\theta)}[\matr{m} \matr{m}^\intercal] \matr{F}^\intercal)$,
 \begin{align}
-\begin{split}\label{eqn:vi_expected_derivatives_wrt_Psi_inner}
+\begin{split}
 	\matr{s} 
 	 & = \diag(\matr{FF}^{\intercal} + \Psi)
 	 -2 \diag\big(\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi) \big) \\
@@ -882,33 +879,44 @@ Letting $\matr{s} =  \E_{q(\theta)}[\matr{d} \odot \matr{d}] -2\E_{q(\theta)}[\m
 	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
 	 & = \diag\big(
 	 \matr{FF}^{\intercal} + \Psi
-	 -2 \matr{F} \Sigma \matr{A}^\intercal \matr{FF}^{\intercal} 
-	 - \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{A}^\intercal \matr{F} \matr{A}^{\intercal} \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{A}^\intercal \matr{F} \Sigma \matr{F}^\intercal \big) \\
+	 -2 \matr{F} \Sigma(\matr{F}^\intercal \Psi^{-1} \matr{F} + \matr{I}) \matr{F}^\intercal
+	 + \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} (\matr{F}^{\intercal} \Psi^{-1} \matr{F} + \matr{I}) \Sigma \matr{F}^\intercal
+	  \big) \\
 	 & = \diag\big(
 	 \matr{FF}^{\intercal} + \Psi
-	 -2 \matr{F} \Sigma \matr{B} \matr{F}^{\intercal} 
-	 - \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{B} \matr{B} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{B} \Sigma \matr{F}^\intercal \big) \\
+	 -2 \matr{F} \Sigma \Sigma^{-1} \matr{F}^\intercal
+	 + \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma^{-1} \Sigma \matr{F}^\intercal
+	 \big) \\
 	 & = \diag\big(
 	 \matr{FF}^{\intercal} + \Psi
-	 - \matr{F} \Sigma (
-	 2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma
-	 ) \matr{F}^\intercal \big) \\
-	 & =\diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \matr{C} \big),
+	 -2 \matr{F} \matr{F}^\intercal
+	 + \matr{F} \Sigma \matr{F}^\intercal
+	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \matr{F}^\intercal
+	 \big) \\
+	 & = \diag\big(
+	 \Psi - \matr{F} \matr{F}^\intercal
+	 + \matr{F} \Sigma (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F}) \matr{F}^\intercal
+	 \big) \\
+	 & = \diag\big(
+	 \Psi - \matr{F} \matr{F}^\intercal
+	 + \matr{F} \Sigma \Sigma^{-1} \matr{F}^\intercal
+	 \big) \\
+	 & = \diag(\Psi).
 \end{split}
 \end{align}
-where $\matr{C} = \Sigma (2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma) \matr{F}^\intercal \in \R^{K \times D}$. Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi}),
+Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi}),
 \begin{align}
 \begin{split}
 	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)] 
 	 & = \diag\Bigg(
-	 \frac{1}{2} \diag(\Psi^{-2}) \odot \Big(
-	 \diag\big(\matr{FF}^{\intercal} + \Psi - \matr{F} \matr{C} \big)
-	 \Big)
-	 \Bigg)  - \frac{1}{2} \Psi^{-1}.
+	 \frac{1}{2} \diag(\Psi^{-2}) \odot \diag(\Psi)
+	 \Bigg)  - \frac{1}{2} \Psi^{-1} \\
+	 & = \diag\Bigg(
+	 \frac{1}{2} \diag(\Psi^{-1})
+	 \Bigg)  - \frac{1}{2} \Psi^{-1} \\
+	 & = \matr{0}.
 \end{split}
 \end{align}
 
@@ -955,14 +963,9 @@ Due to the functional form of a non-linear neural network, the expectation of th
 
 \subsection{Practical Implementation}
 
-In order for the algorithm to be practical, explicit use of $D \times D$ matrices must be avoided. As in Algorithm \ref{alg:gradient_fa}, it is far more efficient to work with $\psi = \diag(\Psi)$ rather than $\Psi$ itself. Re-writing Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi_inner}) as
+In order for the algorithm to be practical, explicit use of $D \times D$ matrices must be avoided. As in Algorithm \ref{alg:gradient_fa}, it is far more efficient to work with $\psi = \diag(\Psi)$ rather than $\Psi$ itself. The required partial derivatives with respect to $\psi$ are
 \begin{equation}
-	\matr{s} = \psi + \text{sum}\big(\matr{F} \odot (\matr{F} - \matr{C}^\intercal), \text{ dim} = 1\big),
-\end{equation}
-the required partial derivatives with respect to $\psi$ are
-\begin{equation}
-	\nabla_\psi \E_{q(\theta)} [\log q(\theta)] 
-	 = \frac{1}{2} \psi^{-2} \odot \matr{s} - \frac{1}{2} \psi^{-1}.
+	\nabla_\psi \E_{q(\theta)} [\log q(\theta)] = \matr{0},
 \end{equation}
 \begin{equation}
 	\nabla_\psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{1}^D,
@@ -972,8 +975,7 @@ the required partial derivatives with respect to $\psi$ are
 \end{equation}
 Also, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
 \begin{equation}
-	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] 
-	 = \frac{1}{2} \Big(\psi^{-1} \odot \matr{s} - \matr{1} \Big).
+	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = \matr{0},
 \end{equation}
 \begin{equation}
 	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
@@ -995,15 +997,10 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
 			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
-			\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
-			\State $\matr{B} \leftarrow \matr{A}^\intercal \matr{F}$
-			\State $\Sigma \leftarrow (\matr{I} + \matr{B})^{-1}$ 
-			\State $\matr{C} = \Sigma (2\matr{B} + \matr{I} - (\matr{B} + \matr{I}) \matr{B} \Sigma) \matr{F}^\intercal$
-			\State $\matr{s} \leftarrow \psi + \text{sum}\big(\matr{F} \odot (\matr{F} - \matr{C}^\intercal), \text{ dim} = 1\big)$
 			\State $\matr{g}_\theta \leftarrow -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
 			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} + \matr{g}_\theta$
-			\State $\matr{G}_\matr{F} \leftarrow \matr{A}(\matr{I} -\Sigma \matr{B} - \Sigma) \matr{B} \Sigma + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
-			\State $\matr{g}_\beta \leftarrow \frac{1}{2} \big(\psi^{-1} \odot \matr{s} - \matr{1} \big) + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\State $\matr{G}_\matr{F} \leftarrow \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
+			\State $\matr{g}_\beta \leftarrow \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \matr{g}_\matr{c}$
 			\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \matr{G}_\matr{F}$
 			\State $\beta \leftarrow \beta - \eta_\beta \matr{g}_\beta$
