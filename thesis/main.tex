@@ -1355,4 +1355,53 @@ usual late penalties based on your final submission time.
 \end{table}
 
 
+\section{Comparison of VIFA and SLANG}
+
+\begin{align}
+\begin{split}
+	\matr{F}\matr{F}^\intercal + \Psi
+	& \leftarrow \big(\matr{F}\ - \eta (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal)\big) \big(\matr{F}\ - \eta (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal)\big)^\intercal \\
+	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
+	& = \matr{F}\matr{F}^\intercal 
+	- \eta \matr{F} (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal) ^\intercal
+	- \eta (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal) \matr{F}^\intercal
+	+ \eta^2 (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal) (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal)^\intercal \\
+	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
+	& = \matr{F}\matr{F}^\intercal  
+	- \eta \alpha \matr{F}\matr{F}^\intercal
+	- \eta \matr{F} \matr{h} \matr{g}_\theta^\intercal
+	- \eta \alpha \matr{F}\matr{F}^\intercal 
+	- \eta \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \\
+	& \quad + \eta^2 \alpha^2 \matr{F}\matr{F}^\intercal  
+	+ \eta^2 \alpha \matr{F} \matr{h} \matr{g}_\theta^\intercal
+	+ \eta^2 \alpha \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal
+	+ \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
+	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
+	& = \matr{F}\matr{F}^\intercal (1 - 2\eta \alpha + \eta^2 \alpha^2) 
+	+ \matr{F} \matr{h} \matr{g}_\theta^\intercal(\eta^2 \alpha - \eta)
+	+ \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal(\eta^2 \alpha - \eta) 
+	+ \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
+	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
+	& = \matr{F}\matr{F}^\intercal (1 - 2\eta \alpha + \eta^2 \alpha^2) 
+	+ \big(\matr{F} \matr{h} \matr{g}_\theta^\intercal  + (\matr{F} \matr{h} \matr{g}_\theta^\intercal)^\intercal \big)(\eta^2 \alpha - \eta)
+	+ \eta^2 \matr{g}_\theta \matr{h}^\intercal (\matr{g}_\theta \matr{h}^\intercal)^\intercal \\
+	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
+\end{split}
+\end{align}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 \end{document}
