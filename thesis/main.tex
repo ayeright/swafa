@@ -788,9 +788,9 @@ and
 \begin{align}
 \begin{split}\label{eqn:grad_vi_dist_wrt_Psi}
 	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)]
-	& = -\frac{1}{2} \matr{S}^{-1} (\nabla_\Psi \matr{S}) \\
-	& = -\frac{1}{2} \matr{S}^{-1} \matr{I} \\
-	& = -\frac{1}{2}\matr{S}^{-1}.
+	& = \diag\Big(\diag\Big(-\frac{1}{2} \matr{S}^{-1} (\nabla_\Psi \matr{S}) \Big)\Big) \\
+	& = -\frac{1}{2} \diag\big(\matr{S}^{-1} \matr{I}\big) \\
+	& = -\frac{1}{2} \diag\big(\matr{S}^{-1}\big).
 \end{split}
 \end{align}
 
@@ -841,9 +841,9 @@ In order to compute the gradients in Equations (\ref{eqn:grad_vi_dist_wrt_F}) an
 \begin{align}
 \begin{split}
 	( \matr{FF}^{\intercal} + \Psi)^{-1}
-	& = \Psi^{-1} - \Psi^{-1}\matr{F}(\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})\matr{F}^\intercal \Psi^{-1} \\
-	& = \Psi^{-1} - (\psi^{-1} \odot \matr{F}) \big(\matr{I} + \matr{F}^\intercal (\psi^{-1} \odot \matr{F})\big) (\psi^{-1} \odot \matr{F})^\intercal \\
-	& = \Psi^{-1} - \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A})\matr{A}^\intercal,
+	& = \Psi^{-1} - \Psi^{-1}\matr{F}(\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1} \matr{F}^\intercal \Psi^{-1} \\
+	& = \Psi^{-1} - (\psi^{-1} \odot \matr{F}) \big(\matr{I} + \matr{F}^\intercal (\psi^{-1} \odot \matr{F})\big)^{-1} (\psi^{-1} \odot \matr{F})^\intercal \\
+	& = \Psi^{-1} - \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} \matr{A}^\intercal,
 \end{split}
 \end{align}
 where $\psi = \diag(\Psi)$ and $\matr{A} = \psi^{-1} \odot \matr{F}$ (with broadcasting). It follows that
@@ -851,8 +851,8 @@ where $\psi = \diag(\Psi)$ and $\matr{A} = \psi^{-1} \odot \matr{F}$ (with broad
 \begin{split}
 	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)]
 	& = -( \matr{FF}^{\intercal} + \Psi)^{-1}\matr{F} \\
-	& = -\Psi^{-1} \matr{F}  + \matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A}) (\matr{A}^\intercal \matr{F}) \\
-	& = -\matr{A}  + \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A}) (\matr{A}^\intercal \matr{F})
+	& = -\Psi^{-1} \matr{F}  + \matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} (\matr{A}^\intercal \matr{F}) \\
+	& = -\matr{A}  + \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} (\matr{A}^\intercal \matr{F})
 \end{split}
 \end{align}
 and
@@ -860,8 +860,8 @@ and
 \begin{split}
 	\nabla_\psi \E_{q(\theta)} [\log q(\theta)]
 	& = \diag\Big(-\frac{1}{2} ( \matr{FF}^{\intercal} + \Psi)^{-1}\Big) \\
-	& = \diag\Big(-\frac{1}{2}\Psi^{-1}  + \frac{1}{2}\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A}) \matr{A}^\intercal \Big) \\
-	& = -\frac{1}{2}\psi^{-1} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})\big) \odot \matr{A}, \text{ dim} = 1\Big).
+	& = \diag\Big(-\frac{1}{2}\Psi^{-1}  + \frac{1}{2}\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} \matr{A}^\intercal \Big) \\
+	& = -\frac{1}{2}\psi^{-1} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})^{-1}\big) \odot \matr{A}, \text{ dim} = 1\Big).
 \end{split}
 \end{align}
 Note that these calculations involve no explicit use of $D \times D$ matrices. All other references to $D \times D$ matrices can be removed by writing the partial derivatives in Equations (\ref{eqn:grad_prior_wrt_psi}) and (\ref{eqn:grad_likelihood_wrt_psi}) with respect to $\psi$, as
@@ -873,7 +873,7 @@ Note that these calculations involve no explicit use of $D \times D$ matrices. A
 \end{equation}
 Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
 \begin{equation}
-	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})\big) \odot \matr{A}, \text{ dim} = 1\Big) \odot \psi 
+	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})^{-1}\big) \odot \matr{A}, \text{ dim} = 1\Big) \odot \psi 
 \end{equation}
 \begin{equation}
 	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
@@ -898,9 +898,11 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 			\State $\matr{g}_\theta \leftarrow -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
 			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} + \matr{g}_\theta$
 			\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
-			\State $\matr{B} \leftarrow -\matr{A}  + \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A}) (\matr{A}^\intercal \matr{F})$
-			\State $\matr{G}_\matr{F} \leftarrow \matr{B} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
-			\State $\matr{s} \leftarrow -\frac{1}{2} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})\big) \odot \matr{A}, \text{ dim} = 1\Big) \odot \psi$
+			\State $\matr{B} \leftarrow \matr{F}^\intercal \matr{A}$
+			\State $\matr{C} \leftarrow \matr{A} (\matr{I} + \matr{B})^{-1}$
+			\State $\matr{D} \leftarrow -\matr{A}  + \matr{C} \matr{B}^\intercal$
+			\State $\matr{G}_\matr{F} \leftarrow \matr{D} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
+			\State $\matr{s} \leftarrow -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi$
 			\State $\matr{g}_\beta \leftarrow \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \matr{g}_\matr{c}$
 			\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \matr{G}_\matr{F}$

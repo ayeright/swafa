@@ -216,16 +216,11 @@ class TestFactorAnalysisVariationalInferenceCallback:
         actual_grad = callback._compute_gradient_wrt_F(grad_weights)
 
         F = callback.F
-        Ft = F.t()
-        inv_psi = torch.diag(1 / callback.diag_psi.squeeze())
-        I = torch.eye(latent_dim)
-        sigma = torch.linalg.inv(I + Ft.mm(inv_psi).mm(F))
         h = callback._h
+        S = callback.get_variational_covariance()
+        inv_S = torch.linalg.inv(S)
 
-        A = inv_psi.mm(F)
-        B = A.t().mm(F)
-
-        expected_var_grad = A.mm(I - sigma.mm(B) - sigma).mm(B).mm(sigma)
+        expected_var_grad = -inv_S.mm(F)
         expected_prior_grad = -precision * F
         expected_loss_grad = grad_weights.mm(h.t())
 
@@ -254,20 +249,12 @@ class TestFactorAnalysisVariationalInferenceCallback:
         actual_grad = callback._compute_gradient_wrt_log_diag_psi(grad_weights)
 
         diag_psi = callback.diag_psi
-        F = callback.F
-        Ft = F.t()
         psi = torch.diag(callback.diag_psi.squeeze())
-        inv_psi = torch.diag(1 / callback.diag_psi.squeeze())
-        I = torch.eye(latent_dim)
-        sigma = torch.linalg.inv(I + Ft.mm(inv_psi).mm(F))
-
-        A = inv_psi.mm(F)
-        B = A.t().mm(F)
-        C = sigma.mm(2 * B + I - (B + I).mm(B.mm(sigma))).mm(Ft)
-        s = torch.diag(F.mm(Ft) + psi - F.mm(C))[:, None]
         z = callback._z
+        S = callback.get_variational_covariance()
+        inv_S = torch.linalg.inv(S)
 
-        expected_var_grad = (1 / 2) * torch.diag(inv_psi)[:, None] * s - (1 / 2)
+        expected_var_grad = -(1 / 2) * torch.diag(inv_S)[:, None] * diag_psi
         expected_prior_grad = (-precision / 2) * diag_psi
         expected_loss_grad = (1 / 2) * torch.diag(grad_weights.mm(z.t()).mm(torch.sqrt(psi)))[:, None]
 
