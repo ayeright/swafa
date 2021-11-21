@@ -33,6 +33,7 @@
 \newcommand{\N}{\mathbb N}
 \newcommand{\D}{\mathbb D}
 \newcommand{\diag}{\mathop{\mathrm{diag}}}
+\newcommand{\tr}{\mathop{\mathrm{Tr}}}
 
 % algorithms
 \usepackage{algorithm, algpseudocode}
@@ -736,187 +737,60 @@ In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an app
 where the expectation is taken over samples $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. These derivatives are derived in the following sections. 
 
 
-\subsection{Derivatives of the Variational Distribution with respect to $\matr{c}$}
+\subsection{Derivatives of the Variational Distribution}
 
 The logarithm of the pdf of the FA posterior is
 \begin{equation}
 	\log q(\theta)
 	= -\frac{1}{2} (\theta - \matr{c})^\intercal (\matr{FF}^{\intercal} + \Psi)^{-1} (\theta - \matr{c})  
 	- \frac{1}{2} \log |\matr{FF}^{\intercal} + \Psi| 
-	- \frac{D}{2} \log 2\pi .
+	- \frac{D}{2} \log 2\pi.
 \end{equation}
-Hence, using the fact that $\nabla_\matr{x} \E[f(\matr{x})] = \E[\nabla_\matr{x} f(\matr{x})]$ for any differentiable function $f$ and the matrix calculus identities in \cite{petersen2012},
+It is given in \cite{petersen2012} that, for any symmetric matrix $\matr{A}$ and stochastic vector $\matr{x}$ with mean $\matr{m}$ and covariance $\matr{M}$,
+\begin{equation}\label{eqn:expectation_xTAx}
+	\E [\matr{x}^\intercal \matr{A} \matr{x}] = \tr(\matr{A}\matr{M}) + \matr{m}^\intercal \matr{A} \matr{m}.
+\end{equation}
+Hence, setting $\matr{S} = \matr{FF}^{\intercal} + \Psi$, it follows that
 \begin{align}
 \begin{split}
-	\nabla_\matr{c} \E_{q(\theta)} [\log q(\theta)] 
-	& = \E_{q(\theta)} [\nabla_\matr{c} \log q(\theta)] \\
-	& = \E_{q(\theta)} [(\matr{FF}^{\intercal} + \Psi)^{-1} (\theta - \matr{c})] \\
-	& = (\matr{FF}^{\intercal} + \Psi)^{-1} \E_{q(\theta)} [ \theta - \matr{c}] \\
-	& = \matr{0}.
+	\E_{q(\theta)} [(\theta - \matr{c})^\intercal \matr{S}^{-1} (\theta - \matr{c}) ] 
+	& = \tr\big(\matr{S}^{-1} \V_{q(\theta)}[(\theta - \matr{c})] \big) 
+	+ \E_{q(\theta)}[(\theta - \matr{c})]^\intercal \matr{S}^{-1} \E_{q(\theta)}[(\theta - \matr{c})] \\
+	& = \tr\big(\matr{S}^{-1} (\matr{FF}^{\intercal} + \Psi)\big)
+	+ \matr{0} \matr{S}^{-1} \matr{0} \\
+	& = \tr(\matr{I}) \\
+	& = D.
 \end{split}
 \end{align}
-
-
-\subsection{Derivatives of the Variational Distribution with respect to $\matr{F}$}
-
-It follows from Equation (\ref{eqn:derivatives_wrt_F}) that
-\begin{align}
-\begin{split}\label{eqn:vi_expected_derivatives_wrt_F}
-	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
-	& = \E_{q(\theta)} [\nabla_\matr{F} \log q(\theta)] \\
-	& = \E_{q(\theta)} \big[\Psi^{-1} \big(\matr{d} \matr{m}^\intercal - \matr{F}  (\Sigma + \matr{m} \matr{m}^\intercal)\big)\big] \\
-	& = \Psi^{-1}\big( \E_{q(\theta)}[\matr{d} \matr{m}^\intercal] -\matr{F}\Sigma -\matr{F}\E_{q(\theta)}[\matr{m} \matr{m}^\intercal] \big),
-\end{split}
-\end{align}
-where
+Therefore,
+\begin{equation}\label{eqn:expectation_of_vi_dist}
+	\E_{q(\theta)}[\log q(\theta)]
+	= -\frac{D}{2} - \frac{1}{2} \log |\matr{S}| - \frac{D}{2} \log 2\pi.
+\end{equation}
+Then 
 \begin{equation}
-	\matr{d} = \theta - \matr{c} \quad \text{and} \quad \matr{m} = \Sigma \matr{F}^\intercal \Psi^{-1} \matr{d}.
+	\nabla_\matr{c} \E_{q(\theta)} [\log q(\theta)] = \matr{0}
 \end{equation}
-Now, 
+and, using the identity $\nabla_\matr{X} \log |\matr{X}| = \matr{X}^{-\intercal}$ from \cite{petersen2012} and the fact that $\matr{S}$ is symmetric,
+\begin{equation}
+	\nabla_\matr{S} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} \matr{S}^{-1}.
+\end{equation}
+Hence, it follows from the chain rule of calculus that
 \begin{align}
-\begin{split}
-	\E_{q(\theta)}[\matr{d} \matr{m}^\intercal] 
-	& = \E_{q(\theta)}[\matr{d} \matr{d}^\intercal \Psi^{-1} \matr{F} \Sigma ] \\
-	& = \E_{q(\theta)}[\matr{d} \matr{d}^\intercal] \Psi^{-1} \matr{F} \Sigma \\
-	& = (\matr{FF}^{\intercal} + \Psi) \Psi^{-1} \matr{F} \Sigma
+\begin{split}\label{eqn:grad_vi_dist_wrt_F}
+	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)]
+	& = -\frac{1}{2} \matr{S}^{-1} (\nabla_\matr{F} \matr{S}) \\
+	& = -\frac{1}{2} \matr{S}^{-1} (2\matr{F}) \\
+	& = -\matr{S}^{-1}\matr{F}
 \end{split}
 \end{align}
 and
 \begin{align}
-\begin{split}\label{eq:E_mmt}
-	\E_{q(\theta)}[\matr{m} \matr{m}^\intercal] 
-	& = \E_{q(\theta)}[\Sigma \matr{F}^\intercal \Psi^{-1} \matr{d} \matr{d}^\intercal \Psi^{-1} \matr{F} \Sigma]  \\
-	& = \Sigma \matr{F}^\intercal \Psi^{-1} \E_{q(\theta)}[\matr{d} \matr{d}^\intercal] \Psi^{-1} \matr{F} \Sigma \\
-	& = \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma.
-\end{split}
-\end{align}
-Hence, substituting these expectations into Equation (\ref{eqn:vi_expected_derivatives_wrt_F}),
-\begin{align}
-\begin{split}
-	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)] 
-	& = \Psi^{-1}\big( 
-	(\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma 
-	-\matr{F}\Sigma -
-	\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma 
-	\big) \\
-	& = \Psi^{-1}\matr{FF}^{\intercal}\Psi^{-1} \matr{F} \Sigma 
-	+ \Psi^{-1} \Psi \Psi^{-1} \matr{F} \Sigma 
-	- \Psi^{-1}\matr{F}\Sigma \\
-	& \quad - \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} \Psi^{-1} \matr{F} \Sigma
-	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \Psi \Psi^{-1} \matr{F} \Sigma \\
-	& = \Psi^{-1}\matr{FF}^{\intercal}\Psi^{-1} \matr{F} \Sigma
-	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} \Psi^{-1} \matr{F} \Sigma
-	- \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
-	& =  \Psi^{-1}\matr{F}\big(
-	\matr{I} - \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} - \Sigma
-	\big)\matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
-	& =  \Psi^{-1}\matr{F}\big(
-	\matr{I} - \Sigma (\matr{F}^\intercal \Psi^{-1} \matr{F} + \matr{I})
-	\big)\matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
-	& =  \Psi^{-1}\matr{F}\big(
-	\matr{I} - \Sigma \Sigma^{-1}
-	\big)\matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \\
-	& = \matr{0}.
-\end{split}
-\end{align}
-
-\subsection{Derivatives of the Variational Distribution with respect to $\Psi$}
-
-It follows from Equation (\ref{eqn:derivatives_wrt_Psi}) that
-\begin{align}
-\begin{split}\label{eqn:vi_expected_derivatives_wrt_Psi}
-	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)] 
-	& = \E_{q(\theta)} \Bigg[
-	\diag\Bigg(\frac{1}{2} \diag(\Psi^{-2}) \odot \Big(\matr{d} \odot \matr{d} - 2\matr{d} \odot (\matr{F} \matr{m}) \\
-	& \quad 
-	 + \diag\big( \matr{F} (\Sigma + \matr{m} \matr{m}^\intercal) \matr{F}^\intercal \big) \Big) \Bigg)
-	 - \frac{1}{2} \Psi^{-1}
-	 \Bigg] \\
-	 & = \diag\Bigg(
-	 \frac{1}{2} \diag(\Psi^{-2}) \odot \Big(
-	 \E_{q(\theta)}[\matr{d} \odot \matr{d}]
-	 -2\E_{q(\theta)}[\matr{d} \odot (\matr{F} \matr{m})] \\
-	 & \quad 
-	 + \diag(\matr{F} \Sigma \matr{F}^\intercal + \matr{F}  \E_{q(\theta)}[\matr{m} \matr{m}^\intercal] \matr{F}^\intercal)
-	 \Big)
-	 \Bigg)  - \frac{1}{2} \Psi^{-1}.
-\end{split}
-\end{align}
-Note that $\E_{q(\theta)}[\matr{m} \matr{m}^\intercal]$ is given in Equation (\ref{eq:E_mmt}). Also,
-\begin{equation}
-	\E_{q(\theta)}[\matr{d} \odot \matr{d}] = \diag(\matr{FF}^{\intercal} + \Psi)
-\end{equation}
-and 
-\begin{align}
-\begin{split}
-	\E_{q(\theta)}[\matr{d} \odot (\matr{F} \matr{m})] 
-	& = \E_{q(\theta)}[\diag(\matr{F} \matr{m} \matr{d}^\intercal)] \\
-	& = \diag\big(\E_{q(\theta)}[\matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{d} \matr{d}^\intercal] \big) \\
-	& = \diag\big(\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \E_{q(\theta)}[\matr{d} \matr{d}^\intercal] \big) \\
-	& = \diag\big(\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi) \big).
-\end{split}
-\end{align}
-Letting $\matr{s} =  \E_{q(\theta)}[\matr{d} \odot \matr{d}] -2\E_{q(\theta)}[\matr{d} \odot (\matr{F} \matr{m})] + \diag(\matr{F} \Sigma \matr{F}^\intercal + \matr{F}  \E_{q(\theta)}[\matr{m} \matr{m}^\intercal] \matr{F}^\intercal)$,
-\begin{align}
-\begin{split}
-	\matr{s} 
-	 & = \diag(\matr{FF}^{\intercal} + \Psi)
-	 -2 \diag\big(\matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi) \big) \\
-	 & \quad 
-	 + \diag\big(\matr{F} \Sigma \matr{F}^\intercal 
-	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
-	 & = \diag\big(
-	 \matr{FF}^{\intercal} + \Psi
-	 -2 \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi) 
-	 + \matr{F} \Sigma \matr{F}^\intercal 
-	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} (\matr{FF}^{\intercal} + \Psi ) \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
-	 & = \diag\big(
-	 \matr{FF}^{\intercal} + \Psi
-	 -2 \matr{F} \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} 
-	 -2 \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F} \Sigma \matr{F}^\intercal \\
-	 & \quad + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{FF}^{\intercal} \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma \matr{F}^\intercal \big) \\
-	 & = \diag\big(
-	 \matr{FF}^{\intercal} + \Psi
-	 -2 \matr{F} \Sigma(\matr{F}^\intercal \Psi^{-1} \matr{F} + \matr{I}) \matr{F}^\intercal
-	 + \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} (\matr{F}^{\intercal} \Psi^{-1} \matr{F} + \matr{I}) \Sigma \matr{F}^\intercal
-	  \big) \\
-	 & = \diag\big(
-	 \matr{FF}^{\intercal} + \Psi
-	 -2 \matr{F} \Sigma \Sigma^{-1} \matr{F}^\intercal
-	 + \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \Sigma^{-1} \Sigma \matr{F}^\intercal
-	 \big) \\
-	 & = \diag\big(
-	 \matr{FF}^{\intercal} + \Psi
-	 -2 \matr{F} \matr{F}^\intercal
-	 + \matr{F} \Sigma \matr{F}^\intercal
-	 + \matr{F}  \Sigma \matr{F}^\intercal \Psi^{-1} \matr{F} \matr{F}^\intercal
-	 \big) \\
-	 & = \diag\big(
-	 \Psi - \matr{F} \matr{F}^\intercal
-	 + \matr{F} \Sigma (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F}) \matr{F}^\intercal
-	 \big) \\
-	 & = \diag\big(
-	 \Psi - \matr{F} \matr{F}^\intercal
-	 + \matr{F} \Sigma \Sigma^{-1} \matr{F}^\intercal
-	 \big) \\
-	 & = \diag(\Psi).
-\end{split}
-\end{align}
-Hence, substituting into Equation (\ref{eqn:vi_expected_derivatives_wrt_Psi}),
-\begin{align}
-\begin{split}
-	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)] 
-	 & = \diag\Bigg(
-	 \frac{1}{2} \diag(\Psi^{-2}) \odot \diag(\Psi)
-	 \Bigg)  - \frac{1}{2} \Psi^{-1} \\
-	 & = \diag\Bigg(
-	 \frac{1}{2} \diag(\Psi^{-1})
-	 \Bigg)  - \frac{1}{2} \Psi^{-1} \\
-	 & = \matr{0}.
+\begin{split}\label{eqn:grad_vi_dist_wrt_Psi}
+	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)]
+	& = -\frac{1}{2} \matr{S}^{-1} (\nabla_\Psi \matr{S}) \\
+	& = -\frac{1}{2} \matr{S}^{-1} \matr{I} \\
+	& = -\frac{1}{2}\matr{S}^{-1}.
 \end{split}
 \end{align}
 
@@ -927,21 +801,21 @@ Let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ for s
 \begin{split}
 	\E_{q(\theta)} [\log p(\theta)]
 	& = \E_{q(\theta)} \Big[-\frac{1}{2} \theta^\intercal \alpha \matr{I} \theta  - \frac{1}{2} \log |\alpha^{-1} \matr{I}| - \frac{D}{2} \log 2\pi\Big] \\
-	& = -\frac{\alpha}{2} \E_{q(\theta)} \Big[ \theta^\intercal \theta \Big] + \text{constant} \\
-	& = -\frac{\alpha}{2} (\matr{c}\matr{c}^\intercal + \matr{F}\matr{F}^\intercal + \Psi) + \text{constant},
+	& = -\frac{\alpha}{2} \E_{q(\theta)} \Big[ \theta^\intercal \matr{I} \theta \Big] + \text{constant} \\
+	& = -\frac{\alpha}{2}\big( \tr(\matr{FF}^{\intercal} + \Psi) + \matr{c}\matr{c}^\intercal \big)+ \text{constant},
 \end{split}
 \end{align}
-where the last line follows from the identities in \cite{petersen2012}. Hence, 
+where the last line follows from Equation (\ref{eqn:expectation_xTAx}). Hence, 
 \begin{equation}
 	\nabla_\matr{c} \E_{q(\theta)} [\log p(\theta)] = -\alpha \matr{c},
 \end{equation}
 \begin{equation}
 	\nabla_\matr{F} \E_{q(\theta)} [\log p(\theta)] = -\alpha \matr{F},
 \end{equation}
-\begin{equation}
-	\nabla_\Psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{I}.
+\begin{equation}\label{eqn:grad_prior_wrt_psi}
+	\nabla_\Psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{I},
 \end{equation}
-
+which follow from the matrix calculus identities in \cite{petersen2012}.
 
 \subsection{Derivatives of the Likelihood}
 
@@ -956,26 +830,50 @@ from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\m
 \begin{equation}
 	\nabla_{\matr{F}} \log p(\mathcal{D} | \theta) = \nabla_\theta \log p(\mathcal{D} | \theta) \matr{h}^\intercal,
 \end{equation}
-\begin{equation}
+\begin{equation}\label{eqn:grad_likelihood_wrt_psi}
 	\nabla_{\Psi} \log p(\mathcal{D} | \theta) =  \diag\Big(\diag\Big(\frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \matr{z}^\intercal \Psi^{-1/2}\Big)\Big).
 \end{equation}
 Due to the functional form of a non-linear neural network, the expectation of these derivatives over $q(\theta)$ cannot be computed in closed-form and must be approximate by Monte Carlo estimates. According to \cite{kingma2013}, on each iteration of the algorithm it suffices to compute these estimates using a single $\theta \sim q(\theta)$ and a mini-batch of training data sampled from $\mathcal{D}$. 
 
 \subsection{Practical Implementation}
 
-In order for the algorithm to be practical, explicit use of $D \times D$ matrices must be avoided. As in Algorithm \ref{alg:gradient_fa}, it is far more efficient to work with $\psi = \diag(\Psi)$ rather than $\Psi$ itself. The required partial derivatives with respect to $\psi$ are
-\begin{equation}
-	\nabla_\psi \E_{q(\theta)} [\log q(\theta)] = \matr{0},
-\end{equation}
+In order to compute the gradients in Equations (\ref{eqn:grad_vi_dist_wrt_F}) and (\ref{eqn:grad_vi_dist_wrt_Psi}), the inverse of $\matr{S} = \matr{FF}^{\intercal} + \Psi$ is required. Using the Woodbury identity \cite{petersen2012},
+\begin{align}
+\begin{split}
+	( \matr{FF}^{\intercal} + \Psi)^{-1}
+	& = \Psi^{-1} - \Psi^{-1}\matr{F}(\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})\matr{F}^\intercal \Psi^{-1} \\
+	& = \Psi^{-1} - (\psi^{-1} \odot \matr{F}) \big(\matr{I} + \matr{F}^\intercal (\psi^{-1} \odot \matr{F})\big) (\psi^{-1} \odot \matr{F})^\intercal \\
+	& = \Psi^{-1} - \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A})\matr{A}^\intercal,
+\end{split}
+\end{align}
+where $\psi = \diag(\Psi)$ and $\matr{A} = \psi^{-1} \odot \matr{F}$ (with broadcasting). It follows that
+\begin{align}
+\begin{split}
+	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)]
+	& = -( \matr{FF}^{\intercal} + \Psi)^{-1}\matr{F} \\
+	& = -\Psi^{-1} \matr{F}  + \matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A}) (\matr{A}^\intercal \matr{F}) \\
+	& = -\matr{A}  + \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A}) (\matr{A}^\intercal \matr{F})
+\end{split}
+\end{align}
+and
+\begin{align}
+\begin{split}
+	\nabla_\psi \E_{q(\theta)} [\log q(\theta)]
+	& = \diag\Big(-\frac{1}{2} ( \matr{FF}^{\intercal} + \Psi)^{-1}\Big) \\
+	& = \diag\Big(-\frac{1}{2}\Psi^{-1}  + \frac{1}{2}\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A}) \matr{A}^\intercal \Big) \\
+	& = -\frac{1}{2}\psi^{-1} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})\big) \odot \matr{A}, \text{ dim} = 1\Big).
+\end{split}
+\end{align}
+Note that these calculations involve no explicit use of $D \times D$ matrices. All other references to $D \times D$ matrices can be removed by writing the partial derivatives in Equations (\ref{eqn:grad_prior_wrt_psi}) and (\ref{eqn:grad_likelihood_wrt_psi}) with respect to $\psi$, as
 \begin{equation}
 	\nabla_\psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{1}^D,
 \end{equation}
 \begin{equation}
 	\nabla_{\psi} \log p(\mathcal{D} | \theta) = \frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \odot \big(\psi^{-1/2} \odot \matr{z} \big).
 \end{equation}
-Also, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
+Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
 \begin{equation}
-	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = \matr{0},
+	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})\big) \odot \matr{A}, \text{ dim} = 1\Big) \odot \psi 
 \end{equation}
 \begin{equation}
 	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
@@ -999,8 +897,11 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
 			\State $\matr{g}_\theta \leftarrow -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
 			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} + \matr{g}_\theta$
-			\State $\matr{G}_\matr{F} \leftarrow \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
-			\State $\matr{g}_\beta \leftarrow \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
+			\State $\matr{B} \leftarrow -\matr{A}  + \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A}) (\matr{A}^\intercal \matr{F})$
+			\State $\matr{G}_\matr{F} \leftarrow \matr{B} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
+			\State $\matr{s} \leftarrow -\frac{1}{2} + \frac{1}{2} \text{sum}\Big(\big(\matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})\big) \odot \matr{A}, \text{ dim} = 1\Big) \odot \psi$
+			\State $\matr{g}_\beta \leftarrow \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \matr{g}_\matr{c}$
 			\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \matr{G}_\matr{F}$
 			\State $\beta \leftarrow \beta - \eta_\beta \matr{g}_\beta$
