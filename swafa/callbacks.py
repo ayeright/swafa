@@ -286,8 +286,6 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             self._update_variational_params()
             self._update_expected_gradients()
 
-            print(self.get_variational_covariance())
-
     def _init_variational_params(self):
         """
         Initialise the parameters of the factor analysis variational distribution.
