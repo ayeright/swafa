@@ -833,7 +833,9 @@ from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\m
 \begin{equation}\label{eqn:grad_likelihood_wrt_psi}
 	\nabla_{\Psi} \log p(\mathcal{D} | \theta) =  \diag\Big(\diag\Big(\frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \matr{z}^\intercal \Psi^{-1/2}\Big)\Big).
 \end{equation}
-Due to the functional form of a non-linear neural network, the expectation of these derivatives over $q(\theta)$ cannot be computed in closed-form and must be approximate by Monte Carlo estimates. According to \cite{kingma2013}, on each iteration of the algorithm it suffices to compute these estimates using a single $\theta \sim q(\theta)$ and a mini-batch of training data sampled from $\mathcal{D}$. 
+Due to the functional form of a non-linear neural network, the expectation of these derivatives over $q(\theta)$ cannot be computed in closed-form and must be approximate by Monte Carlo estimates using samples $\theta \sim q(\theta)$. 
+
+%According to \cite{kingma2013}, on each iteration of the algorithm it suffices to compute these estimates using a single $\theta \sim q(\theta)$ and a mini-batch of training data sampled from $\mathcal{D}$. 
 
 \subsection{Practical Implementation}
 
@@ -890,27 +892,34 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 	\caption{Variational Inference with Factor Analysis Posterior}
 	\label{alg:vi_fa}
 	\begin{algorithmic}[1]
-		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, mini-batch size $M$, learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\beta > 0$} 
+		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, mini-batch size $M$, Monte Carlo average size $L$, learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\beta > 0$} 
 		\State Initialise $\matr{c} = \matr{0}^D$, $\matr{F} \in \R^{D \times K}$, $\psi = \matr{1}^D$
 		\State $\beta \leftarrow \log \psi$
-		\For {$t=1,\dots,T$}
+		\State Initialise $\hat{\matr{g}}_\matr{c} = \matr{0}^D$, $\hat{\matr{G}}_\matr{F} = \matr{0}^{D \times K}$, $\hat{\matr{g}}_\beta = \matr{0}^D$
+		\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
+		\State $\matr{B} \leftarrow \matr{F}^\intercal \matr{A}$
+		\State $\matr{C} \leftarrow \matr{A} (\matr{I} + \matr{B})^{-1}$
+		\State $\matr{D} \leftarrow -\matr{A}  + \matr{C} \matr{B}^\intercal$
+		\State $\matr{s} \leftarrow -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi$
+		\For {$t = 1,\dots, T$}
 			\State Sample a mini-batch $\mathcal{B}$ of $M$ training examples from $\mathcal{D}$
 			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
 			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
-			\State $\matr{g}_\theta \leftarrow -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
-			\State $\matr{g}_\matr{c} \leftarrow \alpha \matr{c} + \matr{g}_\theta$
-			\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
-			\State $\matr{B} \leftarrow \matr{F}^\intercal \matr{A}$
-			\State $\matr{C} \leftarrow \matr{A} (\matr{I} + \matr{B})^{-1}$
-			\State $\matr{D} \leftarrow -\matr{A}  + \matr{C} \matr{B}^\intercal$
-			\State $\matr{G}_\matr{F} \leftarrow \matr{D} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal$
-			\State $\matr{s} \leftarrow -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi$
-			\State $\matr{g}_\beta \leftarrow \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
-			\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \matr{g}_\matr{c}$
-			\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \matr{G}_\matr{F}$
-			\State $\beta \leftarrow \beta - \eta_\beta \matr{g}_\beta$
-			\State $\psi \leftarrow \exp \beta$
+			\State $\hat{\matr{g}}_\theta \leftarrow -\frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
+			\State $\hat{\matr{g}}_\matr{c} \leftarrow \hat{\matr{g}}_\matr{c} + \alpha \matr{c} + \hat{\matr{g}}_\theta$
+			\State $\hat{\matr{G}}_\matr{F} \leftarrow \hat{\matr{G}}_\matr{F} + \matr{D} + \alpha \matr{F} + \hat{\matr{g}}_\theta \matr{h}^\intercal$
+			\State $\hat{\matr{g}}_\beta \leftarrow \hat{\matr{g}}_\beta + \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \hat{\matr{g}}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\If {$t \bmod L = 0$}
+				\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \big(\frac{1}{L}\hat{\matr{g}}_\matr{c}\big)$
+				\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \big(\frac{1}{L}\hat{\matr{G}}_\matr{F}\big)$
+				\State $\beta \leftarrow \beta - \eta_\beta \big(\frac{1}{L}\hat{\matr{g}}_\beta\big)$
+				\State $\psi \leftarrow \exp \beta$
+				\State $\hat{\matr{g}}_\matr{c} \leftarrow \matr{0}^D$
+				\State $\hat{\matr{G}}_\matr{F} \leftarrow \matr{0}^{D \times K}$
+				\State $\hat{\matr{g}}_\beta \leftarrow \matr{0}^D$
+				\State Update $\matr{A}, \matr{B}, \matr{C}, \matr{D}, \matr{s}$ according to lines 4-8
+			\EndIf
 		\EndFor
 	\State \Return $\matr{c}, \matr{F}, \psi$
 	\end{algorithmic}
@@ -1040,7 +1049,7 @@ This objective function is analogous to the L2-regularised training loss often u
 	\sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
 	+ \lambda \theta^\intercal \theta 
 \end{equation}
-for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$. Also, for the same data $\mathcal{D}$ and precision $\alpha$, the VI approach in Algorithm \ref{alg:vi_fa} should be able to approximate $p(\theta | \mathcal{D})$ directly. The purpose of the experiments in this section is to test these hypotheses. 
+for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$. Also, for the same data $\mathcal{D}$ and hyperparameters $\alpha$ and $\beta$, the VI approach in Algorithm \ref{alg:vi_fa} should be able to approximate $p(\theta | \mathcal{D})$ directly. The purpose of the experiments in this section is to test these hypotheses. 
  
 \subsection{Methodology}
 
@@ -1055,7 +1064,7 @@ Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\
 
 For the purpose of obtaining samples from the posterior, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. 
 
-For the VI experiments, Algorithm \ref{alg:vi_fa} was executed with the same synthetic data and precision $\alpha$. In this case, the training process ran for 2000 epochs with a batch size of 100. The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.001 and 0.01, respectively, and the approximate FA posterior had latent dimension $K=2$. 
+For the VI experiments, Algorithm \ref{alg:vi_fa} was executed with the same synthetic data and precision $\alpha$. In this case, the training process ran for 5000 epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.0001 and 0.01, respectively, and the approximate FA posterior had latent dimension $K=2$. The reason for using a smaller learning rate for $\matr{F}$ is that its contribution to the full covariance matrix is $\matr{F}\matr{F}^\intercal$. When computing the log-likelihood term involved in the gradient calculations, the variance of the outputs $y$ was set to the true value, $\sigma^2 = \frac{1}{\beta} = 10$.
 
 All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
 
@@ -1115,7 +1124,7 @@ It was also observed in \cite{mandt2017} that the empirical covariance of the li
 	\label{fig:linear_regression_average_iterates}
 \end{figure}
 
-Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to using the SGD iterates, the more direct VI approach does a much better job of approximating the true covariance matrix. The average distance of the estimated covariance from the ground truth is 0.2055, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrix are similar to the ground truth and the means of the two pdfs are relatively close. 
+Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to using the SGD iterates, the more direct VI approach does a much better job of approximating the true covariance matrix. The average distance of the estimated covariance from the ground truth is 0.1053, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The much improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrix are similar to the ground truth and the means of the two pdfs are very close. 
 
 \begin{table}[h!]
 	\begin{center}
@@ -1123,7 +1132,7 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
  			\hline
  			Relative Distance from Mean & Relative Distance from Covariance & Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
- 			$0.0072 \pm 0.0010$ & $ 0.2055 \pm 0.0369$ & $ 0.0162 \pm 0.0063$ \\ [1ex] 
+ 			$0.0040 \pm 0.0008$ & $ 0.1053 \pm 0.0199$ & $ 0.0027 \pm 0.0006$ \\ [1ex] 
 			\hline
 		\end{tabular}
 		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated via VI. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
@@ -1266,37 +1275,44 @@ usual late penalties based on your final submission time.
 \begin{align}
 \begin{split}
 	\matr{F}\matr{F}^\intercal + \Psi
-	& \leftarrow \big(\matr{F}\ - \eta (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal)\big) \big(\matr{F}\ - \eta (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal)\big)^\intercal \\
-	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
+	& \leftarrow \Big(\matr{F} - \eta\big(-\matr{S}^{-1} \matr{F} + \alpha\matr{F} - \matr{g}_\theta \matr{h}^\intercal \big)\Big)
+	\Big(\matr{F} - \eta\big(-\matr{S}^{-1} \matr{F} + \alpha\matr{F} - \matr{g}_\theta \matr{h}^\intercal \big)\Big)^\intercal \\
+	& \quad + \Psi - \frac{\eta}{2}\diag\Big(\diag\big( -\matr{S}^{-1} + \alpha\matr{I} -\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2}  \big) \Big) \\
 	& = \matr{F}\matr{F}^\intercal 
-	- \eta \matr{F} (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal) ^\intercal
-	- \eta (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal) \matr{F}^\intercal
-	+ \eta^2 (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal) (\alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal)^\intercal \\
-	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
-	& = \matr{F}\matr{F}^\intercal  
-	- \eta \alpha \matr{F}\matr{F}^\intercal
-	- \eta \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	- \eta \alpha \matr{F}\matr{F}^\intercal 
-	- \eta \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \\
-	& \quad + \eta^2 \alpha^2 \matr{F}\matr{F}^\intercal  
-	+ \eta^2 \alpha \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	+ \eta^2 \alpha \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal
+	- \eta\big(-\matr{F}\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}\matr{F}^\intercal - \matr{F} \matr{h} \matr{g}_\theta^\intercal \big)
+	- \eta\big(-\matr{S}^{-1}\matr{F}\matr{F}^\intercal + \alpha \matr{F}\matr{F}^\intercal - \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \big) \\
+	& \quad + \eta^2\big(\matr{S}^{-1}\matr{F}\matr{F}^\intercal \matr{S}^{-1} - \alpha \matr{S}^{-1}\matr{F}\matr{F}^\intercal + \matr{S}^{-1}\matr{F} \matr{h} \matr{g}_\theta^\intercal \big) \\
+	& \quad + \eta^2\big( -\alpha\matr{F}\matr{F}^\intercal \matr{S}^{-1} + \alpha^2 \matr{F}\matr{F}^\intercal - \alpha\matr{F} \matr{h} \matr{g}_\theta^\intercal \big) \\
+	& \quad + \eta^2\big( \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} - \alpha \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal + \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \big) \\
+	& \quad + \Psi - \frac{\eta}{2}\diag\Big(\diag\big( -\matr{S}^{-1} -\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2}  \big) \Big) + \frac{\eta \alpha}{2} \matr{I} \\
+	& =  \matr{F}\matr{F}^\intercal (1 -2\eta\alpha +\eta^2\alpha^2)
+	+ \matr{F}\matr{F}^\intercal \matr{S}^{-1} (\eta -\eta^2\alpha)
+	+ \matr{S}^{-1}\matr{F}\matr{F}^\intercal (\eta - \eta^2\alpha) \\
+	& \quad \eta^2 \matr{S}^{-1}\matr{F}\matr{F}^\intercal \matr{S}^{-1}
+	+ \matr{F} \matr{h} \matr{g}_\theta^\intercal(\eta -\eta^2 \alpha) 
+	+ \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal(\eta -\eta^2 \alpha) \\
+	& \quad + \eta^2 \matr{S}^{-1}\matr{F} \matr{h} \matr{g}_\theta^\intercal 
+	+ \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1}
 	+ \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
-	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
-	& = \matr{F}\matr{F}^\intercal (1 - 2\eta \alpha + \eta^2 \alpha^2) 
-	+ \matr{F} \matr{h} \matr{g}_\theta^\intercal(\eta^2 \alpha - \eta)
-	+ \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal(\eta^2 \alpha - \eta) 
+	& \quad + \Psi - \frac{\eta}{2}\diag\Big(\diag\big( -\matr{S}^{-1} -\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2}  \big) \Big) + \frac{\eta \alpha}{2} \matr{I} \\
+	& = \matr{F}\matr{F}^\intercal (1 -2\eta\alpha +\eta^2\alpha^2)
+	+ (\eta -\eta^2\alpha)\big( \matr{F}\matr{F}^\intercal \matr{S}^{-1} + (\matr{F}\matr{F}^\intercal \matr{S}^{-1})^\intercal \big) \\
+	& \quad + \eta^2 \matr{S}^{-1}\matr{F}\matr{F}^\intercal \matr{S}^{-1}
+	+ (\eta -\eta^2 \alpha) \big( \matr{F} \matr{h} \matr{g}_\theta^\intercal + (\matr{F} \matr{h} \matr{g}_\theta^\intercal)^\intercal \big) \\
+	& \quad + \eta^2\big( \matr{S}^{-1}\matr{F} \matr{h} \matr{g}_\theta^\intercal + (\matr{S}^{-1}\matr{F} \matr{h} \matr{g}_\theta^\intercal)^\intercal \big) 
 	+ \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
-	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
-	& = \matr{F}\matr{F}^\intercal (1 - 2\eta \alpha + \eta^2 \alpha^2) 
-	+ \big(\matr{F} \matr{h} \matr{g}_\theta^\intercal  + (\matr{F} \matr{h} \matr{g}_\theta^\intercal)^\intercal \big)(\eta^2 \alpha - \eta)
-	+ \eta^2 \matr{g}_\theta \matr{h}^\intercal (\matr{g}_\theta \matr{h}^\intercal)^\intercal \\
-	& \quad + \Psi - \frac{1}{2} \eta \Big(\alpha \matr{I} + \diag\big(\diag(\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2})\big)\Big) \\
+	& \quad + \Psi - \frac{\eta}{2}\diag\Big(\diag\big( -\matr{S}^{-1} -\matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2}  \big) \Big) + \frac{\eta \alpha}{2} \matr{I} \\
 \end{split}
 \end{align}
 
 
-
+\begin{align}
+\begin{split}
+	(\matr{F}\matr{F}^\intercal + \Psi)^{-1} 
+	& = \Psi^{-1} - \Psi^{-1}\matr{F}(\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1} \matr{F}^\intercal \Psi^{-1} \\
+	& \leftarrow
+\end{split}
+\end{align}
 
 
 
