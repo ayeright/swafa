@@ -1064,7 +1064,7 @@ Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\
 
 For the purpose of obtaining samples from the posterior, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. 
 
-For the VI experiments, Algorithm \ref{alg:vi_fa} was executed with the same synthetic data and precision $\alpha$. In this case, the training process ran for 5000 epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.0001 and 0.01, respectively, and the approximate FA posterior had latent dimension $K=2$. The reason for using a smaller learning rate for $\matr{F}$ is that its contribution to the full covariance matrix is $\matr{F}\matr{F}^\intercal$. When computing the log-likelihood term involved in the gradient calculations, the variance of the outputs $y$ was set to the true value, $\sigma^2 = \frac{1}{\beta} = 10$.
+For the VI experiments, Algorithm \ref{alg:vi_fa} was executed with the same synthetic data and precision $\alpha$. In this case, the training process ran for 5000 epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.0001 and 0.01, respectively, and the approximate FA posterior had latent dimension $K=2$. The reason for using a smaller learning rate for $\matr{F}$ is that its contribution to the full covariance matrix is $\matr{F}\matr{F}^\intercal$. When computing the log-likelihood term involved in the gradient calculations, the variance of the outputs $y$ was set to the true value, $\sigma^2 = \frac{1}{\beta} = 10$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. 
 
 All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
 
@@ -1124,7 +1124,7 @@ It was also observed in \cite{mandt2017} that the empirical covariance of the li
 	\label{fig:linear_regression_average_iterates}
 \end{figure}
 
-Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to using the SGD iterates, the more direct VI approach does a much better job of approximating the true covariance matrix. The average distance of the estimated covariance from the ground truth is 0.1053, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The much improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrix are similar to the ground truth and the means of the two pdfs are very close. 
+Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to using the SGD iterates, the more direct VI approach does a much better job of approximating the true covariance matrix. The average distance of the estimated covariance from the ground truth is 0.1053, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The much improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrix of the FA model are very similar to the ground truth. Moreover, this example also shows that an almost equally good posterior approximation can be obtained when using a FA model with a single latent dimension. This is encouraging, since applying this algorithm to estimate the posterior of a deep neural network is only feasible if the latent dimension can be set to a value much less than the number of learnable parameters in the model. 
 
 \begin{table}[h!]
 	\begin{center}
@@ -1140,15 +1140,16 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
 	\end{center}
 \end{table}
 
-
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
-		 \includegraphics[width=70mm]{plots/linear_model_true_posterior.png}
-		 & \includegraphics[width=70mm]{plots/linear_model_vi_posterior__latent_dim=2.png} \\
-		 (a) True posterior
-		 & (b) Approximate posterior \\[6pt]
+		 \includegraphics[width=70mm]{plots/linear_model_true_posterior__alpha=0.01__beta=0.1.png}
+		 & \includegraphics[width=70mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=2.png} \\
+		 (a) Ground truth
+		 & (b) VI-FA, latent dim = 2 \\
+		 \includegraphics[width=70mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=1.png} \\
+		 (c) VI-FA, latent dim = 1 \\[6pt]
 	\end{tabular}
-	\caption{The true posterior pdf of a linear regression model and the approximate FA pdf of the same model, estimated via VI.}
+	\caption{The true posterior pdf of a linear regression model with two learnable parameters, plus the pdfs of two FA models fit to the same data via VI. Both approximations are very similar to the ground truth, including the FA model with only a single latent dimension.}
 	\label{fig:linear_regression_vi_posterior}
 \end{figure}
 
