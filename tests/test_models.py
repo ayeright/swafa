@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 from pytorch_lightning import Trainer, seed_everything
 
-from swafa.models import FeedForwardNet
+from swafa.models import FeedForwardNet, FeedForwardGaussianNet
 
 
 class TestFeedForwardNet:
@@ -67,6 +67,7 @@ class TestFeedForwardNet:
         trainer.fit(net, train_dataloader=train_dataloader, val_dataloaders=val_dataloader)
 
         for w_old, w_new in zip(original_weights, net.parameters()):
+            assert not torch.isnan(w_new).any()
             assert not torch.isclose(w_old, w_new).all()
 
     @pytest.mark.parametrize("input_dim", [5])
@@ -123,3 +124,70 @@ class TestFeedForwardNet:
 
         for batch_predictions in result:
             assert ((batch_predictions >= 0) & (batch_predictions <= 1)).all()
+
+
+class TestFeedForwardGaussianNet:
+
+    @pytest.mark.parametrize("input_dim", [3, 5])
+    @pytest.mark.parametrize("hidden_dims", [None, [4], [8, 4]])
+    @pytest.mark.parametrize("hidden_activation_fn", [None, nn.ReLU()])
+    @pytest.mark.parametrize("n_samples", [1, 4])
+    @pytest.mark.parametrize("target_variance", [None, 2])
+    def test_forward(self, input_dim, hidden_dims, hidden_activation_fn, n_samples, target_variance):
+        net = FeedForwardGaussianNet(
+            input_dim, hidden_dims, hidden_activation_fn=hidden_activation_fn, target_variance=target_variance,
+        )
+
+        X = torch.rand(n_samples, input_dim)
+        mu, var = net(X)
+
+        assert mu.shape == (n_samples,)
+        assert var.shape == (n_samples,)
+        assert (var > 0).all()
+
+        if target_variance is not None:
+            assert (var == target_variance).all()
+
+    @pytest.mark.parametrize("input_dim", [3, 5])
+    @pytest.mark.parametrize("hidden_dims", [None, [4], [8, 4]])
+    @pytest.mark.parametrize("n_samples", [1, 4])
+    @pytest.mark.parametrize("loss_multiplier", [1, 5])
+    def test_step(self, input_dim, hidden_dims, n_samples, loss_multiplier):
+        net = FeedForwardGaussianNet(input_dim, hidden_dims, loss_multiplier=loss_multiplier)
+
+        X = torch.rand(n_samples, input_dim)
+        y = torch.randn(n_samples)
+        batch = (X, y)
+        actual_loss = net._step(batch, batch_idx=1)
+
+        mu, var = net(X)
+        expected_loss = net.loss_fn(mu, y, var) * loss_multiplier
+
+        assert torch.isclose(actual_loss, expected_loss)
+
+    @pytest.mark.parametrize("input_dim", [5])
+    @pytest.mark.parametrize("hidden_dims", [None, [4]])
+    @pytest.mark.parametrize("hidden_activation_fn", [None, nn.ReLU()])
+    @pytest.mark.parametrize("loss_multiplier", [1.0, 2.0])
+    @pytest.mark.parametrize("target_variance", [None, 1.0])
+    @pytest.mark.parametrize("variance_epsilon", [1e-1, 1e-6])
+    @pytest.mark.parametrize("n_samples", [32, 33])
+    def test_fit(self, input_dim, hidden_dims, hidden_activation_fn, loss_multiplier, target_variance, variance_epsilon,
+                 n_samples):
+        seed_everything(42, workers=True)
+        net = FeedForwardGaussianNet(
+            input_dim, hidden_dims, hidden_activation_fn=hidden_activation_fn, loss_multiplier=loss_multiplier,
+            target_variance=target_variance, variance_epsilon=variance_epsilon,
+        )
+        original_weights = [torch.clone(w) for w in net.parameters()]
+
+        trainer = Trainer(deterministic=True, max_epochs=5)
+
+        train_dataset = TensorDataset(torch.randn(n_samples, input_dim), torch.empty(n_samples).random_(2))
+        train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=4, drop_last=True)
+
+        trainer.fit(net, train_dataloader=train_dataloader)
+
+        for w_old, w_new in zip(original_weights, net.parameters()):
+            assert not torch.isnan(w_new).any()
+            assert not torch.isclose(w_old, w_new).all()

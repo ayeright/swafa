@@ -220,3 +220,99 @@ class FeedForwardNet(LightningModule):
             The average loss. Of shape (1,).
         """
         return torch.stack(step_losses).mean()
+
+
+class FeedForwardGaussianNet(FeedForwardNet):
+    """
+    A feed forward neural network which predicts the parameters of a 1D Gaussian distribution for each input.
+
+    Implements functionality which allows it to be used with a PyTorch Lightning Trainer.
+
+    Args:
+        input_dim: The input dimension of the neural network.
+        hidden_dims: The dimension of each hidden layer in the neural network. hidden_dims[i] is the dimension of the
+            i-th hidden layer. If None, the input will be connected directly to the output.
+        hidden_activation_fn: The activation function to apply to the output of each hidden layer. If None, will be set
+            to the identity activation function.
+        bias: Whether or not to include a bias term in the linear layers.
+        optimiser_class: The class of the PyTorch optimiser to use for training the neural network.
+        optimiser_kwargs: Keyword arguments for the optimiser class.
+        loss_multiplier: A constant with which to multiply the average loss of each batch. Useful if an estimate of the
+            total loss over the full dataset is needed.
+        target_variance: A constant variance to use for each Gaussian. If None, an extra output layer will be added to
+            the network to predict the variance as well as the mean.
+        variance_epsilon: Value used to clamp the variance for numerical stability.
+        random_seed: The random seed for initialising the weights of the neural network. If None, won't be reproducible.
+
+    Attributes:
+        hidden_layers: (torch.nn.ModuleList) A list of torch.nn.Linear, corresponding to dimensions specified in
+            hidden_dims.
+        output_layer: (torch.nn.Linear) A linear layer with a single output which predicts the mean of the Gaussian.
+        log_variance_layer: (Optional[torch.nn.Linear]) A linear layer with a single output which predicts the log of
+            the variance of the Gaussian. If target_variance is not None, will also be None.
+    """
+
+    def __init__(self, input_dim: int, hidden_dims: Optional[List[int]] = None,
+                 hidden_activation_fn: Optional[nn.Module] = None, bias: bool = True, optimiser_class: Optimizer = Adam,
+                 optimiser_kwargs: Optional[dict] = None, loss_multiplier: float = 1.0, target_variance: float = None,
+                 variance_epsilon: float = 1e-6, random_seed: Optional[int] = None):
+
+        super().__init__(
+            input_dim=input_dim,
+            hidden_dims=hidden_dims,
+            hidden_activation_fn=hidden_activation_fn,
+            bias=bias,
+            optimiser_class=optimiser_class,
+            optimiser_kwargs=optimiser_kwargs,
+            loss_fn=nn.GaussianNLLLoss(reduction='mean', eps=variance_epsilon),
+            random_seed=random_seed,
+        )
+
+        self.log_variance_layer = None
+        if target_variance is None:
+            d_in = self.output_layer.in_features
+            self.log_variance_layer = nn.Linear(d_in, 1, bias=bias)
+
+        self._loss_multiplier = loss_multiplier
+        self._target_variance = target_variance
+
+    def forward(self, X: Tensor) -> (Tensor, Tensor):
+        """
+        Run the forward pass of the neural network.
+
+        Args:
+            X: Input features. Of shape (n_samples, n_features).
+
+        Returns:
+            mu: Predicted mean of each input. Of shape (n_samples,).
+            var: Predicted variance of each input. Of shape (n_samples,).
+        """
+        for layer in self.hidden_layers:
+            X = self.hidden_activation_fn(layer(X))
+
+        mu = self.output_layer(X).squeeze(dim=1)
+
+        if self.log_variance_layer is None:
+            var = torch.ones_like(mu) * self._target_variance
+        else:
+            var = torch.exp(self.log_variance_layer(X).squeeze(dim=1))
+
+        return mu, var
+
+    def _step(self, batch: Tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
+        """
+        Compute the Gaussian negative log likelihood loss for a single batch of data.
+
+        The average batch loss is multiplied by self._loss_multiplier.
+
+        Args:
+            batch: (X, y), where X is the input features of shape (batch_size, n_features) and y is the outputs of shape
+                (batch_size,).
+            batch_idx: The index of the batch relative to the current epoch.
+
+        Returns:
+            The batch loss. Of shape (1,).
+        """
+        X, y = batch
+        mu, var = self(X)
+        return self.loss_fn(mu, y, var) * self._loss_multiplier
