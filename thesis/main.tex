@@ -388,7 +388,32 @@ where $\{(y_m, \matr{x}_m)\}_{m=1}^M$ is a batch of observed data sampled from $
 
 \chapter{Related Work and Research Questions}\label{ch:previous_work}
 
-\section{Stochastic, low-rank, approximate natural gradient}
+\section{Related Work}\label{sec:related_work}
+
+Several methods have been suggested for optimising the variational objective in Equation (\ref{eqn:vi_objective}). The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one such approach. It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. The online update rule is
+\begin{equation}\label{eqn:vogn_update}
+	\mu \leftarrow \mu - \eta_\mu \Sigma (\hat{\matr{g}}_\theta + \alpha \mu), \quad 
+	\Sigma^{-1} \leftarrow (1 - \eta_\Sigma) \Sigma^{-1} + \eta_\Sigma(\hat{\matr{G}}_\theta + \alpha \matr{I}),
+\end{equation}
+where $\eta_\mu, \eta_\Sigma > 0$ are learning rates, $\alpha$ is the precision of the prior and $\hat{\matr{g}}_\theta$ and $\hat{\matr{G}}_\theta$ are, respectively, a Monte Carlo estimate of the gradient of the negative log-likelihood and an Empirical Fisher (EM) matrix, given $\theta \sim q(\theta) = \mathcal{N}(\mu, \Sigma)$. Formally, 
+\begin{equation}
+	\hat{\matr{g}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i, \quad
+	\hat{\matr{G}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i (\matr{g}_\theta^i)^\intercal,
+\end{equation}
+where $\matr{g}_\theta^i = \nabla_\theta \log p(y_i | \matr{x}_i, \theta)$ and $\mathcal{B}$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. When $\theta$ is the parameter vector of a neural network, the gradients $\matr{g}_\theta^i$ can be computed via back-propagation \cite{rumelhart1986}. However, for large neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is in general infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$.
+
+A computationally tractable version of VOGN can be obtained by using a low-rank plus diagonal approximation of the inverse of the covariance matrix. This is the approach taken by SLANG \cite{mishkin2018}, which stands for stochastic, low-rank, approximate natural gradient. This algorithm sets $\Sigma^{-1} = \matr{U} \matr{U}^\intercal + \matr{D}$ for some $\matr{U} \in \R^{D \times K}$ and a $D \times D$ diagonal matrix $\matr{D}$. Substituting this definition into Equation (\ref{eqn:vogn_update}), the update can be written as
+\begin{equation}
+	\Sigma^{-1} \leftarrow 
+	\big[(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta \big] 
+	+ \big[(1 - \eta_\Sigma) \matr{D} + \eta_\Sigma \alpha \matr{I}\big].
+\end{equation}
+To make this tractable, the non-diagonal component of the right-hand side is approximated as
+\begin{equation}
+	(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta 
+	\approx \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal,
+\end{equation}
+where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ largest eigenvalues of $(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta$, and the columns of $\matr{Q}_{1:K} \in \R^{D \times K}$ are the corresponding eigenvectors. In order to compute this eigen-decomposition, the individual gradients $\matr{g}_\theta^i$ for training examples  $(\matr{x}_i, y_i) \in \mathcal{B}$ are required. When using the standard back-propagation algorithm in deep learning frameworks such as PyTorch \cite{paszke2019}, this is only possible by looping over the mini-batch samples one-by-one and storing each $\matr{g}_\theta^i$, which is very inefficient. A faster approach - which was adopted by SLANG - is outlined in \cite{goodfellow2015} for standard neural networks However, the authors of SLANG admit that this speed-up is limited to feed-forward layers, and a separate implementation would be required to handle each different type of layer. This limits the applicability of SLANG in the case of more general neural networks, such as those with commonly used convolutional \cite{krizhevsky09}, residual \cite{he2015}, recurrent \cite{hochreiter1997} or transformer layers \cite{vaswani2017}.  
 
 
 \chapter{Online Factor Analysis}\label{ch:online_fa}
@@ -880,7 +905,7 @@ Note that these calculations involve no explicit use of $D \times D$ matrices. A
 \end{equation}
 Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
 \begin{equation}
-	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi 
+	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi,
 \end{equation}
 \begin{equation}
 	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
@@ -888,10 +913,10 @@ Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = 
 \begin{equation}
 	\nabla_{\beta} \log p(\mathcal{D} | \theta) = \frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \odot \big(\psi^{1/2} \odot \matr{z}\big).
 \end{equation}
-Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_fa}.
+Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_fa}. Being a VI method for approximating a posterior with a FA model, the algorithm is named VIFA.
 
 \begin{algorithm}[!htbp] 
-	\caption{Variational Inference with Factor Analysis Posterior}
+	\caption{VIFA}
 	\label{alg:vi_fa}
 	\begin{algorithmic}[1]
 		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, mini-batch size $M$, Monte Carlo average size $L$, learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\beta > 0$} 
@@ -908,7 +933,7 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
 			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
-			\State $\hat{\matr{g}}_\theta \leftarrow -\frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \nabla_\theta \log p(y | \matr{x}, \theta)$ (via back-propagation)
+			\State $\hat{\matr{g}}_\theta \leftarrow N \cdot \nabla_\theta \big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\big)$ (via back-propagation)
 			\State $\hat{\matr{g}}_\matr{c} \leftarrow \hat{\matr{g}}_\matr{c} + \alpha \matr{c} + \hat{\matr{g}}_\theta$
 			\State $\hat{\matr{G}}_\matr{F} \leftarrow \hat{\matr{G}}_\matr{F} + \matr{D} + \alpha \matr{F} + \hat{\matr{g}}_\theta \matr{h}^\intercal$
 			\State $\hat{\matr{g}}_\beta \leftarrow \hat{\matr{g}}_\beta + \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \hat{\matr{g}}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
@@ -917,22 +942,24 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 				\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \big(\frac{1}{L}\hat{\matr{G}}_\matr{F}\big)$
 				\State $\beta \leftarrow \beta - \eta_\beta \big(\frac{1}{L}\hat{\matr{g}}_\beta\big)$
 				\State $\psi \leftarrow \exp \beta$
-				\State $\hat{\matr{g}}_\matr{c} \leftarrow \matr{0}^D$
-				\State $\hat{\matr{G}}_\matr{F} \leftarrow \matr{0}^{D \times K}$
-				\State $\hat{\matr{g}}_\beta \leftarrow \matr{0}^D$
-				\State Update $\matr{A}, \matr{B}, \matr{C}, \matr{D}, \matr{s}$ according to lines 4-8
+				\State Reset $\hat{\matr{g}}_\matr{c}, \hat{\matr{G}}_\matr{F}$ and $\hat{\matr{g}}_\beta$ according to line 3
+				\State Recalculate $\matr{A}, \matr{B}, \matr{C}, \matr{D}$ and $\matr{s}$ according to lines 4-8
 			\EndIf
 		\EndFor
 	\State \Return $\matr{c}, \matr{F}, \psi$
 	\end{algorithmic}
 \end{algorithm}
 
+\subsection{Comparison of VIFA and SLANG}
+
+There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an EF matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}.
+
+Here it is claimed that VIFA is a much more general and practical algorithm. It can be seen from Algorithm \ref{alg:vi_fa} that VIFA is implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, sampling each neural network parameter vector in SLANG requires computing a Cholesky decomposition, and each update to the approximate posterior involves an eigen-decomposition. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since a separate implementation of back-propagation is needed for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient with respect to the mean negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is a general algorithm which can be applied to any neural network architecture with no extra effort. 
+
 
 \section{Factors Initialisation}\label{sec:F_init}
 
-One detail missing from Algorithms \ref{alg:gradient_fa}, \ref{alg:online_em} and \ref{alg:vi_fa} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$.
-
-\section{Comparison of VIFA and SLANG}
+One detail missing from Algorithms \ref{alg:gradient_fa}, \ref{alg:online_em} and \ref{alg:vi_fa} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$. 
 
 
 \chapter{Online Factor Analysis Experiments}\label{ch:online_fa_experiments}
@@ -1141,7 +1168,7 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
  			2 & $0.0040 \pm 0.0008$ & $ 0.1053 \pm 0.0199$ & $ 0.0027 \pm 0.0006$ \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated via VI. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
+		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
 		\label{table:linear_regression_vi_posterior}
 	\end{center}
 \end{table}
@@ -1151,11 +1178,11 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
 		 \includegraphics[width=70mm]{plots/linear_model_true_posterior__alpha=0.01__beta=0.1.png}
 		 & \includegraphics[width=70mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=1.png} \\
 		 (a) Ground truth
-		 & (b) VI-FA, latent dim = 1 \\
+		 & (b) VIFA: latent dim = 1 \\
 		 \includegraphics[width=70mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=2.png} \\
-		 (c) VI-FA, latent dim = 2 \\[6pt]
+		 (c) VIFA: latent dim = 2 \\[6pt]
 	\end{tabular}
-	\caption{The true posterior pdf of a linear regression model with two learnable parameters, plus the pdfs of two FA models fit to the same data via VI. Both approximations are very similar to the ground truth, including the FA model with only a single latent dimension.}
+	\caption{The true posterior pdf of a linear regression model with two learnable parameters, plus the pdfs of two FA models fit to the same data using VIFA. Both approximations are very similar to the ground truth, including the FA model with only a single latent dimension.}
 	\label{fig:linear_regression_vi_posterior}
 \end{figure}
 
