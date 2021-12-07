@@ -28,6 +28,8 @@ class FeedForwardNet(LightningModule):
         optimiser_kwargs: Keyword arguments for the optimiser class.
         loss_fn: The PyTorch loss function to use for training the model. Will be applied to the un-activated outputs
             of the neural network.
+        loss_multiplier: A constant with which to multiply the loss of each batch. Useful if an estimate of the total
+            loss over the full dataset is needed.
         random_seed: The random seed for initialising the weights of the neural network. If None, won't be reproducible.
 
     Attributes:
@@ -39,7 +41,7 @@ class FeedForwardNet(LightningModule):
     def __init__(self, input_dim: int, hidden_dims: Optional[List[int]] = None,
                  hidden_activation_fn: Optional[nn.Module] = None, output_activation_fn: Optional[nn.Module] = None,
                  bias: bool = True, optimiser_class: Optimizer = Adam, optimiser_kwargs: Optional[dict] = None,
-                 loss_fn: nn.Module = nn.MSELoss(), random_seed: Optional[int] = None):
+                 loss_fn: nn.Module = nn.MSELoss(), loss_multiplier: float = 1.0, random_seed: Optional[int] = None):
         super().__init__()
         if random_seed is not None:
             torch.manual_seed(random_seed)
@@ -51,6 +53,7 @@ class FeedForwardNet(LightningModule):
         self.optimiser_class = optimiser_class
         self.optimiser_kwargs = optimiser_kwargs or dict(lr=1e-3)
         self.loss_fn = loss_fn
+        self.loss_multiplier = loss_multiplier
 
         self.hidden_layers = nn.ModuleList()
         d_in = deepcopy(input_dim)
@@ -157,7 +160,7 @@ class FeedForwardNet(LightningModule):
         """
         X, y = batch
         y_hat = self(X)
-        return self.loss_fn(y_hat, y)
+        return self.loss_fn(y_hat, y) * self.loss_multiplier
 
     def predict_step(self, batch: Tensor, batch_idx: int, dataloader_idx: Optional[int] = None) -> Tensor:
         """
@@ -265,6 +268,7 @@ class FeedForwardGaussianNet(FeedForwardNet):
             optimiser_class=optimiser_class,
             optimiser_kwargs=optimiser_kwargs,
             loss_fn=nn.GaussianNLLLoss(reduction='mean', eps=variance_epsilon),
+            loss_multiplier=loss_multiplier,
             random_seed=random_seed,
         )
 
@@ -273,8 +277,7 @@ class FeedForwardGaussianNet(FeedForwardNet):
             d_in = self.output_layer.in_features
             self.log_variance_layer = nn.Linear(d_in, 1, bias=bias)
 
-        self._loss_multiplier = loss_multiplier
-        self._target_variance = target_variance
+        self.target_variance = target_variance
 
     def forward(self, X: Tensor) -> (Tensor, Tensor):
         """
@@ -293,7 +296,7 @@ class FeedForwardGaussianNet(FeedForwardNet):
         mu = self.output_layer(X).squeeze(dim=1)
 
         if self.log_variance_layer is None:
-            var = torch.ones_like(mu) * self._target_variance
+            var = torch.ones_like(mu) * self.target_variance
         else:
             var = torch.exp(self.log_variance_layer(X).squeeze(dim=1))
 
@@ -315,4 +318,4 @@ class FeedForwardGaussianNet(FeedForwardNet):
         """
         X, y = batch
         mu, var = self(X)
-        return self.loss_fn(mu, y, var) * self._loss_multiplier
+        return self.loss_fn(mu, y, var) * self.loss_multiplier
