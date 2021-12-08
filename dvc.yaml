@@ -41,6 +41,15 @@ stages:
     outs:
       - experiments/data/uci_datasets
 
+  download_libsvm_datasets:
+    cmd: python experiments/libsvm_datasets.py
+      --australian-output-path experiments/data/libsvm_datasets/australian.parquet
+      --breast-cancer-output-path experiments/data/libsvm_datasets/breast_cancer.parquet
+    deps:
+      - experiments/libsvm_datasets.py
+    outs:
+      - experiments/data/libsvm_datasets
+
   linear_regression_posterior:
     cmd: python experiments/linear_regression_posterior.py
       --boston-housing-input-path experiments/data/uci_datasets/boston_housing.parquet
