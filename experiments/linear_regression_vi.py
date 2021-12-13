@@ -17,6 +17,7 @@ import numpy as np
 from swafa.models import FeedForwardGaussianNet
 from swafa.callbacks import FactorAnalysisVariationalInferenceCallback
 from experiments.linear_regression_posterior import get_features_and_targets
+from experiments.utils.metrics import compute_distance_between_matrices, compute_gaussian_wasserstein_distance
 from experiments.utils.factory import OPTIMISER_FACTORY
 
 
@@ -26,7 +27,7 @@ def run_all_experiments(
         dataset_params: Dict[str, dict],
         testing: bool,
         results_output_dir: str,
-):
+) -> pd.DataFrame:
     """
     Run posterior estimation experiments on the given datasets.
 
@@ -62,10 +63,26 @@ def run_all_experiments(
             train data will be used.
         results_output_dir: The path to directory where experiment results (including plots) will be saved.
 
+    Returns:
+       A DataFrame with the following columns:
+            - relative_distance_from_mean: The Frobenius norm between the mean of the true posterior and the mean of the
+                variational posterior (including bias), divided by the Frobenius norm of the mean of the true
+                posterior.
+            - relative_distance_from_covar: The Frobenius norm between the covariance of the true posterior and the
+                covariance of the variational posterior (not including bias), divided by the Frobenius norm of the
+                covariance of the true posterior.
+            - wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational posterior
+                (not including bias).
+            - alpha: The precision of the prior.
+            - beta: The precision of the label noise.
+            - dataset: The name of the dataset.
+
     References:
         [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
             2021.
     """
+    results = []
+
     for label, dataset in zip(dataset_labels, datasets):
         print(f'Running experiment on {label} dataset...')
 
@@ -73,7 +90,7 @@ def run_all_experiments(
         train_dataset, test_dataset = train_test_split(dataset)
         experiment_dataset = test_dataset if testing else train_dataset
 
-        run_dataset_experiment(
+        dataset_results = run_dataset_experiment(
             dataset=experiment_dataset,
             dataset_label=label,
             latent_dim=params['latent_dim'],
@@ -87,6 +104,10 @@ def run_all_experiments(
             n_epochs=params['n_epochs'],
             results_output_dir=results_output_dir,
         )
+
+        results.append(dataset_results)
+
+    return pd.DataFrame(results)
 
 
 def train_test_split(dataset: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
@@ -121,7 +142,7 @@ def run_dataset_experiment(
         batch_size: int,
         n_epochs: int,
         results_output_dir: str,
-):
+) -> dict:
     """
     Run posterior estimation experiments on the given dataset.
 
@@ -148,6 +169,20 @@ def run_dataset_experiment(
         batch_size: The batch size to use for mini-batch gradient optimisation.
         n_epochs: The number of epochs for which to run the mini-batch gradient optimisation.
         results_output_dir: The path to directory where experiment results (including plots) will be saved.
+
+    Returns:
+        A dictionary with the following keys:
+            - relative_distance_from_mean: The Frobenius norm between the mean of the true posterior and the mean of the
+                variational posterior (including bias), divided by the Frobenius norm of the mean of the true
+                posterior.
+            - relative_distance_from_covar: The Frobenius norm between the covariance of the true posterior and the
+                covariance of the variational posterior (not including bias), divided by the Frobenius norm of the
+                covariance of the true posterior.
+            - wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational posterior
+                (not including bias).
+            - alpha: The precision of the prior.
+            - beta: The precision of the label noise.
+            - dataset: The name of the dataset.
     """
     X, y = get_features_and_targets(dataset)
     n_samples, n_features = X.shape
@@ -192,6 +227,13 @@ def run_dataset_experiment(
     generate_and_save_covariance_plot(
         true_non_diag_covar, variational_non_diag_covar, results_output_dir, dataset_label,
     )
+
+    results = compute_metrics(true_mean, true_covar, true_bias, variational_mean, variational_covar, variational_bias)
+    results['alpha'] = alpha
+    results['beta'] = beta
+    results['dataset'] = dataset_label
+
+    return results
 
 
 def get_true_posterior(X: Tensor, y: Tensor) -> (Tensor, Tensor, float, float, float):
@@ -259,6 +301,47 @@ def split_covariance(covar: np.ndarray) -> (np.ndarray, np.ndarray):
     np.fill_diagonal(non_diag_covar, 0)
 
     return diag_covar, non_diag_covar
+
+
+def compute_metrics(true_mean: Tensor, true_covar: Tensor, true_bias: float, variational_mean: Tensor,
+                    variational_covar: Tensor, variational_bias: float) -> Dict[str, float]:
+    """
+
+    Args:
+        true_mean: The true posterior mean, of shape (n_features,).
+        true_covar: The true posterior covariance, of shape (n_features, n_features).
+        true_bias: The true posterior bias.
+        variational_mean: The variational posterior mean, of shape (n_features,).
+        variational_covar: The variational posterior covariance, of shape (n_features, n_features).
+        variational_bias: The variational posterior bias.
+
+    Returns:
+        A dictionary with the following keys:
+            - relative_distance_from_mean: The Frobenius norm between the mean of the true posterior and the mean of the
+                variational posterior (including bias), divided by the Frobenius norm of the mean of the true
+                posterior.
+            - relative_distance_from_covar: The Frobenius norm between the covariance of the true posterior and the
+                covariance of the variational posterior (not including bias), divided by the Frobenius norm of the
+                covariance of the true posterior.
+            - wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational posterior
+                (not including bias).
+    """
+    true_weights = torch.cat([true_mean, torch.Tensor([true_bias])])
+    variational_weights = torch.cat([variational_mean, torch.Tensor([variational_bias])])
+
+    distance_between_weights = compute_distance_between_matrices(true_weights, variational_weights)
+    distance_between_covar = compute_distance_between_matrices(true_covar, variational_covar)
+
+    true_weights_norm = compute_distance_between_matrices(true_weights, torch.zeros_like(true_weights))
+    true_covar_norm = compute_distance_between_matrices(true_covar, torch.zeros_like(true_covar))
+
+    return dict(
+        relative_distance_from_mean=distance_between_weights / true_weights_norm,
+        relative_distance_from_covar=distance_between_covar / true_covar_norm,
+        wasserstein_distance=compute_gaussian_wasserstein_distance(
+            true_mean, true_covar, variational_mean, variational_covar,
+        )
+    )
 
 
 def generate_and_save_mean_plot(true_mean: np.ndarray, variational_mean: np.ndarray, plot_dir: str, dataset_label: str):
@@ -402,13 +485,15 @@ def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, co
 
     Path(results_output_dir).mkdir(parents=True, exist_ok=True)
 
-    run_all_experiments(
+    results = run_all_experiments(
         datasets=datasets,
         dataset_labels=dataset_labels,
         dataset_params=params['dataset_params'],
         testing=params['testing'],
         results_output_dir=results_output_dir,
     )
+
+    results.to_csv(os.path.join(results_output_dir, 'results.csv'), index=False)
 
 
 if __name__ == '__main__':

@@ -1168,7 +1168,7 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
  			2 & $0.0040 \pm 0.0008$ & $ 0.1053 \pm 0.0199$ & $ 0.0027 \pm 0.0006$ \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
+		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
 		\label{table:linear_regression_vi_posterior}
 	\end{center}
 \end{table}
@@ -1241,7 +1241,7 @@ The \texttt{BayesianRidge} estimator from the scikit-learn library \cite{pedrego
 
 \subsection{Results and Discussion}
 
-Figure \ref{fig:posterior_energy_efficiency} shows a qualitative comparison of the true posterior of a linear regression model fit to the Energy Efficiency dataset, and the approximate posterior learned by VIFA. Figures \ref{fig:posterior_boston_housing}, \ref{fig:posterior_concrete_strength} and \ref{fig:posterior_yacht_hydrodynamics} show the same comparison for the Boston Housing, Concrete Compressive Strength and Yacht Hydrodynamics datasets, respectively. 
+Figure \ref{fig:posterior_energy_efficiency} shows a qualitative comparison of the true posterior of a linear regression model fit to the Energy Efficiency dataset and the approximate posterior learned by VIFA. Figures \ref{fig:posterior_boston_housing}, \ref{fig:posterior_concrete_strength} and \ref{fig:posterior_yacht_hydrodynamics} show the same comparison for the Boston Housing, Concrete Compressive Strength and Yacht Hydrodynamics datasets, respectively. Quantitative results are also given in Table \ref{table:linear_regression_vi_posterior_uci}.
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{c}
@@ -1296,6 +1296,25 @@ Figure \ref{fig:posterior_energy_efficiency} shows a qualitative comparison of t
 \end{figure}
 
 
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
+ 			\hline
+ 			Dataset & Relative Distance from Mean & Relative Distance from Covariance & Wasserstein Distance \\ [0.5ex] 
+ 			\hline\hline
+			Energy Efficiency & 0.0042 & 0.0765 & 0.2674 \\ 
+			\hline
+			Boston Housing & 0.0253 & 0.1467 & 0.1871 \\ 
+			\hline
+			Concrete Strength & 0.0058 & 0.1267 & 0.1454 \\ 
+			\hline
+ 			Yacht Hydro. & 0.0437 & 0.0477 & 0.4461 \\ [1ex] 
+			\hline
+		\end{tabular}
+		\caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution.}
+		\label{table:linear_regression_vi_posterior_uci}
+	\end{center}
+\end{table}
 
 
 %\section{Making Predictions}
