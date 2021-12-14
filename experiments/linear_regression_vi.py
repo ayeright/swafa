@@ -46,7 +46,7 @@ def run_all_experiments(
                     distribution.
                 n_gradients_per_update: (int) The number of mini-batch gradients to use to form the expectation of the
                     true gradient for each parameter update.
-                optimiser_class: (Optimizer) The class of the optimiser to use for gradient updates.
+                optimiser: (Optimizer) The class of the optimiser to use for gradient updates.
                 bias_optimiser_kwargs: (dict) Keyword arguments for the optimiser which updates the bias term of the
                     factor analysis variational distribution.
                 factors_optimiser_kwargs: (dict) Keyword arguments for the optimiser which updates the factor loading
@@ -215,7 +215,7 @@ def run_dataset_experiment(
     trainer = Trainer(max_epochs=n_epochs, callbacks=variational_callback, progress_bar_refresh_rate=0)
     trainer.fit(model, train_dataloader=dataloader)
 
-    variational_mean, variational_covar, variational_bias = get_variational_linear_posterior(variational_callback)
+    variational_mean, variational_covar, variational_bias = get_variational_posterior(variational_callback)
 
     true_diag_covar, true_non_diag_covar = split_covariance(true_covar.numpy())
     variational_diag_covar, variational_non_diag_covar = split_covariance(variational_covar.numpy())
@@ -262,8 +262,8 @@ def get_true_posterior(X: Tensor, y: Tensor) -> (Tensor, Tensor, float, float, f
     return mean, covar, bias, alpha, beta
 
 
-def get_variational_linear_posterior(variational_callback: FactorAnalysisVariationalInferenceCallback,
-                                     ) -> (Tensor, Tensor, float):
+def get_variational_posterior(variational_callback: FactorAnalysisVariationalInferenceCallback,
+                              ) -> (Tensor, Tensor, float):
     """
     Get the parameters of the linear regression posterior estimated by the given variational inference callback.
 
