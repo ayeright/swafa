@@ -413,7 +413,7 @@ To make this tractable, the non-diagonal component of the right-hand side is app
 	(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta 
 	\approx \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal,
 \end{equation}
-where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ largest eigenvalues of $(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta$, and the columns of $\matr{Q}_{1:K} \in \R^{D \times K}$ are the corresponding eigenvectors. In order to compute this eigen-decomposition, the individual gradients $\matr{g}_\theta^i$ for training examples  $(\matr{x}_i, y_i) \in \mathcal{B}$ are required. When using the standard back-propagation algorithm in deep learning frameworks such as PyTorch \cite{paszke2019}, this is only possible by looping over the mini-batch samples one-by-one and storing each $\matr{g}_\theta^i$, which is very inefficient. A faster approach - which was adopted by SLANG - is outlined in \cite{goodfellow2015} for standard neural networks However, the authors of SLANG admit that this speed-up is limited to feed-forward layers, and a separate implementation would be required to handle each different type of layer. This limits the applicability of SLANG in the case of more general neural networks, such as those with commonly used convolutional \cite{krizhevsky09}, residual \cite{he2015}, recurrent \cite{hochreiter1997} or transformer layers \cite{vaswani2017}.  
+where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ largest eigenvalues of $(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta$, and the columns of $\matr{Q}_{1:K} \in \R^{D \times K}$ are the corresponding eigenvectors. In order to compute this eigen-decomposition, the individual gradients $\matr{g}_\theta^i$ for training examples  $(\matr{x}_i, y_i) \in \mathcal{B}$ are required. When using the standard back-propagation algorithm in deep learning frameworks such as PyTorch \cite{paszke2019}, this is only possible by looping over the mini-batch samples one-by-one and storing each $\matr{g}_\theta^i$, which is very inefficient. A faster approach - which was adopted by SLANG - is outlined in \cite{goodfellow2015} for standard neural networks However, the authors of SLANG admit that this speed-up is limited to feed-forward layers and a separate implementation would be required to handle each different type of layer. This limits the applicability of SLANG in the case of more general neural networks, such as those with commonly used convolutional \cite{krizhevsky09}, residual \cite{he2015}, recurrent \cite{hochreiter1997} or transformer layers \cite{vaswani2017}.  
 
 
 \chapter{Online Factor Analysis}\label{ch:online_fa}
@@ -846,23 +846,49 @@ which follow from the matrix calculus identities in \cite{petersen2012}.
 
 \subsection{Derivatives of the Likelihood}
 
-Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Then the back-propagation algorithm \cite{rumelhart1986} can compute $\nabla_\theta \log p(\mathcal{D} | \theta)$. From here, the re-parameterisation trick \cite{goodfellow2016} can be used to obtain the partial derivatives with respect to $\matr{c}$, $\matr{F}$ and $\Psi$. First note that, by re-writing Equation (\ref{eqn:fa_model}), sampling $\theta \sim q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ is equivalent to setting  
+Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Due to the functional form of a non-linear neural network, $\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]$ cannot be compute in closed-form. Instead, a Monte Carlo estimate can be constructed from mini-batches of training data. Formally, 
+\begin{equation}
+	 \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	\approx \frac{1}{L} \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg),
+\end{equation}
+where $L$ is the Monte Carlo average size, each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$, and $\theta_l \sim q(\theta)$. Then 
+\begin{equation}\label{eqn:expected_grad_log_likelihood}
+	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	\approx \frac{1}{L} \sum_{l=1}^{L} \Bigg(N \cdot \nabla_{\matr{c}, \matr{F}, \Psi} \Bigg( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg) \Bigg).
+\end{equation}
+Now, in order to obtain these partial derivatives, the re-parameterisation trick \cite{goodfellow2016} can be used. First note that, by re-writing Equation (\ref{eqn:fa_model}), sampling $\theta_l \sim q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ is equivalent to setting  
 \begin{equation}\label{eqn:fa_reparam_trick}
-	\theta = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
+	\theta_l = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
 \end{equation}
-from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied to $\Psi$ element-wise. Given $\matr{h}$ and $\matr{z}$, this is a deterministic function of $\matr{c}$, $\matr{F}$ and $\Psi$. It then follows from the chain rule of calculus that
+from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied to $\Psi$ element-wise. Then it follows from the chain rule of calculus that
+\begin{align}
+\begin{split}\label{eqn:chain_rule_log_likelihood}
+	 \nabla_{\matr{c}, \matr{F}, \Psi} \Bigg( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg)
+	 & = \nabla_{\theta_l} \Bigg( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg)
+	 \nabla_{\matr{c}, \matr{F}, \Psi} \theta_l \\
+	 & = \matr{g}_{\theta_l} \nabla_{\matr{c}, \matr{F}, \Psi} \theta_l,
+\end{split}
+\end{align}
+where $\matr{g}_{\theta_l} = \nabla_{\theta_l} \Big( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Big)$. Hence, substituting Equation (\ref{eqn:chain_rule_log_likelihood}) into Equation (\ref{eqn:expected_grad_log_likelihood}),
 \begin{equation}
-	\nabla_{\matr{c}} \log p(\mathcal{D} | \theta) = \nabla_\theta \log p(\mathcal{D} | \theta),
+	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	\approx \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l} \nabla_{\matr{c}, \matr{F}, \Psi} \theta_l.
+\end{equation}
+It then follows that
+\begin{equation}
+	 \nabla_\matr{c} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	 \approx \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l},
 \end{equation}
 \begin{equation}
-	\nabla_{\matr{F}} \log p(\mathcal{D} | \theta) = \nabla_\theta \log p(\mathcal{D} | \theta) \matr{h}^\intercal,
+	 \nabla_\matr{F} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	 \approx \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l} \matr{h}^\intercal,
 \end{equation}
 \begin{equation}\label{eqn:grad_likelihood_wrt_psi}
-	\nabla_{\Psi} \log p(\mathcal{D} | \theta) =  \diag\Big(\diag\Big(\frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \matr{z}^\intercal \Psi^{-1/2}\Big)\Big).
+	 \nabla_\Psi \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	 \approx \diag\Big( \diag\Big( \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \matr{z}^\intercal \Psi^{-1/2} \Big)\Big).
 \end{equation}
-Due to the functional form of a non-linear neural network, the expectation of these derivatives over $q(\theta)$ cannot be computed in closed-form and must be approximate by Monte Carlo estimates using samples $\theta \sim q(\theta)$. 
+This is convenient, since $\matr{g}_{\theta_l}$ can be computed efficiently using the back-propagation algorithm \cite{rumelhart1986}. Indeed, deep learning frameworks such as PyTorch \cite{paszke2019} compute the gradient of the average mini-batch negative log-likelihood, $-\matr{g}_{\theta_l}$, as standard. 
 
-%According to \cite{kingma2013}, on each iteration of the algorithm it suffices to compute these estimates using a single $\theta \sim q(\theta)$ and a mini-batch of training data sampled from $\mathcal{D}$. 
 
 \subsection{Practical Implementation}
 
@@ -883,10 +909,17 @@ where $\psi = \diag(\Psi)$ and $\matr{A} = \psi^{-1} \odot \matr{F}$ (with broad
 	& = -\Psi^{-1} \matr{F}  + \matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} (\matr{A}^\intercal \matr{F}) \\
 	& = -\matr{A}  + \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} (\matr{A}^\intercal \matr{F}) \\
 	& = -\matr{A}  + \matr{A} (\matr{I} + \matr{B})^{-1} \matr{B}^\intercal \\
-	& = -\matr{A}  + \matr{C} \matr{B}^\intercal,
+	& = -\matr{A}  + \matr{C} \matr{B}^\intercal \\
+	& = \matr{D},
 \end{split}
 \end{align}
-where $\matr{B} = \matr{F}^\intercal \matr{A}$ and $\matr{C} = \matr{A} (\matr{I} + \matr{B})^{-1}$. Also,
+where 
+\begin{equation}
+	\matr{B} = \matr{F}^\intercal \matr{A}, 
+	\quad \matr{C} = \matr{A} (\matr{I} + \matr{B})^{-1}
+	\quad \text{and} \quad \matr{D} = -\matr{A}  + \matr{C} \matr{B}^\intercal.
+\end{equation}
+Also,
 \begin{align}
 \begin{split}
 	\nabla_\psi \E_{q(\theta)} [\log q(\theta)]
@@ -901,17 +934,19 @@ Note that these calculations involve no explicit use of $D \times D$ matrices. A
 	\nabla_\psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{1}^D,
 \end{equation}
 \begin{equation}
-	\nabla_{\psi} \log p(\mathcal{D} | \theta) = \frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \odot \big(\psi^{-1/2} \odot \matr{z} \big).
+	\nabla_\psi \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	 \approx  \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{-1/2} \odot \matr{z} \big).
 \end{equation}
-Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = \exp \beta$ can again be used to ensure that the variances remain positive. Since $\nabla_\beta \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\beta$ are 
+Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = \exp \gamma$ can again be used to ensure that the variances remain positive. Since $\nabla_\gamma \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\gamma$ are 
 \begin{equation}
-	\nabla_\beta \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi,
-\end{equation}
-\begin{equation}
-	\nabla_\beta \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
+	\nabla_\gamma \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi,
 \end{equation}
 \begin{equation}
-	\nabla_{\beta} \log p(\mathcal{D} | \theta) = \frac{1}{2} \nabla_\theta \log p(\mathcal{D} | \theta) \odot \big(\psi^{1/2} \odot \matr{z}\big).
+	\nabla_\gamma \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \psi,
+\end{equation}
+\begin{equation}
+	\nabla_\gamma \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	 \approx  \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big).
 \end{equation}
 Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_fa}. Being a VI method for approximating a posterior with a FA model, the algorithm is named VIFA.
 
@@ -919,10 +954,10 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 	\caption{VIFA}
 	\label{alg:vi_fa}
 	\begin{algorithmic}[1]
-		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, precision $\alpha > 0$, iterations $T$, mini-batch size $M$, Monte Carlo average size $L$, learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\beta > 0$} 
+		\Require{Dataset $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^N$, observation dimension $D$, latent dimension $K$, prior precision $\alpha > 0$, iterations $T$, mini-batch size $M$, Monte Carlo average size $L$, learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$} 
 		\State Initialise $\matr{c} = \matr{0}^D$, $\matr{F} \in \R^{D \times K}$, $\psi = \matr{1}^D$
-		\State $\beta \leftarrow \log \psi$
-		\State Initialise $\hat{\matr{g}}_\matr{c} = \matr{0}^D$, $\hat{\matr{G}}_\matr{F} = \matr{0}^{D \times K}$, $\hat{\matr{g}}_\beta = \matr{0}^D$
+		\State $\gamma \leftarrow \log \psi$
+		\State Initialise $\hat{\matr{g}}_\matr{c} = \matr{0}^D$, $\hat{\matr{G}}_\matr{F} = \matr{0}^{D \times K}$, $\hat{\matr{g}}_\gamma = \matr{0}^D$
 		\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
 		\State $\matr{B} \leftarrow \matr{F}^\intercal \matr{A}$
 		\State $\matr{C} \leftarrow \matr{A} (\matr{I} + \matr{B})^{-1}$
@@ -936,13 +971,13 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 			\State $\hat{\matr{g}}_\theta \leftarrow N \cdot \nabla_\theta \big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\big)$ (via back-propagation)
 			\State $\hat{\matr{g}}_\matr{c} \leftarrow \hat{\matr{g}}_\matr{c} + \alpha \matr{c} + \hat{\matr{g}}_\theta$
 			\State $\hat{\matr{G}}_\matr{F} \leftarrow \hat{\matr{G}}_\matr{F} + \matr{D} + \alpha \matr{F} + \hat{\matr{g}}_\theta \matr{h}^\intercal$
-			\State $\hat{\matr{g}}_\beta \leftarrow \hat{\matr{g}}_\beta + \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \hat{\matr{g}}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\State $\hat{\matr{g}}_\gamma \leftarrow \hat{\matr{g}}_\gamma + \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \hat{\matr{g}}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\If {$t \bmod L = 0$}
 				\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \big(\frac{1}{L}\hat{\matr{g}}_\matr{c}\big)$
 				\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \big(\frac{1}{L}\hat{\matr{G}}_\matr{F}\big)$
-				\State $\beta \leftarrow \beta - \eta_\beta \big(\frac{1}{L}\hat{\matr{g}}_\beta\big)$
-				\State $\psi \leftarrow \exp \beta$
-				\State Reset $\hat{\matr{g}}_\matr{c}, \hat{\matr{G}}_\matr{F}$ and $\hat{\matr{g}}_\beta$ according to line 3
+				\State $\gamma \leftarrow \gamma - \eta_\gamma \big(\frac{1}{L}\hat{\matr{g}}_\gamma\big)$
+				\State $\psi \leftarrow \exp \gamma$
+				\State Reset $\hat{\matr{g}}_\matr{c}, \hat{\matr{G}}_\matr{F}$ and $\hat{\matr{g}}_\gamma$ according to line 3
 				\State Recalculate $\matr{A}, \matr{B}, \matr{C}, \matr{D}$ and $\matr{s}$ according to lines 4-8
 			\EndIf
 		\EndFor
@@ -954,7 +989,7 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 
 There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an EF matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}.
 
-Here it is claimed that VIFA is a much more general and practical algorithm. It can be seen from Algorithm \ref{alg:vi_fa} that VIFA is implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, sampling each neural network parameter vector in SLANG requires computing a Cholesky decomposition, and each update to the approximate posterior involves an eigen-decomposition. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since a separate implementation of back-propagation is needed for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient with respect to the mean negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is a general algorithm which can be applied to any neural network architecture with no extra effort. 
+Here it is claimed that VIFA is a much more practical algorithm. It can be seen from Algorithm \ref{alg:vi_fa} that VIFA is implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, sampling each neural network parameter vector in SLANG requires computing a Cholesky decomposition, and each update to the approximate posterior involves an eigen-decomposition. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since a separate implementation of back-propagation is needed for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the mean negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is a general algorithm which can be applied to any neural network architecture with no extra effort. 
 
 
 \section{Factors Initialisation}\label{sec:F_init}
