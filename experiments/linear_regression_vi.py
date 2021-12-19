@@ -71,8 +71,8 @@ def run_all_experiments(
             - relative_distance_from_covar: The Frobenius norm between the covariance of the true posterior and the
                 covariance of the variational posterior (not including bias), divided by the Frobenius norm of the
                 covariance of the true posterior.
-            - wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational posterior
-                (not including bias).
+            - scaled_wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational
+                posterior (not including bias), divided by the dimension of the distribution.
             - alpha: The precision of the prior.
             - beta: The precision of the label noise.
             - dataset: The name of the dataset.
@@ -178,8 +178,8 @@ def run_dataset_experiment(
             - relative_distance_from_covar: The Frobenius norm between the covariance of the true posterior and the
                 covariance of the variational posterior (not including bias), divided by the Frobenius norm of the
                 covariance of the true posterior.
-            - wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational posterior
-                (not including bias).
+            - scaled_wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational
+                posterior (not including bias), divided by the dimension of the distribution.
             - alpha: The precision of the prior.
             - beta: The precision of the label noise.
             - dataset: The name of the dataset.
@@ -323,8 +323,8 @@ def compute_metrics(true_mean: Tensor, true_covar: Tensor, true_bias: float, var
             - relative_distance_from_covar: The Frobenius norm between the covariance of the true posterior and the
                 covariance of the variational posterior (not including bias), divided by the Frobenius norm of the
                 covariance of the true posterior.
-            - wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational posterior
-                (not including bias).
+            - scaled_wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational
+                posterior (not including bias), divided by the dimension of the distribution.
     """
     true_weights = torch.cat([true_mean, torch.Tensor([true_bias])])
     variational_weights = torch.cat([variational_mean, torch.Tensor([variational_bias])])
@@ -335,12 +335,14 @@ def compute_metrics(true_mean: Tensor, true_covar: Tensor, true_bias: float, var
     true_weights_norm = compute_distance_between_matrices(true_weights, torch.zeros_like(true_weights))
     true_covar_norm = compute_distance_between_matrices(true_covar, torch.zeros_like(true_covar))
 
+    wasserstein_distance = compute_gaussian_wasserstein_distance(
+        true_mean, true_covar, variational_mean, variational_covar,
+    )
+
     return dict(
         relative_distance_from_mean=distance_between_weights / true_weights_norm,
         relative_distance_from_covar=distance_between_covar / true_covar_norm,
-        wasserstein_distance=compute_gaussian_wasserstein_distance(
-            true_mean, true_covar, variational_mean, variational_covar,
-        )
+        scaled_wasserstein_distance=wasserstein_distance / true_covar.shape[0],
     )
 
 

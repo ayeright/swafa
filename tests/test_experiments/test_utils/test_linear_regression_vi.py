@@ -92,9 +92,9 @@ def test_compute_metrics():
 
     expected_relative_distance_from_mean = np.sqrt(6) / np.sqrt(21)
     expected_relative_distance_from_covar = np.sqrt(7) / np.sqrt(15)
-    expected_wasserstein_distance = compute_gaussian_wasserstein_distance(
+    expected_scaled_wasserstein_distance = compute_gaussian_wasserstein_distance(
         true_mean, true_covar, variational_mean, variational_covar,
-    )
+    ) / len(true_mean)
 
     actual_metrics = compute_metrics(
         true_mean, true_covar, true_bias, variational_mean, variational_covar, variational_bias,
@@ -102,7 +102,7 @@ def test_compute_metrics():
 
     assert np.isclose(actual_metrics['relative_distance_from_mean'], expected_relative_distance_from_mean)
     assert np.isclose(actual_metrics['relative_distance_from_covar'], expected_relative_distance_from_covar)
-    assert np.isclose(actual_metrics['wasserstein_distance'], expected_wasserstein_distance)
+    assert np.isclose(actual_metrics['scaled_wasserstein_distance'], expected_scaled_wasserstein_distance)
 
 
 @pytest.mark.parametrize("n_datasets", [1, 2, 3])
@@ -141,7 +141,7 @@ def test_run_all_experiments(tmpdir, n_datasets):
     metric_columns = [
         'relative_distance_from_mean',
         'relative_distance_from_covar',
-        'wasserstein_distance',
+        'scaled_wasserstein_distance',
     ]
 
     other_columns = [

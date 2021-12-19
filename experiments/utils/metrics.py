@@ -77,7 +77,7 @@ def compute_gaussian_wasserstein_distance(mean1: Tensor, covar1: Tensor, mean2: 
     contribution_from_covar = torch.trace(
         covar1 + covar2 - 2 * matrix_sqrt(sqrt_covar2.mm(covar1).mm(sqrt_covar2))
     )
-    return (contribution_from_mean + contribution_from_covar).item()
+    return (contribution_from_mean + contribution_from_covar).sqrt().item()
 
 
 def matrix_sqrt(A: Tensor) -> Tensor:
