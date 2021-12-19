@@ -410,7 +410,7 @@ def generate_and_save_variance_plot(true_var: np.ndarray, variational_var: np.nd
 def generate_and_save_covariance_plot(true_covar: np.ndarray, variational_covar: np.ndarray, plot_dir: str,
                                       dataset_label: str):
     """
-    Generate and save a bar plot which compares the true and variational posterior covariances.
+    Generate and save an image plot which compares the true and variational posterior covariances.
 
     Plot will be saved to '{plot_dir}/{dataset_label}_posterior_covariance.png'
 

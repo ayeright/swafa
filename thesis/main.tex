@@ -603,11 +603,11 @@ Also, the partial derivatives with respect to $\Psi$ in Equation (\ref{eqn:deriv
 \end{align} 
 where $\text{sum}(\cdot, \text{ dim} = 1)$ denotes the operation of summing along the rows of a matrix. 
 
-One final point is that the elements of $\psi$ must be positive, since they represent variances. One way to achieve this is by using the re-parameterisation $\psi = \exp \beta$ for some unconstrained parameter $\beta \in \R^D$. Then the gradient updates can be performed on $\beta$ instead of $\psi$. Using the chain rule from calculus, 
+One final point is that the elements of $\psi$ must be positive, since they represent variances. One way to achieve this is by using the re-parameterisation $\psi = \exp \gamma$ for some unconstrained parameter $\gamma \in \R^D$. Then the gradient updates can be performed on $\gamma$ instead of $\psi$. Using the chain rule from calculus, 
 \begin{align}
-\begin{split}\label{eqn:efficient_derivatives_wrt_beta}
-	\nabla_{\beta} \log p(\theta_t | \matr{F}, \Psi)
-	& = \nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi) \odot \nabla_{\beta} \exp \beta \\
+\begin{split}\label{eqn:efficient_derivatives_wrt_gamma}
+	\nabla_{\gamma} \log p(\theta_t | \matr{F}, \Psi)
+	%& = \nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi) \odot \nabla_{\beta} \exp \beta \\
 	& = \nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi) \odot \exp \beta \\
 	& = \nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi) \odot \psi,
 \end{split}
@@ -620,7 +620,7 @@ where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\r
 	\begin{algorithmic}[1]
 		\Require{Observation dimension $D$, latent dimension $K$, learning rate $\alpha > 0$} 
 		\State Initialise $\matr{F} \in \R^{D \times K}$, $\psi = \matr{1}^D$, $\overline{\theta}_0 = \matr{0}^D$
-		\State $\beta \leftarrow \log \psi$
+		\State $\gamma \leftarrow \log \psi$
 		\For {$t=1,\dots,T$}
 			\State Sample observation $\theta_t \in \R^D$
 			\State
@@ -631,11 +631,11 @@ where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\r
 			\State $\matr{m}_t \leftarrow \Sigma \matr{C} \matr{d}_t$ 
 			\State Compute $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ 
 			according to Equation (\ref{eqn:efficient_derivatives_wrt_F})
-			\State Compute $\nabla_{\beta} \log p(\theta_t | \matr{F}, \Psi)$ 
-			according to Equation (\ref{eqn:efficient_derivatives_wrt_beta})
+			\State Compute $\nabla_{\gamma} \log p(\theta_t | \matr{F}, \Psi)$ 
+			according to Equation (\ref{eqn:efficient_derivatives_wrt_gamma})
 			\State $\matr{F} \leftarrow \matr{F} + \alpha \nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$
-			\State $\beta \leftarrow \beta + \alpha \nabla_{\beta} \log p(\theta_t | \matr{F}, \Psi)$
-			\State $\psi \leftarrow \exp \beta$
+			\State $\gamma \leftarrow \gamma + \alpha \nabla_{\gamma} \log p(\theta_t | \matr{F}, \Psi)$
+			\State $\psi \leftarrow \exp \gamma$
 		\EndFor
 		\State $\theta_{\text{SWA}} \leftarrow \overline{\theta}_T$
 		\State \Return $\theta_{\text{SWA}}, \matr{F}, \psi$
@@ -764,7 +764,7 @@ In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an app
 where the expectation is taken over samples $\theta \sim \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$. These derivatives are derived in the following sections. 
 
 
-\subsection{Derivatives of the Variational Distribution}
+\subsection{Partial Derivatives of the Variational Distribution}
 
 The logarithm of the pdf of the FA posterior is
 \begin{equation}
@@ -806,7 +806,7 @@ Hence, it follows from the chain rule of calculus that
 \begin{align}
 \begin{split}\label{eqn:grad_vi_dist_wrt_F}
 	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)]
-	& = -\frac{1}{2} \matr{S}^{-1} (\nabla_\matr{F} \matr{S}) \\
+	%& = -\frac{1}{2} \matr{S}^{-1} (\nabla_\matr{F} \matr{S}) \\
 	& = -\frac{1}{2} \matr{S}^{-1} (2\matr{F}) \\
 	& = -\matr{S}^{-1}\matr{F}
 \end{split}
@@ -815,13 +815,13 @@ and
 \begin{align}
 \begin{split}\label{eqn:grad_vi_dist_wrt_Psi}
 	\nabla_\Psi \E_{q(\theta)} [\log q(\theta)]
-	& = \diag\Big(\diag\Big(-\frac{1}{2} \matr{S}^{-1} (\nabla_\Psi \matr{S}) \Big)\Big) \\
+	%& = \diag\Big(\diag\Big(-\frac{1}{2} \matr{S}^{-1} (\nabla_\Psi \matr{S}) \Big)\Big) \\
 	& = -\frac{1}{2} \diag\big(\diag\big(\matr{S}^{-1} \matr{I}\big)\big) \\
 	& = -\frac{1}{2} \diag\big(\diag\big(\matr{S}^{-1}\big)\big).
 \end{split}
 \end{align}
 
-\subsection{Derivatives of the Prior}
+\subsection{Partial Derivatives of the Prior}
 
 Let the prior be $p(\theta) = \mathcal{N}(\matr{0}, \alpha^{-1} \matr{I})$ for some precision $\alpha > 0$. Then
 \begin{align}
@@ -844,50 +844,51 @@ where the last line follows from Equation (\ref{eqn:expectation_xTAx}). Hence,
 \end{equation}
 which follow from the matrix calculus identities in \cite{petersen2012}.
 
-\subsection{Derivatives of the Likelihood}
+\subsection{Partial Derivatives of the Likelihood}
 
 Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Due to the functional form of a non-linear neural network, $\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]$ cannot be compute in closed-form. Instead, a Monte Carlo estimate can be constructed from mini-batches of training data. Formally, 
 \begin{equation}
 	 \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
 	\approx \frac{1}{L} \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg),
 \end{equation}
-where $L$ is the Monte Carlo average size, each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$, and $\theta_l \sim q(\theta)$. Then 
-\begin{equation}\label{eqn:expected_grad_log_likelihood}
-	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	\approx \frac{1}{L} \sum_{l=1}^{L} \Bigg(N \cdot \nabla_{\matr{c}, \matr{F}, \Psi} \Bigg( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg) \Bigg).
-\end{equation}
-Now, in order to obtain these partial derivatives, the re-parameterisation trick \cite{goodfellow2016} can be used. First note that, by re-writing Equation (\ref{eqn:fa_model}), sampling $\theta_l \sim q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ is equivalent to setting  
+where $L$ is the Monte Carlo average size, each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$, and $\theta_l \sim q(\theta)$. In order to obtain the partial derivatives of this expression with respect to $\matr{c}$, $\matr{F}$ and $\Psi$, the re-parameterisation trick \cite{goodfellow2016} can be used. First note that, by re-writing Equation (\ref{eqn:fa_model}), sampling $\theta_l \sim q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ is equivalent to setting  
 \begin{equation}\label{eqn:fa_reparam_trick}
-	\theta_l = \matr{Fh} + \matr{c} + \Psi^{1/2} \matr{z}
+	\theta_l = \matr{F}\matr{h}_l + \matr{c} + \Psi^{1/2} \matr{z}_l
 \end{equation}
-from some $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied to $\Psi$ element-wise. Then it follows from the chain rule of calculus that
+from some $\matr{h}_l \sim p(\matr{h}) = \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z}_l \sim p(\matr{z}) = \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied to $\Psi$ element-wise. Then
 \begin{align}
-\begin{split}\label{eqn:chain_rule_log_likelihood}
-	 \nabla_{\matr{c}, \matr{F}, \Psi} \Bigg( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg)
-	 & = \nabla_{\theta_l} \Bigg( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg)
-	 \nabla_{\matr{c}, \matr{F}, \Psi} \theta_l \\
-	 & = \matr{g}_{\theta_l} \nabla_{\matr{c}, \matr{F}, \Psi} \theta_l,
+\begin{split}
+	\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	& = \E_{p(\matr{h})p(\matr{z})} [\log p(\mathcal{D} | \theta)] \\
+	& \approx \frac{1}{L} \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg),
 \end{split}
 \end{align}
-where $\matr{g}_{\theta_l} = \nabla_{\theta_l} \Big( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Big)$. Hence, substituting Equation (\ref{eqn:chain_rule_log_likelihood}) into Equation (\ref{eqn:expected_grad_log_likelihood}),
-\begin{equation}
+where each $\theta_l$ is sampled according to Equation (\ref{eqn:fa_reparam_trick}). It then follows that
+\begin{align}
+\begin{split}\label{eqn:expected_grad_log_likelihood}
 	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	\approx \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l} \nabla_{\matr{c}, \matr{F}, \Psi} \theta_l.
-\end{equation}
-It then follows that
+	& = \nabla_{\matr{c}, \matr{F}, \Psi} \E_{p(\matr{h})p(\matr{z})} [\log p(\mathcal{D} | \theta)] \\
+	& \approx \frac{1}{L} \sum_{l=1}^{L} \Bigg(N \cdot \nabla_{\matr{c}, \matr{F}, \Psi} \Bigg( \frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg) \Bigg).
+\end{split}
+\end{align}
+Since $\theta_l = \matr{F}\matr{h}_l + \matr{c} + \Psi^{1/2} \matr{z}_l$, the chain rule of calculus can be used to obtain these partial derivatives. Formally,
 \begin{equation}
 	 \nabla_\matr{c} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	 \approx \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l},
+	 \approx -\frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l},
 \end{equation}
 \begin{equation}
 	 \nabla_\matr{F} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	 \approx \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l} \matr{h}^\intercal,
+	 \approx -\frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l} \matr{h}_l^\intercal,
 \end{equation}
 \begin{equation}\label{eqn:grad_likelihood_wrt_psi}
 	 \nabla_\Psi \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	 \approx \diag\Big( \diag\Big( \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \matr{z}^\intercal \Psi^{-1/2} \Big)\Big).
+	 \approx \diag\Bigg( \diag\Bigg( -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \matr{z}_l^\intercal \Psi^{-1/2} \Bigg)\Bigg),
 \end{equation}
-This is convenient, since $\matr{g}_{\theta_l}$ can be computed efficiently using the back-propagation algorithm \cite{rumelhart1986}. Indeed, deep learning frameworks such as PyTorch \cite{paszke2019} compute the gradient of the average mini-batch negative log-likelihood, $-\matr{g}_{\theta_l}$, as standard. 
+where
+\begin{equation}
+	\matr{g}_{\theta_l} = \nabla_{\theta_l} \Bigg( -\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg).
+\end{equation}
+Note that $\matr{g}_{\theta_l}$ is the average negative log-likelihood of $\theta_l$ for a single training example, where the average is computed over the mini-batch $\mathcal{B}_l$. This is convenient, since the gradient can be computed efficiently using the back-propagation algorithm \cite{rumelhart1986}. Indeed, deep learning frameworks such as PyTorch \cite{paszke2019} compute $\matr{g}_{\theta_l}$ as standard. 
 
 
 \subsection{Practical Implementation}
@@ -909,17 +910,10 @@ where $\psi = \diag(\Psi)$ and $\matr{A} = \psi^{-1} \odot \matr{F}$ (with broad
 	& = -\Psi^{-1} \matr{F}  + \matr{A}  (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} (\matr{A}^\intercal \matr{F}) \\
 	& = -\matr{A}  + \matr{A} (\matr{I} + \matr{F}^\intercal \matr{A})^{-1} (\matr{A}^\intercal \matr{F}) \\
 	& = -\matr{A}  + \matr{A} (\matr{I} + \matr{B})^{-1} \matr{B}^\intercal \\
-	& = -\matr{A}  + \matr{C} \matr{B}^\intercal \\
-	& = \matr{D},
+	& = -\matr{A}  + \matr{C} \matr{B}^\intercal,
 \end{split}
 \end{align}
-where 
-\begin{equation}
-	\matr{B} = \matr{F}^\intercal \matr{A}, 
-	\quad \matr{C} = \matr{A} (\matr{I} + \matr{B})^{-1}
-	\quad \text{and} \quad \matr{D} = -\matr{A}  + \matr{C} \matr{B}^\intercal.
-\end{equation}
-Also,
+where $\matr{B} = \matr{F}^\intercal \matr{A}$ and $\matr{C} = \matr{A} (\matr{I} + \matr{B})^{-1}$. Also,
 \begin{align}
 \begin{split}
 	\nabla_\psi \E_{q(\theta)} [\log q(\theta)]
@@ -935,7 +929,7 @@ Note that these calculations involve no explicit use of $D \times D$ matrices. A
 \end{equation}
 \begin{equation}
 	\nabla_\psi \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	 \approx  \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{-1/2} \odot \matr{z} \big).
+	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{-1/2} \odot \matr{z} \big).
 \end{equation}
 Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = \exp \gamma$ can again be used to ensure that the variances remain positive. Since $\nabla_\gamma \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\gamma$ are 
 \begin{equation}
@@ -946,9 +940,26 @@ Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = 
 \end{equation}
 \begin{equation}
 	\nabla_\gamma \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	 \approx  \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big).
+	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big).
 \end{equation}
-Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_fa}. Being a VI method for approximating a posterior with a FA model, the algorithm is named VIFA.
+Collecting the partial derivatives of Equation (\ref{eqn:vi_fa_derivatives}), the update rules are
+ \begin{equation}
+	\matr{c} \leftarrow \matr{c} - \eta_\matr{c}\Bigg(
+	\alpha \matr{c} + \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l}
+	\Bigg),
+\end{equation}
+ \begin{equation}
+	\matr{F} \leftarrow \matr{F} - \eta_\matr{F}\Bigg(
+	-\matr{A}  + \matr{C} \matr{B}^\intercal+ \alpha \matr{F} + \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l} \matr{h}_l^\intercal
+	\Bigg),
+\end{equation}
+\begin{equation}
+	\gamma \leftarrow \gamma - \eta_\gamma\Bigg(
+	-\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi
+	+\frac{\alpha}{2} \psi + \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big)
+	\Bigg)
+\end{equation}
+for learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$. Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_fa}. Being a VI method for approximating a posterior with a FA model, the algorithm is named VIFA.
 
 \begin{algorithm}[!htbp] 
 	\caption{VIFA}
@@ -961,24 +972,23 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 		\State $\matr{A} \leftarrow \psi^{-1} \odot \matr{F}$ (with broadcasting)
 		\State $\matr{B} \leftarrow \matr{F}^\intercal \matr{A}$
 		\State $\matr{C} \leftarrow \matr{A} (\matr{I} + \matr{B})^{-1}$
-		\State $\matr{D} \leftarrow -\matr{A}  + \matr{C} \matr{B}^\intercal$
-		\State $\matr{s} \leftarrow -\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi$
 		\For {$t = 1,\dots, T$}
 			\State Sample a mini-batch $\mathcal{B}$ of $M$ training examples from $\mathcal{D}$
 			\State Sample $\matr{h} \sim \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$
 			\State Sample $\matr{z} \sim \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
-			\State $\hat{\matr{g}}_\theta \leftarrow N \cdot \nabla_\theta \big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\big)$ (via back-propagation)
-			\State $\hat{\matr{g}}_\matr{c} \leftarrow \hat{\matr{g}}_\matr{c} + \alpha \matr{c} + \hat{\matr{g}}_\theta$
-			\State $\hat{\matr{G}}_\matr{F} \leftarrow \hat{\matr{G}}_\matr{F} + \matr{D} + \alpha \matr{F} + \hat{\matr{g}}_\theta \matr{h}^\intercal$
-			\State $\hat{\matr{g}}_\gamma \leftarrow \hat{\matr{g}}_\gamma + \matr{s} + \frac{\alpha}{2} \psi + \frac{1}{2} \hat{\matr{g}}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\State $\matr{g}_\theta \leftarrow \nabla_\theta \big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\big)$ 
+			(via back-propagation)
+			\State $\hat{\matr{g}}_\matr{c} \leftarrow \hat{\matr{g}}_\matr{c} + N \hat{\matr{g}}_\theta$
+			\State $\hat{\matr{G}}_\matr{F} \leftarrow \hat{\matr{G}}_\matr{F} + N \hat{\matr{g}}_\theta \matr{h}^\intercal$
+			\State $\hat{\matr{g}}_\gamma \leftarrow \hat{\matr{g}}_\gamma + \frac{N}{2} \hat{\matr{g}}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\If {$t \bmod L = 0$}
-				\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \big(\frac{1}{L}\hat{\matr{g}}_\matr{c}\big)$
-				\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \big(\frac{1}{L}\hat{\matr{G}}_\matr{F}\big)$
-				\State $\gamma \leftarrow \gamma - \eta_\gamma \big(\frac{1}{L}\hat{\matr{g}}_\gamma\big)$
+				\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \big(\alpha \matr{c} + \frac{1}{L}\hat{\matr{g}}_\matr{c}\big)$
+				\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \big(-\matr{A}  + \matr{C} \matr{B}^\intercal+ \alpha \matr{F} +\frac{1}{L}\hat{\matr{G}}_\matr{F}\big)$
+				\State $\gamma \leftarrow \gamma - \eta_\gamma \big(-\frac{1}{2} + \frac{1}{2} \text{sum}(\matr{C} \odot \matr{A}, \text{ dim} = 1) \odot \psi +\frac{\alpha}{2} \psi  + \frac{1}{L}\hat{\matr{g}}_\gamma\big)$
 				\State $\psi \leftarrow \exp \gamma$
 				\State Reset $\hat{\matr{g}}_\matr{c}, \hat{\matr{G}}_\matr{F}$ and $\hat{\matr{g}}_\gamma$ according to line 3
-				\State Recalculate $\matr{A}, \matr{B}, \matr{C}, \matr{D}$ and $\matr{s}$ according to lines 4-8
+				\State Recalculate $\matr{A}, \matr{B}$ and $\matr{C}$ according to lines 4-6
 			\EndIf
 		\EndFor
 	\State \Return $\matr{c}, \matr{F}, \psi$
@@ -989,7 +999,7 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_f
 
 There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an EF matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}.
 
-Here it is claimed that VIFA is a much more practical algorithm. It can be seen from Algorithm \ref{alg:vi_fa} that VIFA is implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, sampling each neural network parameter vector in SLANG requires computing a Cholesky decomposition, and each update to the approximate posterior involves an eigen-decomposition. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since a separate implementation of back-propagation is needed for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the mean negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is a general algorithm which can be applied to any neural network architecture with no extra effort. 
+Here it is claimed that VIFA is a much more practical algorithm. It can be seen from Algorithm \ref{alg:vi_fa} that VIFA is implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, sampling each neural network parameter vector in SLANG requires computing a Cholesky decomposition, and each update to the approximate posterior involves an eigen-decomposition. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since a separate implementation of back-propagation is needed for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the mean negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. 
 
 
 \section{Factors Initialisation}\label{sec:F_init}
@@ -1224,7 +1234,7 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
 
 \section{Posterior Estimation with UCI Datasets}
 
-Given the positive results obtained by VIFA in the experiments using synthetic data, the purpose of these experiments is to test how well VIFA is able to approximate the posterior of linear regression models fit to real datasets with more dimensions. 
+Given the positive results achieved by VIFA in the experiments using synthetic data, the purpose of these experiments is to test how well VIFA is able to approximate the posterior of linear regression models fit to real datasets with more dimensions. Methods based on stochastic weight averaging are excluded from these experiments, given that they were unable to obtain representative samples from simple synthetic posteriors with only two dimensions. 
 
 \subsection{Methodology}
 
@@ -1250,13 +1260,13 @@ For these experiments, four regression datasets from the UCI Machine Learning Re
 	\end{center}
 \end{table}
 
-Each dataset was split into validation and test sets of equal size. The VIFA hyperparameters were tuned on the validation set and then the algorithm was evaluated once on the test set. The final VIFA hyperparameter values for each dataset are shown in Table \ref{table:vifa_uci_hyperparameters}. Note that the latent dimension $K$ was not tuned. Instead it was set to roughly half the dimension of each dataset. Also, a single learning rate $\eta$ was used to optimise all parameters. That is, $\eta_\matr{c} = \eta_\matr{F} = \eta_\beta = \eta$. Again, to improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The hyperparameters $\alpha_{\text{prior}}$ and $\alpha_{\text{noise}}$ correspond to the precision of the prior and the precision of the noise distribution of the target variable, respectively. 
+Each dataset was split into validation and test sets of equal size. The VIFA hyperparameters were tuned on the validation set and then the algorithm was evaluated once on the test set. The final VIFA hyperparameter values for each dataset are shown in Table \ref{table:vifa_uci_hyperparameters}. Note that the latent dimension $K$ was not tuned. Instead it was set to roughly half the dimension of each dataset. Also, a single learning rate $\eta$ was used to optimise all parameters. That is, $\eta_\matr{c} = \eta_\matr{F} = \eta_\beta = \eta$. Again, to improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The hyperparameters $\alpha$ and $\beta$ correspond to the precision of the prior and the precision of the noise distribution of the target variable, respectively. These were defined formally in Section \ref{sec:bayesian_lr}.
 
 \begin{table}[h!]
 	\begin{center}
 		\begin{tabular}{||c c c c c c c c||} 
 			\hline
- 			Dataset & $K$ & Epochs & $M$ & $L$ & $\eta$ & $\alpha_{\text{prior}}$ & $\alpha_{\text{noise}}$ \\ [0.5ex] 
+ 			Dataset & $K$ & Epochs & $M$ & $L$ & $\eta$ & $\alpha$ & $\beta$ \\ [0.5ex] 
 			\hline\hline
 			Energy Efficiency & 4 & 20,000 & 100 & 10 & 0.01 & 0.0539 & 0.1082 \\ 
  			\hline
@@ -1267,16 +1277,18 @@ Each dataset was split into validation and test sets of equal size. The VIFA hyp
  			Yacht Hydrodynamics & 3 & 30,000 & 100 & 10 & 0.01 & 0.0371 & 0.0139 \\ [1ex] 
  			\hline
 		\end{tabular}
-		\caption{VIFA hyperparameters for linear regression posterior estimation with UCI datasets.}
+		\caption{VIFA hyperparameters for linear regression posterior estimation experiments with UCI datasets.}
 		\label{table:vifa_uci_hyperparameters}
 	\end{center}
 \end{table}
 
-The \texttt{BayesianRidge} estimator from the scikit-learn library \cite{pedregosa2012} was used to compute the ground truth posterior. This algorithm automatically selects $\alpha_{\text{prior}}$ and $\alpha_{\text{noise}}$, which are the values shown in Table \ref{table:vifa_uci_hyperparameters}. In VIFA, $\alpha_{\text{noise}}$ was used as the variance of the outputs when computing the log-likelihood term involved in the gradient calculations. Finally, before running the algorithms, each input variable was re-scaled to have zero mean and unit standard deviation.  
+The \texttt{BayesianRidge} estimator from the scikit-learn library \cite{pedregosa2012} was used to compute the ground truth posterior. This algorithm automatically selects $\alpha$ and $\beta$ via the Bayesian method described in \cite{mackay1992}. These ground truth values, which are given in Table \ref{table:vifa_uci_hyperparameters}, were also used when running VIFA. Note, the reason that $\beta$ is not mentioned explicitly in Algorithm \ref{alg:vi_fa} is that no reference was made to the specific form of the likelihood distribution. However, in these linear regression experiments the likelihood is Gaussian and its precision is set to $\beta$. Finally, before running the algorithms, each input variable was re-scaled to have zero mean and unit standard deviation.  
 
 \subsection{Results and Discussion}
 
 Figure \ref{fig:posterior_energy_efficiency} shows a qualitative comparison of the true posterior of a linear regression model fit to the Energy Efficiency dataset and the approximate posterior learned by VIFA. Figures \ref{fig:posterior_boston_housing}, \ref{fig:posterior_concrete_strength} and \ref{fig:posterior_yacht_hydrodynamics} show the same comparison for the Boston Housing, Concrete Compressive Strength and Yacht Hydrodynamics datasets, respectively. Quantitative results are also given in Table \ref{table:linear_regression_vi_posterior_uci}.
+
+TODO: add discussion once we add test results
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{c}
@@ -1335,18 +1347,18 @@ Figure \ref{fig:posterior_energy_efficiency} shows a qualitative comparison of t
 	\begin{center}
 		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
  			\hline
- 			Dataset & Relative Distance from Mean & Relative Distance from Covariance & Wasserstein Distance \\ [0.5ex] 
+ 			Dataset & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
-			Energy Efficiency & 0.0042 & 0.0765 & 0.2674 \\ 
+			Energy Efficiency & 0.0042 & 0.0765 & 0.0646 \\ 
 			\hline
-			Boston Housing & 0.0253 & 0.1467 & 0.1871 \\ 
+			Boston Housing & 0.0253 & 0.1467 & 0.0333 \\ 
 			\hline
-			Concrete Strength & 0.0058 & 0.1267 & 0.1454 \\ 
+			Concrete Strength & 0.0058 & 0.1267 & 0.0477 \\ 
 			\hline
- 			Yacht Hydro. & 0.0437 & 0.0477 & 0.4461 \\ [1ex] 
+ 			Yacht Hydro. & 0.0437 & 0.0477 & 0.1113 \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution.}
+		\caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the number of dimensions in the dataset.}
 		\label{table:linear_regression_vi_posterior_uci}
 	\end{center}
 \end{table}
