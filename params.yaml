@@ -19,40 +19,6 @@ online_fa:
 online_fa_analysis:
   min_samples: 100
 
-linear_regression_posterior:
-  model_optimiser: 'sgd'
-  model_optimiser_kwargs:
-    lr: 0.1
-  n_epochs: 1000
-  batch_size: 32
-  gradient_optimiser: 'sgd'
-  gradient_optimiser_kwargs:
-    lr: 0.001
-  gradient_warm_up_time_steps: 100
-  em_warm_up_time_steps: 100
-  posterior_update_epoch_start: 1
-  posterior_eval_epoch_frequency: 50
-  precision_scaling_factor: 0.01
-  min_latent_dim: 1
-  max_latent_dim: 3
-  n_trials: 10
-
-linear_regression_predictions:
-  latent_dim: 3
-  n_folds: 10
-  lr_pretrain: 0.001
-  lr_swa: 0.1
-  n_epochs_pretrain: 500
-  n_epochs_swa: 100
-  n_batches_per_epoch: 10
-  weight_decay: 0.001
-  gradient_optimiser: 'sgd'
-  gradient_optimiser_kwargs:
-    lr: 0.001
-  gradient_warm_up_time_steps: 100
-  em_warm_up_time_steps: 100
-  n_posterior_samples: 30
-
 linear_regression_vi:
   testing: false
   datasets:
