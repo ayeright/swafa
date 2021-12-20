@@ -139,22 +139,22 @@ stages:
       - experiments/data/linear_regression_predictions_analysis
 
   linear_regression_vi:
-    cmd: python experiments/linear_regression_vi.py
-      --boston-housing-input-path experiments/data/uci_datasets/boston_housing.parquet
-      --yacht-hydrodynamics-input-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
-      --concrete-strength-input-path experiments/data/uci_datasets/concrete_strength.parquet
-      --energy-efficiency-input-path experiments/data/uci_datasets/energy_efficiency.parquet
-      --results-output-dir experiments/data/linear_regression_vi_results
-    deps:
-      - experiments/linear_regression_vi.py
-      - swafa/fa.py
-      - swafa/models.py
-      - swafa/callbacks.py
-      - experiments/linear_regression_posterior.py
-      - experiments/utils/factory.py
-      - experiments/data/uci_datasets
-    params:
-      - linear_regression_vi.testing
-      - linear_regression_vi.dataset_params
-    outs:
-      - experiments/data/linear_regression_vi_results
+    foreach: ${linear_regression_vi.datasets} # from params.yaml
+    do:
+      cmd: python experiments/linear_regression_vi.py
+        --dataset-label ${key}
+        --dataset-input-path experiments/data/uci_datasets/${key}.parquet
+        --results-output-dir experiments/data/linear_regression_vi_results/${key}
+      deps:
+        - experiments/linear_regression_vi.py
+        - swafa/fa.py
+        - swafa/models.py
+        - swafa/callbacks.py
+        - experiments/linear_regression_posterior.py
+        - experiments/utils/factory.py
+        - experiments/data/uci_datasets
+      params:
+        - linear_regression_vi.testing
+        - linear_regression_vi.datasets.${key}
+      outs:
+        - experiments/data/linear_regression_vi_results/${key}

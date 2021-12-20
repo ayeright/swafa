@@ -55,7 +55,7 @@ linear_regression_predictions:
 
 linear_regression_vi:
   testing: false
-  dataset_params:
+  datasets:
     boston_housing:
       latent_dim: 6
       n_gradients_per_update: 10

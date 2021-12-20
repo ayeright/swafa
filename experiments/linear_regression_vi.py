@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import torch
 from torch import Tensor
@@ -21,117 +21,8 @@ from experiments.utils.metrics import compute_distance_between_matrices, compute
 from experiments.utils.factory import OPTIMISER_FACTORY
 
 
-def run_all_experiments(
-        datasets: List[pd.DataFrame],
-        dataset_labels: List[str],
-        dataset_params: Dict[str, dict],
-        testing: bool,
-        results_output_dir: str,
-) -> pd.DataFrame:
-    """
-    Run posterior estimation experiments on the given datasets.
-
-    For each dataset, compute the true posterior of a linear regression model fit to the data and compare it to the
-    posterior estimated via the VIFA algorithm. See [1] for more details on VIFA.
-
-    Save all results (including plots) to the given output directory.
-
-    Args:
-        datasets: A list of datasets. Each dataset contains features and a target variable, where the target variable is
-            in the final column.
-        dataset_labels: A label for each of the datasets.
-        dataset_params: A dict of the form label: params, where label is in dataset_labels and params is a dict
-            containing the follow fields, which are parameters of the VIFA algorithm:
-                latent_dim: (int) The latent dimension of the factor analysis model used as the variational
-                    distribution.
-                n_gradients_per_update: (int) The number of mini-batch gradients to use to form the expectation of the
-                    true gradient for each parameter update.
-                optimiser: (Optimizer) The class of the optimiser to use for gradient updates.
-                bias_optimiser_kwargs: (dict) Keyword arguments for the optimiser which updates the bias term of the
-                    factor analysis variational distribution.
-                factors_optimiser_kwargs: (dict) Keyword arguments for the optimiser which updates the factor loading
-                    matrix of the factor analysis variational distribution.
-                noise_optimiser_kwargs: (dict) Keyword arguments for the optimiser which updates the logarithm of the
-                    diagonal entries of the Gaussian noise covariance matrix of the factor analysis variational
-                    distribution.
-                max_grad_norm: (float) Maximum norm for gradients which are used to update the parameters of the
-                    variational distribution.
-                batch_size: (int) The batch size to use for mini-batch gradient optimisation.
-                n_epochs: (int) The number of epochs for which to run the mini-batch gradient optimisation.
-        testing: Whether or not the experiments should use the test data. Each dataset it split into train and test sets
-            of equal size, and the split is always the same. If testing is True, the test data will be used, else the
-            train data will be used.
-        results_output_dir: The path to directory where experiment results (including plots) will be saved.
-
-    Returns:
-       A DataFrame with the following columns:
-            - relative_distance_from_mean: The Frobenius norm between the mean of the true posterior and the mean of the
-                variational posterior (including bias), divided by the Frobenius norm of the mean of the true
-                posterior.
-            - relative_distance_from_covar: The Frobenius norm between the covariance of the true posterior and the
-                covariance of the variational posterior (not including bias), divided by the Frobenius norm of the
-                covariance of the true posterior.
-            - scaled_wasserstein_distance: The 2-Wasserstein distance between the true posterior and the variational
-                posterior (not including bias), divided by the dimension of the distribution.
-            - alpha: The precision of the prior.
-            - beta: The precision of the label noise.
-            - dataset: The name of the dataset.
-
-    References:
-        [1] Scott Brownlie. Extending the Bayesian Deep Learning Method MultiSWAG. MSc Thesis, University of Edinburgh,
-            2021.
-    """
-    results = []
-
-    for label, dataset in zip(dataset_labels, datasets):
-        print(f'Running experiment on {label} dataset...')
-
-        params = dataset_params[label]
-        train_dataset, test_dataset = train_test_split(dataset)
-        experiment_dataset = test_dataset if testing else train_dataset
-
-        dataset_results = run_dataset_experiment(
-            dataset=experiment_dataset,
-            dataset_label=label,
-            latent_dim=params['latent_dim'],
-            n_gradients_per_update=params['n_gradients_per_update'],
-            optimiser_class=OPTIMISER_FACTORY[params['optimiser']],
-            bias_optimiser_kwargs=params['bias_optimiser_kwargs'],
-            factors_optimiser_kwargs=params['factors_optimiser_kwargs'],
-            noise_optimiser_kwargs=params['noise_optimiser_kwargs'],
-            max_grad_norm=params['max_grad_norm'],
-            batch_size=params['batch_size'],
-            n_epochs=params['n_epochs'],
-            results_output_dir=results_output_dir,
-        )
-
-        results.append(dataset_results)
-
-    return pd.DataFrame(results)
-
-
-def train_test_split(dataset: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
-    """
-    Split the data into equally sized train and test sets.
-
-    Args:
-        dataset: Data of shape (n, k).
-
-    Returns:
-        train_dataset: Training data of shape (n / 2, k).
-        test_dataset: Test data of shape (n / 2, k).
-    """
-    shuffled_dataset = dataset.sample(frac=1, random_state=1).reset_index(drop=True)
-    middle_index = int(len(shuffled_dataset) / 2)
-    train_dataset = shuffled_dataset.iloc[:middle_index, :]
-    test_dataset = shuffled_dataset.iloc[middle_index:, :]
-
-    return train_dataset, test_dataset
-
-
-def run_dataset_experiment(
+def run_experiment(
         dataset: pd.DataFrame,
-        dataset_label: str,
         latent_dim: int,
         n_gradients_per_update: int,
         optimiser_class: Optimizer,
@@ -142,7 +33,7 @@ def run_dataset_experiment(
         batch_size: int,
         n_epochs: int,
         results_output_dir: str,
-) -> dict:
+) -> pd.DataFrame:
     """
     Run posterior estimation experiments on the given dataset.
 
@@ -153,7 +44,6 @@ def run_dataset_experiment(
 
     Args:
         dataset: Contains features and a target variable, where the target variable is in the final column.
-        dataset_label: A label for the dataset. Used for saving results.
         latent_dim: The latent dimension of the factor analysis model used as the variational distribution.
         n_gradients_per_update: The number of mini-batch gradients to use to form the expectation of the true gradient
             for each parameter update.
@@ -182,7 +72,6 @@ def run_dataset_experiment(
                 posterior (not including bias), divided by the dimension of the distribution.
             - alpha: The precision of the prior.
             - beta: The precision of the label noise.
-            - dataset: The name of the dataset.
     """
     X, y = get_features_and_targets(dataset)
     n_samples, n_features = X.shape
@@ -220,20 +109,36 @@ def run_dataset_experiment(
     true_diag_covar, true_non_diag_covar = split_covariance(true_covar.numpy())
     variational_diag_covar, variational_non_diag_covar = split_covariance(variational_covar.numpy())
 
-    generate_and_save_mean_plot(true_mean.numpy(), variational_mean.numpy(), results_output_dir, dataset_label)
+    generate_and_save_mean_plot(true_mean.numpy(), variational_mean.numpy(), results_output_dir)
 
-    generate_and_save_variance_plot(true_diag_covar, variational_diag_covar, results_output_dir, dataset_label)
+    generate_and_save_variance_plot(true_diag_covar, variational_diag_covar, results_output_dir)
 
-    generate_and_save_covariance_plot(
-        true_non_diag_covar, variational_non_diag_covar, results_output_dir, dataset_label,
-    )
+    generate_and_save_covariance_plot(true_non_diag_covar, variational_non_diag_covar, results_output_dir)
 
     results = compute_metrics(true_mean, true_covar, true_bias, variational_mean, variational_covar, variational_bias)
     results['alpha'] = alpha
     results['beta'] = beta
-    results['dataset'] = dataset_label
 
-    return results
+    return pd.DataFrame(results, index=[0])
+
+
+def train_test_split(dataset: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame):
+    """
+    Split the data into equally sized train and test sets.
+
+    Args:
+        dataset: Data of shape (n, k).
+
+    Returns:
+        train_dataset: Training data of shape (n / 2, k).
+        test_dataset: Test data of shape (n / 2, k).
+    """
+    shuffled_dataset = dataset.sample(frac=1, random_state=1).reset_index(drop=True)
+    middle_index = int(len(shuffled_dataset) / 2)
+    train_dataset = shuffled_dataset.iloc[:middle_index, :]
+    test_dataset = shuffled_dataset.iloc[middle_index:, :]
+
+    return train_dataset, test_dataset
 
 
 def get_true_posterior(X: Tensor, y: Tensor) -> (Tensor, Tensor, float, float, float):
@@ -346,17 +251,16 @@ def compute_metrics(true_mean: Tensor, true_covar: Tensor, true_bias: float, var
     )
 
 
-def generate_and_save_mean_plot(true_mean: np.ndarray, variational_mean: np.ndarray, plot_dir: str, dataset_label: str):
+def generate_and_save_mean_plot(true_mean: np.ndarray, variational_mean: np.ndarray, plot_dir: str):
     """
     Generate and save a bar plot which compares the true and variational posterior means.
 
-    Plot will be saved to '{plot_dir}/{dataset_label}_posterior_mean.png'
+    Plot will be saved to '{plot_dir}/posterior_mean.png'
 
     Args:
         true_mean: The true posterior mean, of shape (n_features,).
         variational_mean: The variational posterior mean, of shape (n_features,).
         plot_dir: The directory for saving the plot.
-        dataset_label: A label for the dataset which the posteriors correspond to.
     """
     plt.rcParams.update({'font.size': 15})
 
@@ -371,23 +275,21 @@ def generate_and_save_mean_plot(true_mean: np.ndarray, variational_mean: np.ndar
     plt.ylabel('Weight mean')
     plt.xticks(rotation=0)
 
-    png_path = os.path.join(plot_dir, f'{dataset_label}_posterior_mean.png')
+    png_path = os.path.join(plot_dir, 'posterior_mean.png')
     plt.savefig(png_path, format='png')
     plt.close()
 
 
-def generate_and_save_variance_plot(true_var: np.ndarray, variational_var: np.ndarray, plot_dir: str,
-                                    dataset_label: str):
+def generate_and_save_variance_plot(true_var: np.ndarray, variational_var: np.ndarray, plot_dir: str):
     """
     Generate and save a bar plot which compares the true and variational posterior variances.
 
-    Plot will be saved to '{plot_dir}/{dataset_label}_posterior_variance.png'
+    Plot will be saved to '{plot_dir}/posterior_variance.png'
 
     Args:
         true_var: The true posterior variances, of shape (n_features,).
         variational_var: The variational posterior variances, of shape (n_features,).
         plot_dir: The directory for saving the plot.
-        dataset_label: A label for the dataset which the posteriors correspond to.
     """
     plt.rcParams.update({'font.size': 15})
 
@@ -402,23 +304,21 @@ def generate_and_save_variance_plot(true_var: np.ndarray, variational_var: np.nd
     plt.ylabel('Weight variance')
     plt.xticks(rotation=0)
 
-    png_path = os.path.join(plot_dir, f'{dataset_label}_posterior_variance.png')
+    png_path = os.path.join(plot_dir, 'posterior_variance.png')
     plt.savefig(png_path, format='png')
     plt.close()
 
 
-def generate_and_save_covariance_plot(true_covar: np.ndarray, variational_covar: np.ndarray, plot_dir: str,
-                                      dataset_label: str):
+def generate_and_save_covariance_plot(true_covar: np.ndarray, variational_covar: np.ndarray, plot_dir: str):
     """
     Generate and save an image plot which compares the true and variational posterior covariances.
 
-    Plot will be saved to '{plot_dir}/{dataset_label}_posterior_covariance.png'
+    Plot will be saved to '{plot_dir}/posterior_covariance.png'
 
     Args:
         true_covar: The true posterior covariance, of shape (n_features, n_features).
         variational_covar: The variational posterior covariance, of shape (n_features, n_features).
         plot_dir: The directory for saving the plot.
-        dataset_label: A label for the dataset which the posteriors correspond to.
     """
     plt.rcParams.update({'font.size': 15})
 
@@ -441,57 +341,44 @@ def generate_and_save_covariance_plot(true_covar: np.ndarray, variational_covar:
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     fig.colorbar(variational_img, cax=cbar_ax)
 
-    png_path = os.path.join(plot_dir, f'{dataset_label}_posterior_covariance.png')
+    png_path = os.path.join(plot_dir, 'posterior_covariance.png')
     plt.savefig(png_path, format='png')
     plt.close()
 
 
 @click.command()
-@click.option('--boston-housing-input-path', type=str, help='The parquet file path to load the Boston Housing dataset')
-@click.option('--yacht-hydrodynamics-input-path', type=str, help='The parquet file path to load the Yacht '
-                                                                 'Hydrodynamics dataset')
-@click.option('--concrete-strength-input-path', type=str, help='The parquet file path to load the Concrete '
-                                                               'Compressive Strength dataset')
-@click.option('--energy-efficiency-input-path', type=str, help='The parquet file path to load the Energy Efficiency '
-                                                               'dataset')
-@click.option('--results-output-dir', type=str, help='The directory path to save the results of the experiments')
-def main(boston_housing_input_path: str, yacht_hydrodynamics_input_path: str, concrete_strength_input_path: str,
-         energy_efficiency_input_path: str, results_output_dir: str):
+@click.option('--dataset-label', type=str, help='Label for the dataset. Used to retrieve parameters')
+@click.option('--dataset-input-path', type=str, help='The parquet file path to load the dataset')
+@click.option('--results-output-dir', type=str, help='The directory path to save the results of the experiment')
+def main(dataset_label: str, dataset_input_path: str, results_output_dir: str):
     """
-    Run experiments to estimate the posterior distribution of the weights of linear regression models via variational
+    Run experiment to estimate the posterior distribution of the weights of linear regression models via variational
     inference.
-
-    Args:
-        boston_housing_input_path: The parquet file path to load the Boston Housing dataset.
-        yacht_hydrodynamics_input_path: The parquet file path to load the Yacht Hydrodynamics dataset.
-        concrete_strength_input_path: The parquet file path to load the Concrete Compressive Strength dataset.
-        energy_efficiency_input_path: The parquet file path to load the Energy Efficiency dataset.
-        results_output_dir: The directory path to save the results of the experiments.
     """
     with open("params.yaml", 'r') as fd:
         params = yaml.safe_load(fd)['linear_regression_vi']
 
-    datasets = [
-        pd.read_parquet(boston_housing_input_path),
-        pd.read_parquet(yacht_hydrodynamics_input_path),
-        pd.read_parquet(concrete_strength_input_path),
-        pd.read_parquet(energy_efficiency_input_path),
-    ]
+    dataset_params = params['datasets'][dataset_label]
 
-    dataset_labels = [
-        'boston_housing',
-        'yacht_hydrodynamics',
-        'concrete_strength',
-        'energy_efficiency',
-    ]
+    dataset = pd.read_parquet(dataset_input_path)
+
+    train_dataset, test_dataset = train_test_split(dataset)
+    experiment_dataset = test_dataset if params['testing'] else train_dataset
 
     Path(results_output_dir).mkdir(parents=True, exist_ok=True)
 
-    results = run_all_experiments(
-        datasets=datasets,
-        dataset_labels=dataset_labels,
-        dataset_params=params['dataset_params'],
-        testing=params['testing'],
+    print(f'Running experiment for {dataset_label} dataset...')
+    results = run_experiment(
+        dataset=experiment_dataset,
+        latent_dim=dataset_params['latent_dim'],
+        n_gradients_per_update=dataset_params['n_gradients_per_update'],
+        optimiser_class=OPTIMISER_FACTORY[dataset_params['optimiser']],
+        bias_optimiser_kwargs=dataset_params['bias_optimiser_kwargs'],
+        factors_optimiser_kwargs=dataset_params['factors_optimiser_kwargs'],
+        noise_optimiser_kwargs=dataset_params['noise_optimiser_kwargs'],
+        max_grad_norm=dataset_params['max_grad_norm'],
+        batch_size=dataset_params['batch_size'],
+        n_epochs=dataset_params['n_epochs'],
         results_output_dir=results_output_dir,
     )
 

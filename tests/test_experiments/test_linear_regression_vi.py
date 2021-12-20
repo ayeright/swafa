@@ -8,7 +8,7 @@ from experiments.linear_regression_vi import (
     compute_metrics,
     get_true_posterior,
     get_variational_posterior,
-    run_all_experiments,
+    run_experiment,
     split_covariance,
     train_test_split,
 )
@@ -105,58 +105,30 @@ def test_compute_metrics():
     assert np.isclose(actual_metrics['scaled_wasserstein_distance'], expected_scaled_wasserstein_distance)
 
 
-@pytest.mark.parametrize("n_datasets", [1, 2, 3])
-def test_run_all_experiments(tmpdir, n_datasets):
-    datasets = [pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])] * n_datasets
-    dataset_labels = [f'dataset{i}' for i in range(n_datasets)]
-    params = dict(
+def test_run_experiment(tmpdir):
+    dataset = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
+
+    results = run_experiment(
+        dataset,
         latent_dim=2,
         n_gradients_per_update=1,
-        optimiser='sgd',
+        optimiser_class=torch.optim.SGD,
         bias_optimiser_kwargs=dict(lr=1e-3),
         factors_optimiser_kwargs=dict(lr=1e-3),
         noise_optimiser_kwargs=dict(lr=1e-3),
         max_grad_norm=1,
         batch_size=2,
         n_epochs=5,
-    )
-    dataset_params = {label: params for label in dataset_labels}
-
-    train_results_1 = run_all_experiments(
-        datasets, dataset_labels, dataset_params, testing=False, results_output_dir=tmpdir,
+        results_output_dir=tmpdir,
     )
 
-    train_results_2 = run_all_experiments(
-        datasets, dataset_labels, dataset_params, testing=False, results_output_dir=tmpdir,
-    )
-
-    test_results_1 = run_all_experiments(
-        datasets, dataset_labels, dataset_params, testing=True, results_output_dir=tmpdir,
-    )
-
-    test_results_2 = run_all_experiments(
-        datasets, dataset_labels, dataset_params, testing=True, results_output_dir=tmpdir,
-    )
-
-    metric_columns = [
+    columns = {
         'relative_distance_from_mean',
         'relative_distance_from_covar',
         'scaled_wasserstein_distance',
-    ]
-
-    other_columns = [
         'alpha',
         'beta',
-        'dataset',
-    ]
+    }
 
-    expected_columns = set(metric_columns + other_columns)
-
-    for results in [train_results_1, train_results_2, test_results_1, test_results_2]:
-        assert set(results.columns) == expected_columns
-        assert len(results) == n_datasets
-        assert set(results['dataset']) == set(dataset_labels)
-
-    assert np.isclose(train_results_1[metric_columns].values, train_results_2[metric_columns].values).all()
-    assert np.isclose(test_results_1[metric_columns].values, test_results_2[metric_columns].values).all()
-    assert not np.isclose(train_results_1[metric_columns].values, test_results_1[metric_columns].values).all()
+    assert set(results.columns) == columns
+    assert len(results) == 1
