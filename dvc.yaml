@@ -1,7 +1,16 @@
+vars:
+  - online_fa_io:
+      results_file: experiments/data/online_fa_results.parquet
+      analysis_dir: experiments/data/online_fa_analysis
+  - uci_datasets_io:
+      datasets_dir: experiments/data/uci_datasets
+  - linear_regression_vi_io:
+      results_dir: experiments/data/linear_regression_vi_results
+
 stages:
   online_fa:
     cmd: python experiments/online_fa.py
-      --results-output-path experiments/data/online_fa_results.parquet
+      --results-output-path ${online_fa_io.results_file}
     deps:
       - experiments/online_fa.py
       - swafa/fa.py
@@ -14,40 +23,39 @@ stages:
       - online_fa.em_warm_up_time_steps
       - online_fa.experiments
       - online_fa.n_trials
-      - online_fa.n_test_samples
     outs:
-      - experiments/data/online_fa_results.parquet
+      - ${online_fa_io.results_file}
 
   online_fa_analysis:
     cmd: python experiments/online_fa_analysis.py
-      --results-input-path experiments/data/online_fa_results.parquet
-      --analysis-output-dir experiments/data/online_fa_analysis
+      --results-input-path ${online_fa_io.results_file}
+      --analysis-output-dir ${online_fa_io.analysis_dir}
     deps:
       - experiments/online_fa_analysis.py
       - experiments/data/online_fa_results.parquet
     params:
       - online_fa_analysis.min_samples
     outs:
-      - experiments/data/online_fa_analysis
+      - ${online_fa_io.analysis_dir}
 
   download_uci_datasets:
     cmd: python experiments/uci_datasets.py
-      --boston-housing-output-path experiments/data/uci_datasets/boston_housing.parquet
-      --yacht-hydrodynamics-output-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
-      --concrete-strength-output-path experiments/data/uci_datasets/concrete_strength.parquet
-      --energy-efficiency-output-path experiments/data/uci_datasets/energy_efficiency.parquet
+      --boston-housing-output-path ${uci_datasets_io.datasets_dir}/boston_housing.parquet
+      --yacht-hydrodynamics-output-path ${uci_datasets_io.datasets_dir}/yacht_hydrodynamics.parquet
+      --concrete-strength-output-path ${uci_datasets_io.datasets_dir}/concrete_strength.parquet
+      --energy-efficiency-output-path ${uci_datasets_io.datasets_dir}/energy_efficiency.parquet
     deps:
       - experiments/uci_datasets.py
     outs:
-      - experiments/data/uci_datasets
+      - ${uci_datasets_io.datasets_dir}
 
   linear_regression_vi:
     foreach: ${linear_regression_vi.datasets} # from params.yaml
     do:
       cmd: python experiments/linear_regression_vi.py
         --dataset-label ${key}
-        --dataset-input-path experiments/data/uci_datasets/${key}.parquet
-        --results-output-dir experiments/data/linear_regression_vi_results/${key}
+        --dataset-input-path ${uci_datasets_io.datasets_dir}/${key}.parquet
+        --results-output-dir ${linear_regression_vi_io.results_dir}/${key}
       deps:
         - experiments/linear_regression_vi.py
         - swafa/fa.py
@@ -60,4 +68,4 @@ stages:
         - linear_regression_vi.testing
         - linear_regression_vi.datasets.${key}
       outs:
-        - experiments/data/linear_regression_vi_results/${key}
+        - ${linear_regression_vi_io.results_dir}/${key}

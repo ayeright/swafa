@@ -31,7 +31,6 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
         gradient_optimiser_kwargs=dict(lr=0.01),
         gradient_warm_up_time_steps=1,
         em_warm_up_time_steps=1,
-        n_test_samples=1000,
     )
     expected_columns = [
         'observation_dim',
@@ -43,14 +42,6 @@ def test_fa_results_rows_and_columns(n_experiments, n_trials, n_sample_sizes):
         'covar_distance_sklearn',
         'covar_distance_online_gradient',
         'covar_distance_online_em',
-        'll_train_true',
-        'll_train_sklearn',
-        'll_train_online_gradient',
-        'll_train_online_em',
-        'll_test_true',
-        'll_test_sklearn',
-        'll_test_online_gradient',
-        'll_test_online_em',
         'wasserstein_sklearn',
         'wasserstein_online_gradient',
         'wasserstein_online_em',

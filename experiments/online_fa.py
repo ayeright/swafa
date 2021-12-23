@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import random
 from typing import List, Optional
 
 import pandas as pd
@@ -16,14 +15,13 @@ from experiments.utils.factory import OPTIMISER_FACTORY
 from experiments.utils.metrics import (
     compute_fa_covariance,
     compute_distance_between_matrices,
-    compute_gaussian_log_likelihood,
     compute_gaussian_wasserstein_distance,
 )
 
 
 def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, gradient_optimiser: str,
                            gradient_optimiser_kwargs: dict, gradient_warm_up_time_steps: int,
-                           em_warm_up_time_steps: int, n_test_samples: int) -> pd.DataFrame:
+                           em_warm_up_time_steps: int) -> pd.DataFrame:
     """
     Run all factor analysis (FA) experiments specified in the given configuration.
 
@@ -54,8 +52,6 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, gradie
             online gradient algorithm before updating the other parameters.
         em_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model in the
             online EM algorithm before updating the other parameters.
-        n_test_samples: The number of observations to sample for a hold-out set to compute the test log-likelihood of
-            the models.
 
     Returns:
         The results of each experiment. The number of rows in the DataFrame is equal to
@@ -73,14 +69,6 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, gradie
                 matrix and the covariance matrix estimated by `OnlineGradientFactorAnalysis`.
             - covar_distance_online_em: (float) The Frobenius norm of the difference between the true covariance
                 matrix and the covariance matrix estimated by `OnlineEMFactorAnalysis`.
-            - ll_train_true: (float) The training log-likelihood of the true FA model.
-            - ll_train_sklearn: (float) The training log-likelihood of the sklearn FA model.
-            - ll_train_online_gradient: (float) The training log-likelihood of the online gradient FA model.
-            - ll_train_online_em: (float) The training log-likelihood of the online EM FA model.
-            - ll_test_true: (float) The hold-out log-likelihood of the true FA model.
-            - ll_test_sklearn: (float) The hold-out log-likelihood of the sklearn FA model.
-            - ll_test_online_gradient: (float) The hold-out log-likelihood of the online gradient FA model.
-            - ll_test_online_em: (float) The hold-out log-likelihood of the online EM FA model.
             - wasserstein_sklearn: (float) The Wasserstein distance between the Gaussian distribution defined by the
                 true FA model and the Gaussian distribution defined by the sklearn FA model.
             - wasserstein_online_gradient: (float) The Wasserstein distance between the Gaussian distribution defined by
@@ -106,7 +94,6 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, gradie
                 gradient_optimiser_kwargs=gradient_optimiser_kwargs,
                 gradient_warm_up_time_steps=gradient_warm_up_time_steps,
                 em_warm_up_time_steps=em_warm_up_time_steps,
-                n_test_samples=n_test_samples,
                 samples_random_seed=i_trial,
                 algorithms_random_seed=i_trial + 1,
             )
@@ -123,8 +110,8 @@ def run_all_fa_experiments(experiments_config: List[dict], n_trials: int, gradie
 
 def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_range: [float, float], n_samples: List[int],
                             gradient_optimiser: str, gradient_optimiser_kwargs: dict,
-                            gradient_warm_up_time_steps: int, em_warm_up_time_steps: int, n_test_samples: int,
-                            samples_random_seed: int, algorithms_random_seed: int) -> pd.DataFrame:
+                            gradient_warm_up_time_steps: int, em_warm_up_time_steps: int, samples_random_seed: int,
+                            algorithms_random_seed: int) -> pd.DataFrame:
     """
     Run a factor analysis (FA) experiment trial for the given parameters.
 
@@ -151,8 +138,6 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             online gradient algorithm before updating the other parameters.
         em_warm_up_time_steps: The number of time steps on which to update the running mean of the FA model in the
             online EM algorithm before updating the other parameters.
-        n_test_samples: The number of observations to sample for a hold-out set to compute the test log-likelihood of
-            the models.
         samples_random_seed: The random seed used to construct the true FA model and generate samples from it.
         algorithms_random_seed: The random seed used in all three learning algorithms.
 
@@ -170,14 +155,6 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
                 matrix and the covariance matrix estimated by `OnlineGradientFactorAnalysis`.
             - covar_distance_online_em: (float) The Frobenius norm of the difference between the true covariance
                 matrix and the covariance matrix estimated by `OnlineEMFactorAnalysis`.
-            - ll_train_true: (float) The training log-likelihood of the true FA model.
-            - ll_train_sklearn: (float) The training log-likelihood of the sklearn FA model.
-            - ll_train_online_gradient: (float) The training log-likelihood of the online gradient FA model.
-            - ll_train_online_em: (float) The training log-likelihood of the online EM FA model.
-            - ll_test_true: (float) The hold-out log-likelihood of the true FA model.
-            - ll_test_sklearn: (float) The hold-out log-likelihood of the sklearn FA model.
-            - ll_test_online_gradient: (float) The hold-out log-likelihood of the online gradient FA model.
-            - ll_test_online_em: (float) The hold-out log-likelihood of the online EM FA model.
             - wasserstein_sklearn: (float) The Wasserstein distance between the Gaussian distribution defined by the
                 true FA model and the Gaussian distribution defined by the sklearn FA model.
             - wasserstein_online_gradient: (float) The Wasserstein distance between the Gaussian distribution defined by
@@ -194,17 +171,7 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
         random_seed=samples_random_seed,
     )
 
-    observations_test = sample_fa_observations(
-        c=mean_true,
-        F=F_true,
-        psi=psi_true,
-        n_samples=n_test_samples,
-        random_seed=random.randint(0, 1000000),
-    )
-
     covar_norm = compute_distance_between_matrices(covar_true, torch.zeros_like(covar_true))
-    ll_train_true = compute_gaussian_log_likelihood(mean_true, covar_true, observations_train)
-    ll_test_true = compute_gaussian_log_likelihood(mean_true, covar_true, observations_test)
 
     fa_online_gradient = None
     fa_online_em = None
@@ -255,18 +222,6 @@ def run_fa_experiment_trial(observation_dim: int, latent_dim: int, spectrum_rang
             covar_distance_sklearn=compute_distance_between_matrices(covar_true, covar_sklearn),
             covar_distance_online_gradient=compute_distance_between_matrices(covar_true, covar_online_gradient),
             covar_distance_online_em=compute_distance_between_matrices(covar_true, covar_online_em),
-            ll_train_true=ll_train_true,
-            ll_train_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations_train),
-            ll_train_online_gradient=compute_gaussian_log_likelihood(
-                mean_online_gradient, covar_online_gradient, observations_train,
-            ),
-            ll_train_online_em=compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations_train),
-            ll_test_true=ll_test_true,
-            ll_test_sklearn=compute_gaussian_log_likelihood(mean_sklearn, covar_sklearn, observations_test),
-            ll_test_online_gradient=compute_gaussian_log_likelihood(
-                mean_online_gradient, covar_online_gradient, observations_test,
-            ),
-            ll_test_online_em=compute_gaussian_log_likelihood(mean_online_em, covar_online_em, observations_test),
             wasserstein_sklearn=compute_gaussian_wasserstein_distance(
                 mean_true, covar_true, mean_sklearn, covar_sklearn,
             ),
@@ -522,7 +477,6 @@ def main(results_output_path: str):
         gradient_optimiser_kwargs=params['gradient_optimiser_kwargs'],
         gradient_warm_up_time_steps=params['gradient_warm_up_time_steps'],
         em_warm_up_time_steps=params['em_warm_up_time_steps'],
-        n_test_samples=params['n_test_samples'],
     )
 
     print('Results:\n')

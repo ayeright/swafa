@@ -26,11 +26,11 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
 
     Args:
         results: The results of each experiment. Has len(experiments_config) * n_trials rows and the following columns:
-            - observation_dim: (int) Same as above.
-            - latent_dim: (int) Same as above.
+            - observation_dim: (int) The size of the observed variable space of the FA model..
+            - latent_dim: (int) The size of the latent variable space of the FA model..
             - spectrum_min: (float) The lower bound of the spectrum range.
             - spectrum_max: (float) The upper bound of the spectrum range.
-            - n_samples: (int) Same as above.
+            - n_samples: (int) The number of observations sampled from the true FA model.
             - covar_norm: (float) The Frobenius norm of the the true covariance matrix of the FA model.
             - covar_distance_sklearn: (float) The Frobenius norm of the difference between the true covariance matrix
                 and the covariance matrix estimated by sklearn's `FactorAnalysis`.
@@ -38,14 +38,6 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
                 matrix and the covariance matrix estimated by `OnlineGradientFactorAnalysis`.
             - covar_distance_online_em: (float) The Frobenius norm of the difference between the true covariance
                 matrix and the covariance matrix estimated by `OnlineEMFactorAnalysis`.
-            - ll_train_true: (float) The training log-likelihood of the true FA model.
-            - ll_train_sklearn: (float) The training log-likelihood of the sklearn FA model.
-            - ll_train_online_gradient: (float) The training log-likelihood of the online gradient FA model.
-            - ll_train_online_em: (float) The training log-likelihood of the online EM FA model.
-            - ll_test_true: (float) The hold-out log-likelihood of the true FA model.
-            - ll_test_sklearn: (float) The hold-out log-likelihood of the sklearn FA model.
-            - ll_test_online_gradient: (float) The hold-out log-likelihood of the online gradient FA model.
-            - ll_test_online_em: (float) The hold-out log-likelihood of the online EM FA model.
             - wasserstein_sklearn: (float) The Wasserstein distance between the Gaussian distribution defined by the
                 true FA model and the Gaussian distribution defined by the sklearn FA model.
             - wasserstein_online_gradient: (float) The Wasserstein distance between the Gaussian distribution defined by
@@ -62,14 +54,13 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
     metric_suffixes = ['sklearn', 'online_em', 'online_gradient']
 
     covar_columns = [f'covar_distance_{x}' for x in metric_suffixes]
-    ll_train_columns = [f'll_train_{x}' for x in metric_suffixes] + ['ll_train_true']
-    ll_test_columns = [f'll_test_{x}' for x in metric_suffixes] + ['ll_test_true']
     wasserstein_columns = [f'wasserstein_{x}' for x in metric_suffixes]
 
     plot_line_labels = ['batch_svd', 'online_em', 'online_sga']
 
     results = results[results['n_samples'] >= min_samples]
     results[covar_columns] = results[covar_columns].values / results[['covar_norm']].values
+    results[wasserstein_columns] = results[wasserstein_columns].values / results[['observation_dim']].values
 
     param_combinations = results[param_columns].drop_duplicates()
     for _, params in param_combinations.iterrows():
@@ -77,7 +68,7 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
             results,
             params,
             group_by_column,
-            metric_columns=covar_columns + ll_train_columns + ll_test_columns + wasserstein_columns,
+            metric_columns=covar_columns + wasserstein_columns,
         )
 
         params_str = params_to_string(params)
@@ -102,33 +93,11 @@ def run_analysis(results: pd.DataFrame, analysis_output_dir: str, min_samples: i
         )
 
         generate_and_save_error_bar_plot(
-            group_means[ll_train_columns],
-            group_standard_errors[ll_train_columns],
-            png_path=os.path.join(analysis_output_dir, f'online_fa_log_likelihood_train__{params_str}.png'),
-            xlabel='Number of training samples',
-            ylabel='Training log-likelihood',
-            xscale='log',
-            yscale='linear',
-            line_labels=plot_line_labels + ['true'],
-        )
-
-        generate_and_save_error_bar_plot(
-            group_means[ll_test_columns],
-            group_standard_errors[ll_test_columns],
-            png_path=os.path.join(analysis_output_dir, f'online_fa_log_likelihood_test__{params_str}.png'),
-            xlabel='Number of training samples',
-            ylabel='Test log-likelihood',
-            xscale='log',
-            yscale='linear',
-            line_labels=plot_line_labels + ['true'],
-        )
-
-        generate_and_save_error_bar_plot(
             group_means[wasserstein_columns],
             group_standard_errors[wasserstein_columns],
             png_path=os.path.join(analysis_output_dir, f'online_fa_wasserstein__{params_str}.png'),
             xlabel='Number of training samples',
-            ylabel='2-Wasserstein distance',
+            ylabel='Scaled 2-Wasserstein distance',
             xscale='log',
             yscale='log',
             line_labels=plot_line_labels,
