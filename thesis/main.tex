@@ -1055,7 +1055,7 @@ Figure \ref{fig:fa_covar_distance} shows the relative distance between the true 
 
 In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[1, 10]$. When $D=100$ (top-left), online EM approximates the true covariance matrix better than online SGA when the number of samples, $T$, is less than $20,000$. For $T \geq 20,000$, the result are very close and the standard error bars overlap. Moreover, for $T \geq 50,000$, both online algorithms are on par with batch SVD. When $D=1000$ (top-right), online EM beats SGA for $T \geq 200$ and matches batch SVD when $T=100,000$. This is in contrast to SGA, which appears to get stuck after $T=20,000$ and does not decrease the distance any further. In the second row of the figure are the results corresponding to a spectrum range of $[1, 100]$. For both $D=100$ (middle-left) and $D=1000$ (middle-right), online EM outperforms SGA for $T \geq 200$. Both plots are similar in the sense that online EM initially decreases the distance quite dramatically, even to a greater extent that batch SVD, then the rate of improvement slows before it again catches up with batch SVD at $T=100,000$. In the third row of the figure are the results corresponding to a spectrum range of $[1, 1000]$. In this case, online EM is again superior to SGA. Up until $T=5000$ the results are similar to those in the second row of the figure. However, in this case online EM does not learn as efficiently as $T$ becomes large and in the end it is not able to match batch SVD.
 
-Figure \ref{fig:fa_wasserstein} shows the 2-Wasserstein distance (TODO: add citation) between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size. Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the Wasserstein distance in this case is just a different measure of distance between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to the shape of the plots in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. 
+Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance (TODO: add formula and citation) between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size. The distance is scaled by dividing by observation dimension. Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the Wasserstein distance in this case is just a different measure of distance between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to the shape of the plots in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. 
 
 In summary, these results suggest that online EM is in general better at fitting FA models than online SGA, for all combinations of observation dimension, latent dimension, spectrum range and sample size. The SGA algorithm could possibly be improved by tuning its learning rate, or even using a learning rate scheduler. However, tuning hyperparameters is often a hassle and the fact that this is not required for online EM is another distinct advantage. Compared to batch SVD, the results achieved by online EM are almost identical when $T=100,000$, except when the spectrum range is equal to $[1, 1000]$. This case would appear to be more challenging for online EM due to the larger conditioning number of the covariance matrix. It appears to get stuck in a local minimum at around $T=1000$ and the rate of improvement only starts to increase again after $T=20,000$. Perhaps online EM would be able to catch batch SVD if more than $100,000$ samples were used. However, this would be an unreasonably high number of neural network parameter vectors to sample for the use case in this thesis.  
 
@@ -1094,7 +1094,7 @@ In summary, these results suggest that online EM is in general better at fitting
 		 (e) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$ 
 		 & (f) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$\\[6pt]
 	\end{tabular}
-	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model. The blue, orange and green lines show the 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
+	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension. The blue, orange and green lines show the 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_wasserstein}
 \end{figure}
 
@@ -1152,18 +1152,18 @@ The results of the posterior sampling experiments are shown in Table \ref{table:
 	\begin{center}
 		\begin{tabular}{|| p{0.12\linewidth} p{0.1\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
  			\hline
- 			Learning Rate & $\lambda$ & Relative Distance from Mean & Relative Distance from Covariance & Wasserstein Distance \\ [0.5ex] 
+ 			Learning Rate & $\lambda$ & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
- 			0.1 &  0.1 & $0.0666 \pm 0.0078$ & $0.6200 \pm 0.0750$ & $1.3480 \pm 0.5087$ \\ 
+ 			0.1 &  0.1 & $0.0666 \pm 0.0078$ & $0.6200 \pm 0.0750$ & $0.4946 \pm 0.1013$ \\ 
 			\hline
- 			0.1 & 0.001 & $0.0006 \pm 0.0001$ & $0.8065 \pm 0.0101$ & $0.0078 \pm 0.0004$  \\
+ 			0.1 & 0.001 & $0.0006 \pm 0.0001$ & $0.8065 \pm 0.0101$ & $0.0439 \pm 0.0012$  \\
 			\hline
-			0.01 & 0.1 & $0.0620 \pm 0.0070$ & $1.7110 \pm 0.6187$ & $1.1776 \pm 0.4434$ \\ 
+			0.01 & 0.1 & $0.0620 \pm 0.0070$ & $1.7110 \pm 0.6187$ & $0.4641 \pm 0.0937$ \\ 
 			\hline
- 			0.01 & 0.001 & $0.0010 \pm 0.0002$ & $0.9870 \pm 0.0042$ & $0.0219 \pm 0.0006$  \\ [1ex] 
+ 			0.01 & 0.001 & $0.0010 \pm 0.0002$ & $0.9870 \pm 0.0042$ & $0.0739 \pm 0.0010$  \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the empirical distribution of the parameter vectors sampled along the SGD trajectory while training the model. Relative distances between the true and empirical means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
+		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the empirical distribution of the parameter vectors sampled along the SGD trajectory while training the model. Relative distances between the true and empirical means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution, divided by the dimension of the distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
 		\label{table:linear_regression_samples}
 	\end{center}
 \end{table}
@@ -1206,14 +1206,14 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
 	\begin{center}
 		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
  			\hline
- 			Latent Dimension of FA Model & Relative Distance from Mean & Relative Distance from Covariance & Wasserstein Distance \\ [0.5ex] 
+ 			Latent Dimension of FA Model & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
-			1 & $0.0031 \pm 0.0005$ & $0.0983 \pm 0.0129$ & $0.0017 \pm 0.0004$ \\ [1ex] 
+			1 & $0.0031 \pm 0.0005$ & $0.0983 \pm 0.0129$ & $0.0194 \pm 0.0023$ \\ [1ex] 
 			\hline
- 			2 & $0.0040 \pm 0.0008$ & $ 0.1053 \pm 0.0199$ & $ 0.0027 \pm 0.0006$ \\ [1ex] 
+ 			2 & $0.0040 \pm 0.0008$ & $ 0.1053 \pm 0.0199$ & $0.0242 \pm 0.0030$ \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
+		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the dimension of the distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
 		\label{table:linear_regression_vi_posterior}
 	\end{center}
 \end{table}
@@ -1458,28 +1458,97 @@ usual late penalties based on your final submission time.
  \appendix
 
  \chapter{Supplementary Results}
-
- \section{Linear Regression Predictions}\label{appendix:linear_regression_predictions}
  
- Table \ref{table:linear_regression_mse} contains the same results as Figure \ref{fig:linear_regression_mse}, but in tabular format.  
+ \section{Online Factor Analysis}
+ 
+Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively. 
  
  \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.21\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} ||} 
+		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
  			\hline
- 			Dataset & Pre-trained & SWA & SGA-FA & EM-FA \\ [0.5ex] 
+ 			Samples & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
  			\hline\hline
-			Energy Efficiency & $10.13 \pm 0.55$ & $8.74 \pm 0.54$ & $8.93 \pm 0.53$ & $\bf{8.73 \pm 0.54}$ \\
-			Boston Housing & $23.69 \pm 2.25$ & $\bf{23.27 \pm 2.07}$ & $23.69 \pm 2.06$ & $23.46 \pm 2.06$ \\
-			Concrete Strength & $112.44 \pm 6.93$ & $109.83 \pm 6.44$ & $109.84 \pm 6.30$ & $\bf{109.79 \pm 6.41}$ \\
-			Yacht Hydro. & $\bf{82.43 \pm 7.28}$ & $82.54 \pm 7.27$ & $83.35 \pm 7.78$ & $82.83 \pm 7.42$ \\ [1ex] 
+			100 &  &  &  \\ 
+			\hline
+			200 &  &  &  \\ 
+			\hline
+			500 &  &  &  \\ 
+			\hline
+			1000 &  &  &  \\ 
+			\hline
+			2000 &  &  &  \\ 
+			\hline
+			5000 &  &  &  \\ 
+			\hline
+			10,000 &  &  &  \\ 
+			\hline
+			20,000 &  &  &  \\ 
+			\hline
+			50,000 &  &  &  \\ 
+			\hline
+ 			100,000 &  &  &  \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Average test mean squared error of linear regression models on four UCI regression datasets. Results are show for four different prediction methods: using the pre-trained parameter vector (second column), using the SWA solution (third column) and two ensembles formed by sampling parameter vectors from FA models fit to the SGD iterates, one via online SGA (fourth column) and another learned via online EM (fifth column). Results are average over ten folds of cross-validation, and standard errors are also given. Bold text highlights the lowest average error for each dataset, without taking into account the standard errors.}
-		\label{table:linear_regression_mse}
+		\caption{Numerical results for data plotted in Figure \ref{fig:fa_covar_distance}.}
+		\label{table:fa_covar_distance}
 	\end{center}
 \end{table}
 
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
+ 			\hline
+ 			Samples & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
+ 			\hline\hline
+			100 &  &  &  \\ 
+			\hline
+			200 &  &  &  \\ 
+			\hline
+			500 &  &  &  \\ 
+			\hline
+			1000 &  &  &  \\ 
+			\hline
+			2000 &  &  &  \\ 
+			\hline
+			5000 &  &  &  \\ 
+			\hline
+			10,000 &  &  &  \\ 
+			\hline
+			20,000 &  &  &  \\ 
+			\hline
+			50,000 &  &  &  \\ 
+			\hline
+ 			100,000 &  &  &  \\ [1ex] 
+			\hline
+		\end{tabular}
+		\caption{Numerical results for data plotted in Figure \ref{fig:fa_wasserstein}.}
+		\label{table:fa_wasserstein}
+	\end{center}
+\end{table}
+
+% \section{Linear Regression Predictions}\label{appendix:linear_regression_predictions}
+% 
+% Table \ref{table:linear_regression_mse} contains the same results as Figure \ref{fig:linear_regression_mse}, but in tabular format.  
+% 
+% \begin{table}[h!]
+%	\begin{center}
+%		\begin{tabular}{|| p{0.21\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} ||} 
+% 			\hline
+% 			Dataset & Pre-trained & SWA & SGA-FA & EM-FA \\ [0.5ex] 
+% 			\hline\hline
+%			Energy Efficiency & $10.13 \pm 0.55$ & $8.74 \pm 0.54$ & $8.93 \pm 0.53$ & $\bf{8.73 \pm 0.54}$ \\
+%			Boston Housing & $23.69 \pm 2.25$ & $\bf{23.27 \pm 2.07}$ & $23.69 \pm 2.06$ & $23.46 \pm 2.06$ \\
+%			Concrete Strength & $112.44 \pm 6.93$ & $109.83 \pm 6.44$ & $109.84 \pm 6.30$ & $\bf{109.79 \pm 6.41}$ \\
+%			Yacht Hydro. & $\bf{82.43 \pm 7.28}$ & $82.54 \pm 7.27$ & $83.35 \pm 7.78$ & $82.83 \pm 7.42$ \\ [1ex] 
+%			\hline
+%		\end{tabular}
+%		\caption{Average test mean squared error of linear regression models on four UCI regression datasets. Results are show for four different prediction methods: using the pre-trained parameter vector (second column), using the SWA solution (third column) and two ensembles formed by sampling parameter vectors from FA models fit to the SGD iterates, one via online SGA (fourth column) and another learned via online EM (fifth column). Results are average over ten folds of cross-validation, and standard errors are also given. Bold text highlights the lowest average error for each dataset, without taking into account the standard errors.}
+%		\label{table:linear_regression_mse}
+%	\end{center}
+%\end{table}
+
+\newpage 
 
 \section{Comparison of VIFA and SLANG}
 
