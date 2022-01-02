@@ -6,6 +6,8 @@ vars:
       datasets_dir: experiments/data/uci_datasets
   - linear_regression_vi_io:
       results_dir: experiments/data/linear_regression_vi_results
+  - neural_net_predictions_io:
+      results_dir: experiments/data/neural_net_predictions_results
 
 stages:
   online_fa:
@@ -69,3 +71,31 @@ stages:
         - linear_regression_vi.datasets.${key}
       outs:
         - ${linear_regression_vi_io.results_dir}/${key}
+
+  neural_net_predictions:
+    foreach: ${neural_net_predictions.datasets} # from params.yaml
+    do:
+      cmd: python experiments/neural_net_predictions.py
+        --dataset-label ${key}
+        --dataset-input-path ${uci_datasets_io.datasets_dir}/${key}.parquet
+        --results-output-dir ${neural_net_predictions_io.results_dir}/${key}
+      deps:
+        - experiments/neural_net_predictions.py
+        - swafa/fa.py
+        - swafa/models.py
+        - swafa/callbacks.py
+        - swafa/utils.py
+        - experiments/utils/factory.py
+        - experiments/data/uci_datasets
+      params:
+        - neural_net_predictions.n_cv_folds
+        - neural_net_predictions.n_hyperparameter_trials
+        - neural_net_predictions.hidden_dims
+        - neural_net_predictions.hidden_activation_fn
+        - neural_net_predictions.data_split_random_seed
+        - neural_net_predictions.test
+        - neural_net_predictions.n_train_test_splits
+        - neural_net_predictions.train_fraction
+        - neural_net_predictions.datasets.${key}
+      outs:
+        - ${neural_net_predictions_io.results_dir}/${key}

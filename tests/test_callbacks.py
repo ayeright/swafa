@@ -159,7 +159,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         trainer = Trainer(max_epochs=1, callbacks=[callback])
         callback.on_fit_start(trainer, net)
 
-        samples = torch.hstack([callback._sample_weight_vector()[:, None] for _ in range(10000)]).numpy()
+        samples = torch.hstack([callback.sample_weight_vector()[:, None] for _ in range(10000)]).numpy()
         actual_mean = samples.mean(axis=1, keepdims=True)
         actual_cov = np.cov(samples)
 
@@ -210,7 +210,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback._init_variational_params()
         callback.diag_psi = torch.rand(weight_dim, 1)
         callback._update_expected_gradients()
-        callback._sample_weight_vector()
+        callback.sample_weight_vector()
         grad_weights = torch.randn(weight_dim, 1)
 
         actual_grad = callback._compute_gradient_wrt_F(grad_weights)
@@ -243,7 +243,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback._init_variational_params()
         callback.diag_psi = torch.rand(weight_dim, 1)
         callback._update_expected_gradients()
-        callback._sample_weight_vector()
+        callback.sample_weight_vector()
         grad_weights = torch.randn(weight_dim, 1)
 
         actual_grad = callback._compute_gradient_wrt_log_diag_psi(grad_weights)
@@ -278,7 +278,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback.weight_dim = weight_dim
         callback._init_variational_params()
         callback._update_expected_gradients()
-        callback._sample_weight_vector()
+        callback.sample_weight_vector()
         grad_weights = torch.randn(weight_dim, 1)
 
         grad_wrt_c = callback._compute_gradient_wrt_c(grad_weights)
@@ -308,7 +308,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback.weight_dim = weight_dim
         callback._init_variational_params()
         callback._update_expected_gradients()
-        callback._sample_weight_vector()
+        callback.sample_weight_vector()
         grad_weights = torch.randn(weight_dim, 1)
 
         grad_wrt_c = callback._compute_gradient_wrt_c(grad_weights)
@@ -341,7 +341,7 @@ class TestFactorAnalysisVariationalInferenceCallback:
         callback._init_variational_params()
         callback._update_expected_gradients()
         callback._init_optimiser()
-        callback._sample_weight_vector()
+        callback.sample_weight_vector()
         grad_weights = torch.randn(weight_dim, 1)
 
         c_before = torch.clone(callback.c)

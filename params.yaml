@@ -73,3 +73,54 @@ linear_regression_vi:
       max_grad_norm: 10
       batch_size: 100
       n_epochs: 20000
+
+neural_net_predictions:
+  n_cv_folds: 5 # same as https://arxiv.org/pdf/1811.04504.pdf
+  n_hyperparameter_trials: 30 # same as https://arxiv.org/pdf/1811.04504.pdf
+  hidden_dims: [50] # same as https://arxiv.org/pdf/1811.04504.pdf
+  hidden_activation_fn: 'relu' # same as https://arxiv.org/pdf/1811.04504.pdf
+  data_split_random_seed: 1 # same as https://github.com/yaringal/DropoutUncertaintyExps/tree/master/UCI_Datasets
+  test: false
+  n_train_test_splits: 2 #20  # same as https://arxiv.org/pdf/1811.04504.pdf
+  train_fraction: 0.9  # same as https://arxiv.org/pdf/1811.04504.pdf
+  datasets: # same as https://github.com/aaronpmishkin/SLANG/tree/master/code/python/libs/vi_lib/experiments/uci
+    boston_housing:
+      latent_dim: 1
+      n_gradients_per_update: 4
+      max_grad_norm: 10
+      batch_size: 10
+      n_epochs: 120
+      learning_rate_range: [0.001, 0.02]
+      prior_precision_range: [0.1353, 7.3891]
+      noise_precision_range: [0.0742, 0.1108]
+      n_bma_samples: 10
+    yacht_hydrodynamics:
+      latent_dim: 1
+      n_gradients_per_update: 4
+      max_grad_norm: 10
+      batch_size: 10
+      n_epochs: 120
+      learning_rate_range: [0.001, 0.02]
+      prior_precision_range: [0.1353, 7.3891]
+      noise_precision_range: [0.2018, 0.5488]
+      n_bma_samples: 10
+    concrete_strength:
+      latent_dim: 1
+      n_gradients_per_update: 4
+      max_grad_norm: 10
+      batch_size: 10
+      n_epochs: 120
+      learning_rate_range: [0.001, 0.02]
+      prior_precision_range: [0.1353, 7.3891]
+      noise_precision_range: [0.0247, 0.0672]
+      n_bma_samples: 10
+    energy_efficiency:
+      latent_dim: 1
+      n_gradients_per_update: 4
+      max_grad_norm: 10
+      batch_size: 10
+      n_epochs: 120
+      learning_rate_range: [0.001, 0.02]
+      prior_precision_range: [0.0183, 1.0]
+      noise_precision_range: [0.7408, 1.105]
+      n_bma_samples: 10

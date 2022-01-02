@@ -261,7 +261,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             trainer: A PyTorch Lightning Trainer which trains the model.
             pl_module: The model being trained.
         """
-        weights = self._sample_weight_vector()
+        weights = self.sample_weight_vector()
         set_weights(pl_module, weights)
 
     def on_after_backward(self, trainer: Trainer, pl_module: LightningModule):
@@ -318,7 +318,7 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
             ],
         )
 
-    def _sample_weight_vector(self) -> Tensor:
+    def sample_weight_vector(self) -> Tensor:
         """
         Generate a single sample of the neural network's weight vector from the variational distribution.
 
