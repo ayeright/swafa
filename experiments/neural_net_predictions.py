@@ -117,12 +117,34 @@ class Objective:
         prior_precision = trial.suggest_loguniform('prior_precision', *self.prior_precision_range)
         noise_precision = trial.suggest_loguniform('noise_precision', *self.noise_precision_range)
 
-        lls = []
-        for train_index, test_index in self.k_fold.split(self.dataset):
-            ll, _ = self.train_and_test(train_index, test_index, learning_rate, prior_precision, noise_precision)
-            lls.append(ll)
+        cv_ll, _ = self.cross_validate(learning_rate, prior_precision, noise_precision)
 
-        return np.mean(lls)
+        return cv_ll
+
+    def cross_validate(self, learning_rate: float, prior_precision: float, noise_precision: float) -> (float, float):
+        """
+        Cross-validate a neural network for the given hyperparameters.
+
+        In each fold, use the training data to approximate the posterior distribution of the weights of a neural network
+        via the VIFA algorithm. Then use the posterior to compute a Bayesian model average for each test point and
+        compute metrics relative to the actual targets.
+
+        Args:
+            learning_rate: The learning rate with which to update the parameters of the VIFA callback.
+            prior_precision: The precision of the prior of the posterior.
+            noise_precision: The precision of the additive noise distribution of the targets.
+
+        Returns:
+            The average log-likelihood and root mean squared error across all validation folds.
+        """
+        ll_list = []
+        rmse_list = []
+        for train_index, test_index in self.k_fold.split(self.dataset):
+            ll, rmse = self.train_and_test(train_index, test_index, learning_rate, prior_precision, noise_precision)
+            ll_list.append(ll)
+            rmse_list.append(rmse)
+
+        return np.mean(ll_list), np.mean(rmse_list)
 
     def train_and_test(self, train_index: np.ndarray, test_index: np.ndarray, learning_rate: float,
                        prior_precision: float, noise_precision: float) -> (float, float):
@@ -455,9 +477,9 @@ def run_experiment(
         test: Whether or not to compute test results.
 
     Returns:
-        The mean and standard error of the cross-validated log-likelihood (val_ll) corresponding to the best
-        hyperparameters. Also, if test=True, the mean and standard error of the test log-likelihood (test_ll) and test
-        root mean squared error (test_rmse).
+        The mean and standard error of the cross-validated log-likelihood (val_ll) and root mean squared error
+        (val_rmse) corresponding to the best hyperparameters. Also, if test=True, the mean and standard error of the
+        test log-likelihood (test_ll) and test root mean squared error (test_rmse).
     """
     np.random.seed(data_split_random_seed)
     train_test_indices = [train_test_split(dataset, train_fraction) for _ in range(n_train_test_splits)]
@@ -552,8 +574,9 @@ def run_trial(
         test: Whether or not to compute test results after running cross-validation.
 
     Returns:
-        The average cross-validated log-likelihood (val_ll) corresponding to the best hyperparameters. Also, if
-        test=True, the test log-likelihood (test_ll) and test root mean squared error (test_rmse).
+        The average cross-validated log-likelihood (val_ll) and root mean squared error (val_rmse) corresponding to the
+        best hyperparameters. Also, if test=True, the test log-likelihood (test_ll) and test root mean squared error
+        (test_rmse).
     """
     train_dataset = dataset.iloc[train_index, :]
 
@@ -577,16 +600,18 @@ def run_trial(
     study = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=model_random_seed), direction='maximize')
     study.optimize(objective, n_trials=n_hyperparameter_trials)
 
-    results = dict(val_ll=study.best_value)
+    learning_rate = study.best_params['learning_rate']
+    prior_precision = study.best_params['prior_precision']
+    noise_precision = study.best_params['noise_precision']
+
+    val_ll, val_rmse = objective.cross_validate(learning_rate, prior_precision, noise_precision)
+
+    results = dict(val_ll=val_ll, val_rmse=val_rmse)
 
     if not test:
         return results
 
     objective.dataset = dataset
-
-    learning_rate = study.best_params['learning_rate']
-    prior_precision = study.best_params['prior_precision']
-    noise_precision = study.best_params['noise_precision']
 
     test_ll, test_rmse = objective.train_and_test(
         train_index, test_index, learning_rate, prior_precision, noise_precision,

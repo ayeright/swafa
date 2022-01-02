@@ -261,9 +261,9 @@ def test_run_trial(test):
 
     for results in two_trial_results:
         if test:
-            assert set(results.keys()) == {'val_ll', 'test_ll', 'test_rmse'}
+            assert set(results.keys()) == {'val_ll', 'val_rmse', 'test_ll', 'test_rmse'}
         else:
-            assert set(results.keys()) == {'val_ll'}
+            assert set(results.keys()) == {'val_ll', 'val_rmse'}
 
     for key, val in two_trial_results[0].items():
         assert np.isclose(val, two_trial_results[1][key])
@@ -301,9 +301,9 @@ def test_run_experiment(test):
         assert set(results.columns) == {'mean', 'se'}
 
         if test:
-            assert set(results.index) == {'val_ll', 'test_ll', 'test_rmse'}
+            assert set(results.index) == {'val_ll', 'val_rmse', 'test_ll', 'test_rmse'}
         else:
-            assert set(results.index) == {'val_ll'}
+            assert set(results.index) == {'val_ll', 'val_rmse'}
 
     assert np.isclose(two_experiment_results[0].values, two_experiment_results[1].values).all()
 
