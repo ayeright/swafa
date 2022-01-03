@@ -701,7 +701,7 @@ def main(dataset_label: str, dataset_input_path: str, results_output_dir: str):
     )
 
     Path(results_output_dir).mkdir(parents=True, exist_ok=True)
-    results.to_csv(os.path.join(results_output_dir, 'results.csv'), index=False)
+    results.to_csv(os.path.join(results_output_dir, 'results.csv'))
 
 
 if __name__ == '__main__':
