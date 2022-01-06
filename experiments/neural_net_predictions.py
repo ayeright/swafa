@@ -1,6 +1,8 @@
+import logging
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
+import warnings
 
 import click
 import numpy as np
@@ -18,6 +20,10 @@ from experiments.utils.factory import ACTIVATION_FACTORY
 from swafa.callbacks import FactorAnalysisVariationalInferenceCallback
 from swafa.models import FeedForwardGaussianNet
 from swafa.utils import set_weights
+
+# turn off annoying pytorch lightning logging and warnings
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
+warnings.filterwarnings('ignore')
 
 
 class Objective:
@@ -277,7 +283,7 @@ class Objective:
             latent_dim=self.latent_dim,
             precision=prior_precision,
             n_gradients_per_update=self.n_gradients_per_update,
-            optimiser_class=torch.optim.SGD,
+            optimiser_class=torch.optim.Adam,
             bias_optimiser_kwargs=optimiser_kwargs,
             factors_optimiser_kwargs=optimiser_kwargs,
             noise_optimiser_kwargs=optimiser_kwargs,
@@ -288,7 +294,13 @@ class Objective:
         dataset = TensorDataset(X, y)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, drop_last=True, shuffle=True)
 
-        trainer = Trainer(max_epochs=self.n_epochs, callbacks=variational_callback, progress_bar_refresh_rate=0)
+        trainer = Trainer(
+            max_epochs=self.n_epochs,
+            callbacks=variational_callback,
+            weights_summary=None,
+            progress_bar_refresh_rate=0,
+        )
+
         trainer.fit(model, train_dataloader=dataloader)
 
         return model, variational_callback
@@ -597,7 +609,8 @@ def run_trial(
         random_seed=model_random_seed,
     )
 
-    study = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=model_random_seed), direction='maximize')
+    sampler = optuna.samplers.TPESampler(seed=model_random_seed, n_startup_trials=int(n_hyperparameter_trials * 2 / 3))
+    study = optuna.create_study(sampler=sampler, direction='maximize')
     study.optimize(objective, n_trials=n_hyperparameter_trials)
 
     learning_rate = study.best_params['learning_rate']

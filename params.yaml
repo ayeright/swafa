@@ -81,7 +81,7 @@ neural_net_predictions:
   hidden_activation_fn: 'relu' # same as https://arxiv.org/pdf/1811.04504.pdf
   data_split_random_seed: 1 # same as https://github.com/yaringal/DropoutUncertaintyExps/tree/master/UCI_Datasets
   test: false
-  n_train_test_splits: 2 #20  # same as https://arxiv.org/pdf/1811.04504.pdf
+  n_train_test_splits: 20 # same as https://arxiv.org/pdf/1811.04504.pdf
   train_fraction: 0.9  # same as https://arxiv.org/pdf/1811.04504.pdf
   datasets: # same as https://github.com/aaronpmishkin/SLANG/tree/master/code/python/libs/vi_lib/experiments/uci
     boston_housing:
@@ -90,9 +90,9 @@ neural_net_predictions:
       max_grad_norm: 10
       batch_size: 10
       n_epochs: 120
-      learning_rate_range: [0.001, 0.02]
-      prior_precision_range: [0.1353, 7.3891]
-      noise_precision_range: [0.0742, 0.1108]
+      learning_rate_range: [0.01, 0.02] #[0.01, 0.02]
+      prior_precision_range: [0.01, 10] #[5, 10] #[0.1353, 7.3891]
+      noise_precision_range: [0.01, 1] #[0.05, 0.2] #[0.0742, 0.1108]
       n_bma_samples: 10
     yacht_hydrodynamics:
       latent_dim: 1
@@ -100,9 +100,9 @@ neural_net_predictions:
       max_grad_norm: 10
       batch_size: 10
       n_epochs: 120
-      learning_rate_range: [0.001, 0.02]
-      prior_precision_range: [0.1353, 7.3891]
-      noise_precision_range: [0.2018, 0.5488]
+      learning_rate_range: [0.01, 0.02] #[0.01, 0.02]
+      prior_precision_range: [0.01, 10]  #[0.1, 10] #[0.1353, 7.3891]
+      noise_precision_range: [0.01, 1] #[0.1, 1] #[0.2018, 0.5488]
       n_bma_samples: 10
     concrete_strength:
       latent_dim: 1
@@ -110,9 +110,9 @@ neural_net_predictions:
       max_grad_norm: 10
       batch_size: 10
       n_epochs: 120
-      learning_rate_range: [0.001, 0.02]
-      prior_precision_range: [0.1353, 7.3891]
-      noise_precision_range: [0.0247, 0.0672]
+      learning_rate_range: [0.01, 0.02] #[0.01, 0.02]
+      prior_precision_range: [0.01, 10]  #[5, 10] #[0.1353, 7.3891]
+      noise_precision_range: [0.01, 1] #[0.0247, 0.0672]
       n_bma_samples: 10
     energy_efficiency:
       latent_dim: 1
@@ -120,7 +120,7 @@ neural_net_predictions:
       max_grad_norm: 10
       batch_size: 10
       n_epochs: 120
-      learning_rate_range: [0.001, 0.02]
-      prior_precision_range: [0.0183, 1.0]
-      noise_precision_range: [0.7408, 1.105]
+      learning_rate_range: [0.01, 0.02] #[0.001, 0.02]
+      prior_precision_range: [0.01, 10]  #[0.0183, 1.0]
+      noise_precision_range: [0.01, 1] #[0.7408, 1.105]
       n_bma_samples: 10
