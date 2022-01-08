@@ -609,7 +609,7 @@ def run_trial(
         random_seed=model_random_seed,
     )
 
-    sampler = optuna.samplers.TPESampler(seed=model_random_seed, n_startup_trials=int(n_hyperparameter_trials * 2 / 3))
+    sampler = optuna.samplers.RandomSampler(seed=model_random_seed)
     study = optuna.create_study(sampler=sampler, direction='maximize')
     study.optimize(objective, n_trials=n_hyperparameter_trials)
 
