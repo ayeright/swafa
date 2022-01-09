@@ -1009,9 +1009,6 @@ One detail missing from Algorithms \ref{alg:gradient_fa}, \ref{alg:online_em} an
 
 \chapter{Online Factor Analysis Experiments}\label{ch:online_fa_experiments}
 
-
-\section{Methodology}
-
 The aim of these experiments is to test how well the online FA algorithms from Chapter \ref{ch:online_fa} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both online FA algorithms (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}) by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
 \begin{equation}
 	(\matr{F} \matr{A}) (\matr{F} \matr{A})^\intercal + \Psi
@@ -1019,6 +1016,8 @@ The aim of these experiments is to test how well the online FA algorithms from C
 	= \matr{F} \matr{F}^\intercal + \Psi.
 \end{equation}
 Therefore, the $\matr{F}$ estimated by an online FA algorithm cannot be directly compared to the true $\matr{F}$. The comparison must be made between the full covariance matrices.  
+
+\section{Methodology}
 
 Since the covariance matrices have shape $D \times D$, memory requirements dictate that $D$, the observation dimension, cannot be too large. Therefore, values of $D=100$ and $D=1000$ were used in all experiments in this section. In all cases the latent dimension was set to $K=10$, meaning that two different observation to latent ratios were tested: $\frac{D}{K} = 10$ and $\frac{D}{K} = 100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^D$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that its columns spanned the $K$-dimensional latent space and the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{D \times D}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^D$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number of a matrix is equal to
 \begin{equation}
@@ -1433,6 +1432,45 @@ TODO: add discussion once we add test results
 %\section{Methodology}
 %
 %\section{Results}
+
+\chapter{Neural Network Experiments}
+
+Given the encouraging results achieved by VIFA in Chapter \ref{ch:linear_regression_experiments}, the purpose of these experiments is to test VIFA on simple neural networks with one hidden layer. Unlike linear regression, it is not possible to compute the true posterior distribution of the parameter vector of a non-linear neural network in closed form. Therefore, the focus in these experiments is on the quality of predictions made by neural networks trained via VIFA in comparison to SLANG. Methods based on stochastic weight averaging were excluded due to their poor performance in Chapter \ref{ch:linear_regression_experiments}. While poor posterior estimation does not necessarily translate into poor predictions, this project is primarily interested in methods which can be used to construct reliable uncertainty estimates for neural network predictions in addition to point estimates. 
+
+\section{Methodology}
+
+The setup for the experiments largely followed the methodology adopted by the authors of SLANG \cite{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set (TODO: haven't touched test sets yet - leaving until the end). The only hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration. However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ we sampled log-uniformly from $[0.001, 0.05]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. All other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$ and Monte Carlo average size $L=4$. Before each training run, the features and target were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation.  
+
+When evaluating, 10 separate parameter vectors for the neural network were sampled from the learned posterior and used to make predictions. The predictions were un-normalised to return them to their original scale. Then, for each input, the mean and variance of the 10 predictions was computed. The root mean square error (RMSE) between the predicted means and the actual targets was calculated, as well as the average log-likelihood of the predicted means and variances given the targets. Although \cite{mishkin2018} provides these metrics for SLANG, the experiments were re-run\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some minor adjustments to allow for a fairer comparison with VIFA. In particular, when the authors of SLANG compute the validation and test log-likelihood, given the true targets, they use $\frac{1}{\beta}$ as the variance rather than the actual variance of the SLANG predictions. This does not seem fair, since $\beta$ is a tuned hyperparameter. It should not affect the validation and test metrics directly. Therefore, the average log-likelihood calculation was modified to match that of VIFA. Finally, the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to also match those of VIFA. 
+
+
+\section{Results and Discussion} 
+
+Test metrics from VIFA and SLANG are given in Table \ref{table:neural_nets_uci}. As well as the results for neural networks, prediction metrics for VIFA applied to linear regression are also given. 
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.15\linewidth} p{0.15\linewidth} p{0.15\linewidth} ||} 
+ 			\hline
+ 			Metric & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\ [0.5ex] 
+ 			\hline\hline
+			RMSE & Energy Efficiency & $0.00 \pm 0.00$  & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\ 
+			& Boston Housing & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\ 
+			& Concrete Strength & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\ 
+ 			& Yacht Hydro. & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\
+ 			\hline
+			Log-likelihood & Energy Efficiency & $0.00 \pm 0.00$  & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\ 
+			& Boston Housing & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\ 
+			& Concrete Strength & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\ 
+ 			& Yacht Hydro. & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ & $0.00 \pm 0.00$ \\ [1ex] 
+			\hline
+		\end{tabular}
+		\caption{Test results for prediction experiments with UCI regression datasets. LR and NN refer to linear regression and neural network, respectively. Average test metrics over 20 different train-test splits are given, along with standard errors.}
+		\label{table:neural_nets_uci}
+	\end{center}
+\end{table}
+
+
 
 \chapter{Conclusions}
 
