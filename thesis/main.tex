@@ -1056,7 +1056,9 @@ In the first row of the figure are the results corresponding to FA models whose 
 
 Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance (TODO: add formula and citation) between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size. The distance is scaled by dividing by observation dimension. Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the Wasserstein distance in this case is just a different measure of distance between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to the shape of the plots in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. 
 
-In summary, these results suggest that online EM is in general better at fitting FA models than online SGA, for all combinations of observation dimension, latent dimension, spectrum range and sample size. The SGA algorithm could possibly be improved by tuning its learning rate, or even using a learning rate scheduler. However, tuning hyperparameters is often a hassle and the fact that this is not required for online EM is another distinct advantage. Compared to batch SVD, the results achieved by online EM are almost identical when $T=100,000$, except when the spectrum range is equal to $[1, 1000]$. This case would appear to be more challenging for online EM due to the larger conditioning number of the covariance matrix. It appears to get stuck in a local minimum at around $T=1000$ and the rate of improvement only starts to increase again after $T=20,000$. Perhaps online EM would be able to catch batch SVD if more than $100,000$ samples were used. However, this would be an unreasonably high number of neural network parameter vectors to sample for the use case in this thesis.  
+In summary, these results suggest that online EM is in general better at fitting FA models than online SGA, for all combinations of observation dimension, latent dimension, spectrum range and sample size. The SGA algorithm could possibly be improved by tuning its learning rate, or even using a learning rate scheduler. However, tuning hyperparameters is often a hassle and the fact that this is not required for online EM is another distinct advantage. Compared to batch SVD, the results achieved by online EM are almost identical when $T=100,000$, except when the spectrum range is equal to $[1, 1000]$. This case would appear to be more challenging for online EM due to the larger conditioning number of the covariance matrix. It appears to get stuck in a local minimum at around $T=1000$ and the rate of improvement only starts to increase again after $T=20,000$. Perhaps online EM would be able to catch batch SVD if more than $100,000$ samples were used. However, this would be an unreasonably high number of neural network parameter vectors to sample for the use case in this thesis. 
+
+Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples.  
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
@@ -1153,13 +1155,13 @@ The results of the posterior sampling experiments are shown in Table \ref{table:
  			\hline
  			Learning Rate & $\lambda$ & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
- 			0.1 &  0.1 & $0.0666 \pm 0.0078$ & $0.6200 \pm 0.0750$ & $0.4946 \pm 0.1013$ \\ 
+ 			0.1 	&  0.1 	& $0.0666 \pm 0.0078$	& $0.6200 \pm 0.0750$	& $0.4946 \pm 0.1013$ \\ 
 			\hline
- 			0.1 & 0.001 & $0.0006 \pm 0.0001$ & $0.8065 \pm 0.0101$ & $0.0439 \pm 0.0012$  \\
+ 			0.1 	& 0.001	& $0.0006 \pm 0.0001$	& $0.8065 \pm 0.0101$ 	& $0.0439 \pm 0.0012$  \\
 			\hline
-			0.01 & 0.1 & $0.0620 \pm 0.0070$ & $1.7110 \pm 0.6187$ & $0.4641 \pm 0.0937$ \\ 
+			0.01	& 0.1 	& $0.0620 \pm 0.0070$	& $1.7110 \pm 0.6187$ 	& $0.4641 \pm 0.0937$ \\ 
 			\hline
- 			0.01 & 0.001 & $0.0010 \pm 0.0002$ & $0.9870 \pm 0.0042$ & $0.0739 \pm 0.0010$  \\ [1ex] 
+ 			0.01	& 0.001 	& $0.0010 \pm 0.0002$ 	& $0.9870 \pm 0.0042$ 	& $0.0739 \pm 0.0010$  \\ [1ex] 
 			\hline
 		\end{tabular}
 		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the empirical distribution of the parameter vectors sampled along the SGD trajectory while training the model. Relative distances between the true and empirical means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution, divided by the dimension of the distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
@@ -1207,9 +1209,9 @@ Moving on to VI, the results of applying Algorithm \ref{alg:vi_fa} to the data a
  			\hline
  			Latent Dimension of FA Model & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
-			1 & $0.0031 \pm 0.0005$ & $0.0983 \pm 0.0129$ & $0.0194 \pm 0.0023$ \\ [1ex] 
+			1 	& $0.0031 \pm 0.0005$ 	& $0.0983 \pm 0.0129$ 	& $0.0194 \pm 0.0023$ \\ [1ex] 
 			\hline
- 			2 & $0.0040 \pm 0.0008$ & $ 0.1053 \pm 0.0199$ & $0.0242 \pm 0.0030$ \\ [1ex] 
+ 			2 	& $0.0040 \pm 0.0008$ 	& $ 0.1053 \pm 0.0199$ 	& $0.0242 \pm 0.0030$ \\ [1ex] 
 			\hline
 		\end{tabular}
 		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the dimension of the distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
@@ -1245,13 +1247,13 @@ For these experiments, four regression datasets from the UCI Machine Learning Re
 			\hline
  			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
 			\hline\hline
-			Energy Efficiency & 768 & 8 \\
+			Energy Efficiency 				& 768 	& 8 \\
  			\hline
- 			Boston Housing & 506 & 13 \\ 
+ 			Boston Housing 				& 506 	& 13 \\ 
  			\hline
- 			Concrete Compressive Strength & 1030 & 8 \\
+ 			Concrete Compressive Strength 	& 1030 	& 8 \\
  			\hline
- 			Yacht Hydrodynamics & 308 & 6 \\ [1ex] 
+ 			Yacht Hydrodynamics 			& 308 	& 6 \\ [1ex] 
  			\hline
 		\end{tabular}
 		\caption{UCI regression datasets used in experiments.}
@@ -1267,13 +1269,13 @@ Each dataset was split into validation and test sets of equal size. The VIFA hyp
 			\hline
  			Dataset & $K$ & Epochs & $M$ & $L$ & $\eta$ & $\alpha$ & $\beta$ \\ [0.5ex] 
 			\hline\hline
-			Energy Efficiency & 4 & 20,000 & 100 & 10 & 0.01 & 0.0539 & 0.1082 \\ 
+			Energy Efficiency 				& 4 & 20,000 & 100 & 10 	& 0.01 	& 0.0539 & 0.1082 \\ 
  			\hline
-			Boston Housing & 6 & 20,000 & 100 & 10 & 0.001 & 0.2523 & 0.0462 \\
+			Boston Housing 				& 6 & 20,000 & 100 & 10 	& 0.001 	& 0.2523 & 0.0462 \\
  			\hline
- 			Concrete Compressive Strength & 4 & 20,000 & 100 & 10 & 0.01 & 0.0278 & 0.0086 \\
+ 			Concrete Compressive Strength	& 4 & 20,000 & 100 & 10 	& 0.01 	& 0.0278 & 0.0086 \\
  			\hline
- 			Yacht Hydrodynamics & 3 & 30,000 & 100 & 10 & 0.01 & 0.0371 & 0.0139 \\ [1ex] 
+ 			Yacht Hydrodynamics 			& 3 & 30,000 & 100 & 10 	& 0.01 	& 0.0371 & 0.0139 \\ [1ex] 
  			\hline
 		\end{tabular}
 		\caption{VIFA hyperparameters for linear regression posterior estimation experiments with UCI datasets.}
@@ -1348,13 +1350,13 @@ TODO: add discussion once we add test results
  			\hline
  			Dataset & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
-			Energy Efficiency & 0.0042 & 0.0765 & 0.0646 \\ 
+			Energy Efficiency 	& 0.0042 	& 0.0765 & 0.0646 \\ 
 			\hline
-			Boston Housing & 0.0253 & 0.1467 & 0.0333 \\ 
+			Boston Housing 	& 0.0253 	& 0.1467 & 0.0333 \\ 
 			\hline
-			Concrete Strength & 0.0058 & 0.1267 & 0.0477 \\ 
+			Concrete Strength 	& 0.0058 	& 0.1267 & 0.0477 \\ 
 			\hline
- 			Yacht Hydro. & 0.0437 & 0.0477 & 0.1113 \\ [1ex] 
+ 			Yacht Hydro. 		& 0.0437 	& 0.0477 & 0.1113 \\ [1ex] 
 			\hline
 		\end{tabular}
 		\caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the number of dimensions in the dataset.}
@@ -1514,71 +1516,48 @@ usual late penalties based on your final submission time.
  
  \section{Online Factor Analysis}
  
-Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively. 
+Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples. 
  
- \begin{table}[h!]
+\begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
+		\begin{tabular}{|| p{0.12\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} ||} 
  			\hline
- 			Samples & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
+ 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
  			\hline\hline
-			100 &  &  &  \\ 
+			100 	& $[1, 10]$ 	& $0.0454 \pm 0.0077$ 	& $0.0399 \pm 0.0058$	& $0.0426 \pm 0.0005$ \\ 
+				& $[1, 100]$ 	& $0.0631 \pm 0.0073$ 	& $0.0613 \pm 0.0057$ 	& $0.1309 \pm 0.0038$ \\ 
+				& $[1, 1000]$	& $0.0608 \pm 0.0087$ 	& $0.1767 \pm 0.0037$ 	& $0.2350 \pm 0.0046$ \\ 
 			\hline
-			200 &  &  &  \\ 
-			\hline
-			500 &  &  &  \\ 
-			\hline
-			1000 &  &  &  \\ 
-			\hline
-			2000 &  &  &  \\ 
-			\hline
-			5000 &  &  &  \\ 
-			\hline
-			10,000 &  &  &  \\ 
-			\hline
-			20,000 &  &  &  \\ 
-			\hline
-			50,000 &  &  &  \\ 
-			\hline
- 			100,000 &  &  &  \\ [1ex] 
+			1000	& $[1, 10]$ 	& $0.0204 \pm 0.0010$ 	& $0.0207 \pm 0.0003$ 	& $0.0546 \pm 0.0009$ \\ 
+				& $[1, 100]$ 	& $0.0217 \pm 0.0011$ 	& $0.0238 \pm 0.0013$ 	& $0.0472 \pm 0.0008$ \\ 
+				& $[1, 1000]$ 	& $0.0218 \pm 0.0011$ 	& $0.0501 \pm 0.0016$ 	& $0.0945 \pm 0.0024$ \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Numerical results for data plotted in Figure \ref{fig:fa_covar_distance}.}
+		\caption{The relative distance of the estimated FA covariance matrix from the true covariance matrix when the latent dimension of the FA model is 10 and the number of training samples is 100,000. The relative distance is the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the rightmost points in the plots in Figure \ref{fig:fa_covar_distance}.}
 		\label{table:fa_covar_distance}
 	\end{center}
 \end{table}
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
+		\begin{tabular}{|| p{0.12\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} ||} 
  			\hline
- 			Samples & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
+ 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
  			\hline\hline
-			100 &  &  &  \\ 
+			100 	& $[1, 10]$ 	& $0.0061 \pm 0.0009$ 	& $0.0058 \pm 0.0006$ 	& $0.0062 \pm 0.0004$ \\ 
+				& $[1, 100]$ 	& $0.0256 \pm 0.0022$ 	& $0.0246 \pm 0.0021$ 	& $0.0446 \pm 0.0018$ \\ 
+				& $[1, 1000]$	& $0.0780 \pm 0.0089$ 	& $0.2137 \pm 0.0054$ 	& $0.2855 \pm 0.0040$ \\ 
 			\hline
-			200 &  &  &  \\ 
-			\hline
-			500 &  &  &  \\ 
-			\hline
-			1000 &  &  &  \\ 
-			\hline
-			2000 &  &  &  \\ 
-			\hline
-			5000 &  &  &  \\ 
-			\hline
-			10,000 &  &  &  \\ 
-			\hline
-			20,000 &  &  &  \\ 
-			\hline
-			50,000 &  &  &  \\ 
-			\hline
- 			100,000 &  &  &  \\ [1ex] 
+			1000	& $[1, 10]$ 	& $0.0015 \pm 0.0001$ 	& $0.0016 \pm 0.0001$ 	& $0.0023 \pm 0.0001$ \\ 
+				& $[1, 100]$ 	& $0.0048 \pm 0.0002$ 	& $0.0049 \pm 0.0002$ 	& $0.0062 \pm 0.0001$ \\ 
+				& $[1, 1000]$ 	& $0.0152 \pm 0.0005$ 	& $0.0217 \pm 0.0003$ 	& $0.0349 \pm 0.0006$ \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Numerical results for data plotted in Figure \ref{fig:fa_wasserstein}.}
+		\caption{The 2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension, when the latent dimension of the FA model is 10 and the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the rightmost points in the plots in Figure \ref{fig:fa_wasserstein}.}
 		\label{table:fa_wasserstein}
 	\end{center}
 \end{table}
+
 
 % \section{Linear Regression Predictions}\label{appendix:linear_regression_predictions}
 % 
