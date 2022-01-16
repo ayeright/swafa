@@ -395,8 +395,8 @@ Several methods have been suggested for optimising the variational objective in 
 	\mu \leftarrow \mu - \eta_\mu \Sigma (\hat{\matr{g}}_\theta + \alpha \mu), \quad 
 	\Sigma^{-1} \leftarrow (1 - \eta_\Sigma) \Sigma^{-1} + \eta_\Sigma(\hat{\matr{G}}_\theta + \alpha \matr{I}),
 \end{equation}
-where $\eta_\mu, \eta_\Sigma > 0$ are learning rates, $\alpha$ is the precision of the prior and $\hat{\matr{g}}_\theta$ and $\hat{\matr{G}}_\theta$ are, respectively, a Monte Carlo estimate of the gradient of the negative log-likelihood and an Empirical Fisher (EM) matrix, given $\theta \sim q(\theta) = \mathcal{N}(\mu, \Sigma)$. Formally, 
-\begin{equation}
+where $\eta_\mu, \eta_\Sigma > 0$ are learning rates, $\alpha$ is the precision of the prior and $\hat{\matr{g}}_\theta$ and $\hat{\matr{G}}_\theta$ are, respectively, a Monte Carlo estimate of the gradient of the negative log-likelihood and an Empirical Fisher matrix, given $\theta \sim q(\theta) = \mathcal{N}(\mu, \Sigma)$. Formally, 
+\begin{equation}\label{eqn:slang_g_and_G}
 	\hat{\matr{g}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i, \quad
 	\hat{\matr{G}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i (\matr{g}_\theta^i)^\intercal,
 \end{equation}
@@ -943,17 +943,17 @@ Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = 
 	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big).
 \end{equation}
 Collecting the partial derivatives of Equation (\ref{eqn:vi_fa_derivatives}), the update rules are
- \begin{equation}
+ \begin{equation}\label{eqn:vifa_c_update}
 	\matr{c} \leftarrow \matr{c} - \eta_\matr{c}\Bigg(
 	\alpha \matr{c} + \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l}
 	\Bigg),
 \end{equation}
- \begin{equation}
+ \begin{equation}\label{eqn:vifa_F_update}
 	\matr{F} \leftarrow \matr{F} - \eta_\matr{F}\Bigg(
 	-\matr{A}  + \matr{C} \matr{B}^\intercal+ \alpha \matr{F} + \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l} \matr{h}_l^\intercal
 	\Bigg),
 \end{equation}
-\begin{equation}
+\begin{equation}\label{eqn:vifa_gamma_update}
 	\gamma \leftarrow \gamma - \eta_\gamma\Bigg(
 	-\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi
 	+\frac{\alpha}{2} \psi + \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big)
@@ -997,9 +997,93 @@ for learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$. Pseudo code
 
 \subsection{Comparison of VIFA and SLANG}
 
-There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an EF matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}.
+There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an Empirical Fisher matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}.
 
-Here it is claimed that VIFA is a much more practical algorithm. It can be seen from Algorithm \ref{alg:vi_fa} that VIFA is implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, sampling each neural network parameter vector in SLANG requires computing a Cholesky decomposition, and each update to the approximate posterior involves an eigen-decomposition. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since a separate implementation of back-propagation is needed for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the mean negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. 
+Setting the Monte Carlo average size to $L=1$ for simplicity, the update rules for the posterior mean in VIFA and SLANG are, respectively,
+ \begin{equation}
+ 	\matr{c} \leftarrow \matr{c} - \eta_\matr{c} (\alpha \matr{c} + N \matr{g}_\theta) \quad \text{and} \quad 
+ 	\mu \leftarrow \mu - \eta_\mu \Sigma (\alpha \mu + N \matr{g}_\theta),
+\end{equation}
+where
+\begin{equation}
+	\matr{g}_\theta = \nabla_\theta \Big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\Big)
+\end{equation}
+is the mini-batch gradient of the average negative log-likelihood with respect to $\theta$. The only difference between the two rules is that, in SLANG, the gradient vector is multiplied by the posterior covariance matrix. As for the update rules for the covariance itself, the similarities are less clear. In the case of VIFA, the update rule for $\matr{F}$ can be written as
+\begin{equation}
+	\matr{F} \leftarrow \matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big).
+\end{equation}
+Hence,
+\begin{align}
+\begin{split}
+	\matr{F}\matr{F}^\intercal
+	& \leftarrow \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big) \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big)^\intercal \\
+	& = \matr{F}\matr{F}^\intercal 
+	- \eta \matr{F} \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal
+	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
+	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal \\
+	& = \matr{F}\matr{F}^\intercal 
+	- \eta \matr{F} \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big)
+	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
+	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big) \\
+	& = \matr{F}\matr{F}^\intercal  
+	+ \eta \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{F} \matr{h} \matr{g}_\theta^\intercal
+	+ \eta \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \\
+	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta^2 \alpha \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
+	& \quad - \eta^2 \alpha \matr{F} \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha^2 \matr{F} \matr{F}^\intercal + \eta^2 \alpha N \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
+	& \quad - \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal + \eta^2 N^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
+	& = (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
+	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
+	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
+	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
+	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
+	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
+	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal.
+\end{split}
+\end{align}
+Also, the update rule for $\Psi$ in VIFA can be written as
+\begin{align}
+\begin{split}
+	\Psi & \leftarrow \Psi - \eta\Big(
+		-\frac{1}{2} \diag\big(\diag\big(\matr{S}^{-1}\big)\big) 
+		+\frac{\alpha}{2} \matr{I} 
+		+\frac{N}{2} \diag\big(\diag\big( \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\big) 
+	\Big) \\
+	& = \Psi +
+		\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
+		- \frac{\eta \alpha}{2} \matr{I}.
+\end{split}
+\end{align}
+Therefore, the update rule for the covariance matrix in VIFA is
+\begin{align}
+\begin{split}
+	\matr{F}\matr{F}^\intercal + \Psi
+	& \leftarrow (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
+	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
+	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
+	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
+	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
+	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
+	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal \\
+	& \quad + \Psi +
+	\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
+	- \frac{\eta \alpha}{2} \matr{I}.
+\end{split}
+\end{align}
+In comparison, the update rule for the inverse covariance matrix in SLANG is 
+\begin{align}
+\begin{split}
+	\big(\matr{U}\matr{U}^\intercal + \matr{D}\big)^{-1}
+	& \leftarrow  \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal
+	+ (1 - \eta) \matr{D} + \eta \alpha \matr{I},
+\end{split}
+\end{align}
+where $\matr{Q}_{1:K}$ and $\Lambda_{1:K}$ are obtained by computing the top-$K$ eigen-decomposition of $(1 - \eta) \matr{U} \matr{U}^\intercal + \eta \hat{\matr{G}}_\theta$ (recall that $\hat{\matr{G}}_\theta$ is the Empirical Fisher matrix). 
+
+Although on first sight the VIFA update may look more complicated, it can be implemented using only simple matrix operations and the standard back-propagation algorithm (as shown in Algorithm \ref{alg:vi_fa}). In contrast, the SLANG update requires a randomised eigen-decomposition algorithm \cite{mishkin2018}. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since an efficient algorithm requires a separate implementation of back-propagation for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the average negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation tools in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. In this sense, VIFA is a much more practical algorithm that SLANG.
 
 
 \section{Factors Initialisation}\label{sec:F_init}
@@ -1579,63 +1663,6 @@ Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the 
 %		\label{table:linear_regression_mse}
 %	\end{center}
 %\end{table}
-
-\newpage 
-
-\section{Comparison of VIFA and SLANG}
-
-\begin{equation}
-	\matr{c} \leftarrow \matr{c} - \eta(\alpha \matr{c} + \matr{g}_\theta)
-\end{equation}
-
-\begin{equation}
-	\matr{F} \leftarrow \matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big)
-\end{equation}
-
-\begin{equation}
-	\Psi \leftarrow \Psi - \frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2}\big)\Big) +  \frac{\eta \alpha}{2}\matr{I}
-\end{equation}
-
-\begin{align}
-\begin{split}
-	\matr{F}\matr{F}^\intercal
-	& \leftarrow \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big)\Big) \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big)\Big)^\intercal \\
-	& = \matr{F}\matr{F}^\intercal 
-	- \eta \matr{F} \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big)^\intercal
-	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
-	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big)^\intercal \\
-	& = \matr{F}\matr{F}^\intercal 
-	- \eta \matr{F} \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + \matr{h} \matr{g}_\theta^\intercal \big)
-	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
-	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + \matr{h} \matr{g}_\theta^\intercal \big) \\
-	& = \matr{F}\matr{F}^\intercal  
-	+ \eta \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta \alpha \matr{F} \matr{F}^\intercal - \eta \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	+ \eta \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta \alpha \matr{F} \matr{F}^\intercal - \eta \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \\
-	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta^2 \alpha \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta^2 \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
-	& \quad - \eta^2 \alpha \matr{F} \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha^2 \matr{F} \matr{F}^\intercal + \eta^2 \alpha \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
-	& \quad - \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal + \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
-	& = \matr{F}\matr{F}^\intercal (1 - 2\eta \alpha + \eta^2 \alpha^2)
-	+ \matr{F} \matr{F}^\intercal \matr{S}^{-1}(\eta - \eta^2 \alpha) 
-	+ \matr{S}^{-1} \matr{F} \matr{F}^\intercal (\eta - \eta^2 \alpha) \\
-	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-	- \eta^2 \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	- \eta^2 \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
-	& \quad + \matr{F} \matr{h} \matr{g}_\theta^\intercal(\eta^2 \alpha - \eta) 
-	+ \matr{g}_\theta \matr{h}^\intercal \matr{F}(\eta^2 \alpha - \eta)
-	+ \eta^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal
-\end{split}
-\end{align}
-
-
-
-
-
-
-
-
-
-
-
 
 
 
