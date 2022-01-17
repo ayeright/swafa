@@ -261,6 +261,21 @@ Hence, the posterior distribution of $\theta$ is
 \end{align}
 
 
+\section{Neural Networks}
+
+Let $f(\matr{x}): \R^J \mapsto \R$ be a neural network with a single hidden layer. Its functional from can be written as
+\begin{equation}
+	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x} + b_h),
+\end{equation} 
+where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Notice that this is similar to the functional form of linear regression. That difference is that, instead of the output being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
+\begin{equation}
+	f(\matr{x}) = \matr{w}_2^T \Big(g_2\big(\matr{W}_1 g_1(\matr{W}_0 \matr{x} + \matr{b}_0) + \matr{b}_1 \big) \Big) + b,
+\end{equation} 
+where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \times H_0}$, $\matr{w} \in \R^{H_1}$ and biases $\matr{b}_0 \in \R^{H_0}$, $\matr{b}_1 \in \R^{H_1}$, $b \in \R$ are learnable parameters and $g_1(x):\R \mapsto \R$, $g_2(x):\R \mapsto \R$ are non-linear activation functions applied to the matrices element-wise. The total number of learnable parameters in this model is $D=H_0(J + 1) + H_1(H_0 + 1) + (H_1 + 1)$, and they are collectively denoted by $\theta \in \R^D$. This network is already considered \emph{deep}, as it has multiple hidden layers. However, it is not uncommon for neural networks to have tens or even hundreds of hidden layers (TODO: add citations for some big networks). Such networks usually have millions of learnable parameters. 
+
+
+\section{Stochastic Gradient Descent}
+
 \section{Variational Inference}\label{sec:vi}
 
 For linear regression, computing the posterior in Equation (\ref{eqn:linear_regression_posterior}) is possible because the log-likelihood, $p(\mathcal{D} | \theta)$, is a quadratic expression of $\theta$. However, when $\theta$ is the parameter vector of a neural network with even a single non-linear hidden layer, the log-likelihood is not so simple and the posterior cannot be written in closed form. Instead, the marginal likelihood, $p(\mathcal{D}) = \int_\theta p(\mathcal{D} | \theta) p(\theta)$, must be evaluated, which is intractable for high-dimensional $\theta$. 
