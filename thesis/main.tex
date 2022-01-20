@@ -1540,23 +1540,33 @@ Given the encouraging results achieved by VIFA in Chapter \ref{ch:linear_regress
 
 \section{Methodology}
 
-The setup for the experiments largely followed the methodology adopted by the authors of SLANG \cite{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set (TODO: haven't touched test sets yet - leaving until the end). The hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration to estimate the average negative log-likelihood (ANLL). However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ we sampled log-uniformly from $[0.01, 0.02]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. To improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$ and Monte Carlo average size $L=4$.  Before each training run, the features and target were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation.  
+The setup for the experiments largely followed the methodology adopted by the authors of SLANG \cite{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set (TODO: haven't touched test sets yet - leaving until the end). The hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration to estimate the marginal log-likelihood. However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ we sampled log-uniformly from $[0.01, 0.02]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. To improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$ and Monte Carlo average size $L=4$.  Before each training run, the features and target were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation.  
 
-While training, the ANLL term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
+While training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
 \begin{equation}\label{eqn:train_nll}
 	-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big),
 \end{equation}
-where $\mathcal{B}$ is a mini-batch of $M$ training examples and $f(\matr{x}; \theta)$ is the prediction of the neural network for input $\matr{x}$ and parameters $\theta$. When evaluating, the ANLL was computed slightly differently. First, 10 separate parameter vectors were sampled for the neural network and used to make predictions for each input. The predictions were un-normalised to return them to their original scale. Next, for each input $\matr{x}$, the mean and variance of the 10 predictions were computed, say $\mu_\matr{x}$ and $\sigma_\matr{x}^2$, respectively. Then the ANLL for a set of $N$ validation or test points $\mathcal{D}$ was set to
-\begin{equation}\label{eqn:test_nll}
-	-\frac{1}{N} \sum_{(\matr{x}, y) \in \mathcal{D}} \log \mathcal{N}\big(y; \mu_\matr{x},\sigma_\matr{x}^2\big).
+where $\mathcal{B}$ is a mini-batch of $M$ training examples and $f(\matr{x}; \theta)$ is the prediction of the neural network for input $\matr{x}$ and parameters $\theta$. Given a test example, $(\matr{x}, y)$, the marginal log-likelihood is
+\begin{align}
+\begin{split}
+	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
+	& = \log \int_\theta p(y | \matr{x}, \theta, \beta) p(\theta | \alpha, \beta, \mathcal{D}) \\
+	& = \log \int_\theta \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big) p(\theta | \alpha, \beta, \mathcal{D}),
+\end{split}
+\end{align}
+where $\mathcal{D}$ is the training data and $p(\theta | \alpha, \beta, \mathcal{D})$ is the FA posterior learned by VIFA for hyperparameters $\alpha$ and $\beta$. This integral cannot be computed exactly. Instead, it was approximated by a sample average. Formally, 
+\begin{align}
+\begin{split}
+	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
+	& \approx \log \Bigg( \frac{1}{L} \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) \\
+	& = \log \Bigg( \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) - \log L,
+\end{split}
+\end{align}
+where $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity was averaged over the full test set to get the average approximate marginal log-likelihood. In addition, the test root mean squared error (RMSE) was also computed, where the squared error of a single test example is
+\begin{equation}
+	\Bigg(y - \frac{1}{L} \sum_{l=1}^L f(\matr{x}; \theta_l)\Bigg)^2.
 \end{equation}
-In addition, the root mean square error (RMSE) between the predicted means $\mu_\matr{x}$ and the targets $y$ was also calculated.
-
-Although \cite{mishkin2018} provides these metrics for SLANG, the experiments were re-run\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some adjustments to allow for a fairer comparison with VIFA. In particular, when the authors of SLANG compute the validation and test ANLL, they use the function
-\begin{equation}\label{eqn:slang_nll}
-	-\frac{1}{N} \sum_{(\matr{x}, y) \in \mathcal{D}} \log \mathcal{N}\big(y; \mu_\matr{x},\beta^{-1}\big).
-\end{equation}
-This does not seem fair, since $\beta$ is a tuned hyperparameter. It should not affect the validation and test metrics directly. Therefore, the ANLL calculation in their code was modified to match that of VIFA. That is, Equation (\ref{eqn:test_nll}). Finally, the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to also match those of VIFA. 
+When computing these metrics, the Monte Carlo average size was set to $L=10$, as in SLANG. Finally, the same experiments were re-run for SLANG\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some minor adjustments to their original setup to allow for a fairer comparison with VIFA. In particular, the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to match those of VIFA. 
 
 
 \section{Results and Discussion} 
