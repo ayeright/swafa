@@ -33,14 +33,13 @@ class Objective:
 
     The performance of each hyperparameter configuration is estimated via cross-validation. In each fold, the training
     data is used to approximate the posterior distribution of the weights of the neural network via the VIFA algorithm.
-    Then the approximate posterior is used to compute a Bayesian model average for each validation point and compute
-    the log-likelihood relative to the actual validation targets.
+    Then the approximate posterior is used to compute the average validation marginal log-likelihood.
 
     The hyperparameters which are tuned are the learning rate with which to update the parameters of the posterior, the
     precision of the prior of the posterior and the precision of the additive noise distribution of the targets.
     Hyperparameter values are sampled from log-uniform distributions. The user must define the hyperparameter ranges.
 
-    Note: since the primary metric is the log-likelihood, this objective should be MAXIMISED.
+    Note: since the primary metric is the average marginal log-likelihood, this objective should be MAXIMISED.
 
     Args:
         dataset: The features and targets to use to perform cross-validation, of shape (n_rows, n_features + 1). Target
@@ -117,23 +116,22 @@ class Objective:
             trial: An optuna trial from which to sample hyperparameters.
 
         Returns:
-            The average log-likelihood over the cross-validation folds. Higher is better (maximisation).
+            The average marginal log-likelihood over the cross-validation folds. Higher is better (maximisation).
         """
         learning_rate = trial.suggest_loguniform('learning_rate', *self.learning_rate_range)
         prior_precision = trial.suggest_loguniform('prior_precision', *self.prior_precision_range)
         noise_precision = trial.suggest_loguniform('noise_precision', *self.noise_precision_range)
 
-        cv_ll, _ = self.cross_validate(learning_rate, prior_precision, noise_precision)
+        cv_mll, _ = self.cross_validate(learning_rate, prior_precision, noise_precision)
 
-        return cv_ll
+        return cv_mll
 
     def cross_validate(self, learning_rate: float, prior_precision: float, noise_precision: float) -> (float, float):
         """
         Cross-validate a neural network for the given hyperparameters.
 
         In each fold, use the training data to approximate the posterior distribution of the weights of a neural network
-        via the VIFA algorithm. Then use the posterior to compute a Bayesian model average for each test point and
-        compute metrics relative to the actual targets.
+        via the VIFA algorithm. Then use the posterior to compute metrics for the test data.
 
         Args:
             learning_rate: The learning rate with which to update the parameters of the VIFA callback.
@@ -141,16 +139,16 @@ class Objective:
             noise_precision: The precision of the additive noise distribution of the targets.
 
         Returns:
-            The average log-likelihood and root mean squared error across all validation folds.
+            The average marginal log-likelihood and root mean squared error across all validation folds.
         """
-        ll_list = []
+        mll_list = []
         rmse_list = []
         for train_index, test_index in self.k_fold.split(self.dataset):
-            ll, rmse = self.train_and_test(train_index, test_index, learning_rate, prior_precision, noise_precision)
-            ll_list.append(ll)
+            mll, rmse = self.train_and_test(train_index, test_index, learning_rate, prior_precision, noise_precision)
+            mll_list.append(mll)
             rmse_list.append(rmse)
 
-        return np.mean(ll_list), np.mean(rmse_list)
+        return np.mean(mll_list), np.mean(rmse_list)
 
     def train_and_test(self, train_index: np.ndarray, test_index: np.ndarray, learning_rate: float,
                        prior_precision: float, noise_precision: float) -> (float, float):
@@ -158,8 +156,7 @@ class Objective:
         Train and test a neural network for the given train and test indices and hyperparameters.
 
         Using the training data, approximate the posterior distribution of the weights of a neural network via the VIFA
-        algorithm. Then use the posterior to compute a Bayesian model average for each test point and compute metrics
-        relative to the actual targets.
+        algorithm. Then use the posterior to compute metrics for the test data.
 
         Args:
             train_index: Train row indices of self.dataset, of shape (n_train,).
@@ -169,8 +166,8 @@ class Objective:
             noise_precision: The precision of the additive noise distribution of the targets.
 
         Returns:
-            The mean log-likelihood and root mean squared error of the Bayesian model averages relative to the true
-            targets of the test data.
+            The average marginal log-likelihood and root mean squared error of the model relative to the true targets of
+            the test data.
         """
         train_dataset = self.dataset.iloc[train_index, :]
         test_dataset = self.dataset.iloc[test_index, :]
@@ -188,9 +185,9 @@ class Objective:
             X_train, y_train, learning_rate, prior_precision, standardised_noise_precision,
         )
 
-        ll, rmse = self.test_model(model, variational_callback, X_test, y_test, y_mean, y_scale)
+        mll, rmse = self.test_model(model, variational_callback, X_test, y_test, y_mean, y_scale, noise_precision)
 
-        return ll, rmse
+        return mll, rmse
 
     def fit_transform_features_and_targets(self, dataset: pd.DataFrame) -> (Tensor, Tensor, StandardScaler):
         """
@@ -307,10 +304,9 @@ class Objective:
 
     def test_model(self, model: FeedForwardGaussianNet,
                    variational_callback: FactorAnalysisVariationalInferenceCallback,
-                   X: Tensor, y: Tensor, y_mean: float, y_scale: float) -> (float, float):
+                   X: Tensor, y: Tensor, y_mean: float, y_scale: float, noise_precision: float) -> (float, float):
         """
-        Use the given model and variational callback to compute a Bayesian model average for each input and compute
-        metrics relative to actual targets.
+        Use the given model and variational callback to compute the marginal log-likelihood and root mean square error.
 
         Note: it is assumed that the model was fit to a standardised target variable (zero mean and unit standard
         deviation). However, metrics for non-standardised predictions will be computed.
@@ -318,51 +314,34 @@ class Objective:
         Args:
             model: The model to use to make predictions.
             variational_callback: A variational callback which can be used to sample weight vectors for the model.
-            X: The features for which to compute the Bayesian model average, of shape (n_rows, n_features).
+            X: The features for which to make predictions, of shape (n_rows, n_features).
             y: The standardised training targets, of shape (n_rows,)
             y_mean: The mean of the non-standardised training target.
             y_scale: The standard deviation of the non-standardised training target.
+            noise_precision: The un-standardised precision of the additive noise distribution of the targets.
 
         Returns:
-            The mean log-likelihood and root mean squared error of the Bayesian model averages relative to the
+            The average marginal log-likelihood and root mean squared error of the model relative to the
             non-standardised targets.
         """
         y_original = self.de_standardise_target(y, y_mean, y_scale)
 
-        mu, var = self.compute_bayesian_model_average(model, variational_callback, X, y_mean, y_scale)
+        y_preds = self.sample_predictions(model, variational_callback, X, y_mean, y_scale)
 
-        return self.compute_metrics(y_original, mu, var)
+        rmse = self.compute_rmse(y_original, y_preds)
 
-    @staticmethod
-    def compute_metrics(y: Tensor, mu: Tensor, var: Tensor) -> (float, float):
+        mll = self.compute_marginal_log_likelihood(y_original, y_preds, noise_precision)
+
+        return mll, rmse
+
+    def sample_predictions(self, model: FeedForwardGaussianNet,
+                           variational_callback: FactorAnalysisVariationalInferenceCallback, X: Tensor, y_mean: float,
+                           y_scale: float) -> (Tensor, Tensor):
         """
-        Compute metrics given the true targets and the predicted mean and variance of each target.
+        Use the given model and variational callback to sample predictions for each input.
 
-        Args:
-            y: The true targets, of shape (n_rows,).
-            mu: The predicted mean of each target, of shape (n_rows,).
-            var: The predicted variance of each target, of shape (n_rows,).
-
-        Returns:
-            The mean log-likelihood and root mean squared error of the predictions relative to the true targets.
-        """
-        nll_fn = torch.nn.GaussianNLLLoss(reduction='mean', full=True)
-        ll = -nll_fn(mu, y, var).item()
-
-        mse_fn = torch.nn.MSELoss(reduction='mean')
-        rmse = mse_fn(mu, y).sqrt().item()
-
-        return ll, rmse
-
-    def compute_bayesian_model_average(self, model: FeedForwardGaussianNet,
-                                       variational_callback: FactorAnalysisVariationalInferenceCallback,
-                                       X: Tensor, y_mean: float, y_scale: float) -> (Tensor, Tensor):
-        """
-        Use the given model and variational callback to compute a Bayesian model average for each input.
-
-        The Bayesian model average is constructed by making self.n_bma_samples predictions for each input - using
-        different weight vectors sampled from the variational callback - and then computing the mean and variance of the
-        predictions.
+        A total of self.n_bma_samples predictions are made for each input using different weight vectors sampled from
+        the variational callback.
 
         Note: it is assumed that the model was fit to a standardised target variable (zero mean and unit standard
         deviation). However, non-standardised predictions will be returned.
@@ -370,22 +349,59 @@ class Objective:
         Args:
             model: The model to use to make predictions.
             variational_callback: A variational callback which can be used to sample weight vectors for the model.
-            X: The features for which to compute the Bayesian model average, of shape (n_rows, n_features).
+            X: The features for which to make predictions, of shape (n_rows, n_features).
             y_mean: The mean of the non-standardised training target.
             y_scale: The standard deviation of the non-standardised training target.
 
         Returns:
-            The mean and variance of the predictions for each input, both of shape (n_rows,). Note that these are
-            non-standardised.
+            The self.n_bma_samples predictions for each input, stored in a tensor of shape (n_rows, self.n_bma_samples).
         """
-        ys = torch.hstack(
+        return torch.hstack(
             [
                 self.predict(model, variational_callback, X, y_mean, y_scale).unsqueeze(dim=1)
                 for _ in range(self.n_bma_samples)
             ]
         )
 
-        return ys.mean(dim=1), ys.var(dim=1)
+    @staticmethod
+    def compute_rmse(y: Tensor, y_preds: Tensor) -> float:
+        """
+        Compute the root mean square error given the true targets and the predicted targets.
+
+        Args:
+            y: The true targets, of shape (n_rows,).
+            y_preds: Multiple predictions for each target, of shape (n_rows, n_predictions).
+
+        Returns:
+            The root mean squared error between the true targets and the mean of the predicted targets.
+        """
+        mu = y_preds.mean(dim=1)
+        mse_fn = torch.nn.MSELoss(reduction='mean')
+
+        return mse_fn(mu, y).sqrt().item()
+
+    @staticmethod
+    def compute_marginal_log_likelihood(y: Tensor, y_preds: Tensor, noise_precision: float) -> float:
+        """
+        Compute the average marginal log-likelihood given the true targets and the predicted targets.
+
+        Args:
+            y: The true targets, of shape (n_rows,).
+            y_preds: Multiple predictions for each target, of shape (n_rows, n_predictions).
+            noise_precision: The precision of the additive noise distribution of the targets.
+
+        Returns:
+            The average marginal log-likelihood.
+        """
+        n_predictions = y_preds.shape[1]
+        var = torch.ones_like(y) * (1 / noise_precision)
+
+        nll_fn = torch.nn.GaussianNLLLoss(reduction='none', full=True)
+        lls = -torch.hstack(
+            [nll_fn(y_preds[:, i], y, var).unsqueeze(dim=1) for i in range(n_predictions)]
+        )
+
+        return torch.logsumexp(lls, dim=1).mean().item() - np.log(n_predictions)
 
     def predict(self, model: FeedForwardGaussianNet, variational_callback: FactorAnalysisVariationalInferenceCallback,
                 X: Tensor, y_mean: float, y_scale: float) -> Tensor:
@@ -425,6 +441,39 @@ class Objective:
             The non-standardised target, of shape (n_rows,).
         """
         return y * y_scale + y_mean
+
+    def compute_bayesian_model_average(self, model: FeedForwardGaussianNet,
+                                       variational_callback: FactorAnalysisVariationalInferenceCallback,
+                                       X: Tensor, y_mean: float, y_scale: float) -> (Tensor, Tensor):
+        """
+        Use the given model and variational callback to compute a Bayesian model average for each input.
+
+        The Bayesian model average is constructed by making self.n_bma_samples predictions for each input - using
+        different weight vectors sampled from the variational callback - and then computing the mean and variance of the
+        predictions.
+
+        Note: it is assumed that the model was fit to a standardised target variable (zero mean and unit standard
+        deviation). However, non-standardised predictions will be returned.
+
+        Args:
+            model: The model to use to make predictions.
+            variational_callback: A variational callback which can be used to sample weight vectors for the model.
+            X: The features for which to compute the Bayesian model average, of shape (n_rows, n_features).
+            y_mean: The mean of the non-standardised training target.
+            y_scale: The standard deviation of the non-standardised training target.
+
+        Returns:
+            The mean and variance of the predictions for each input, both of shape (n_rows,). Note that these are
+            non-standardised.
+        """
+        ys = torch.hstack(
+            [
+                self.predict(model, variational_callback, X, y_mean, y_scale).unsqueeze(dim=1)
+                for _ in range(self.n_bma_samples)
+            ]
+        )
+
+        return ys.mean(dim=1), ys.var(dim=1)
 
 
 def run_experiment(
@@ -489,9 +538,9 @@ def run_experiment(
         test: Whether or not to compute test results.
 
     Returns:
-        The mean and standard error of the cross-validated log-likelihood (val_ll) and root mean squared error
-        (val_rmse) corresponding to the best hyperparameters. Also, if test=True, the mean and standard error of the
-        test log-likelihood (test_ll) and test root mean squared error (test_rmse).
+        The mean and standard error of the average cross-validated marginal log-likelihood (val_mll) and root mean
+        squared error (val_rmse) corresponding to the best hyperparameters. Also, if test=True, the mean and standard
+        error of the average test marginal log-likelihood (test_mll) and test root mean squared error (test_rmse).
     """
     np.random.seed(data_split_random_seed)
     train_test_indices = [train_test_split(dataset, train_fraction) for _ in range(n_train_test_splits)]
@@ -586,9 +635,9 @@ def run_trial(
         test: Whether or not to compute test results after running cross-validation.
 
     Returns:
-        The average cross-validated log-likelihood (val_ll) and root mean squared error (val_rmse) corresponding to the
-        best hyperparameters. Also, if test=True, the test log-likelihood (test_ll) and test root mean squared error
-        (test_rmse).
+        The average cross-validated marginal log-likelihood (val_mll) and root mean squared error (val_rmse)
+        corresponding to the best hyperparameters. Also, if test=True, the average test marginal log-likelihood
+        (test_ll) and test root mean squared error (test_rmse).
     """
     train_dataset = dataset.iloc[train_index, :]
 
@@ -617,20 +666,20 @@ def run_trial(
     prior_precision = study.best_params['prior_precision']
     noise_precision = study.best_params['noise_precision']
 
-    val_ll, val_rmse = objective.cross_validate(learning_rate, prior_precision, noise_precision)
+    val_mll, val_rmse = objective.cross_validate(learning_rate, prior_precision, noise_precision)
 
-    results = dict(val_ll=val_ll, val_rmse=val_rmse)
+    results = dict(val_mll=val_mll, val_rmse=val_rmse)
 
     if not test:
         return results
 
     objective.dataset = dataset
 
-    test_ll, test_rmse = objective.train_and_test(
+    test_mll, test_rmse = objective.train_and_test(
         train_index, test_index, learning_rate, prior_precision, noise_precision,
     )
 
-    results['test_ll'] = test_ll
+    results['test_mll'] = test_mll
     results['test_rmse'] = test_rmse
 
     return results

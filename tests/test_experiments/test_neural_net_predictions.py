@@ -22,7 +22,7 @@ from swafa.utils import get_weight_dimension
 
 class TestObjective:
 
-    def test_unnormalise_target(self):
+    def test_de_standardise_target(self):
         objective = _init_objective()
 
         y = torch.Tensor([1, 2, 3])
@@ -72,42 +72,63 @@ class TestObjective:
         assert var.shape == (n_rows,)
         assert (var > 0).all()
 
-    def test_compute_metrics(self):
+    def test_compute_rmse(self):
         objective = _init_objective(n_rows=3)
 
         y = torch.Tensor([1, 2, 3])
-        mu = torch.Tensor([2, 4, 0])
-        var = torch.Tensor([1, 2, 1])
+        y_pred = torch.Tensor([
+            [1, 3],
+            [6, 2],
+            [1, -1],
+        ])
 
-        expected_ll = np.mean(
-            [
-                -np.log(np.sqrt(var_i)) - np.log(np.sqrt(2 * np.pi)) - 0.5 * (y_i - mu_i) ** 2 / var_i
-                for y_i, mu_i, var_i in zip(y.numpy(), mu.numpy(), var.numpy())
-            ]
-        )
         expected_rmse = np.sqrt(14 / 3)
 
-        actual_ll, actual_rmse = objective.compute_metrics(y, mu, var)
+        actual_rmse = objective.compute_rmse(y, y_pred)
 
-        assert np.isclose(actual_ll, expected_ll)
+        assert isinstance(actual_rmse, float)
         assert np.isclose(actual_rmse, expected_rmse)
 
     @pytest.mark.parametrize(
-        "n_rows, n_columns, y_mean, y_scale",
+        "n_rows, n_bma_samples, noise_precision",
         [
-            (10, 3, 3, 5),
-            (20, 5, -2, 2),
+            (10, 10, 0.01),
+            (20, 30, 0.1),
+            (30, 100, 1),
         ]
     )
-    def test_test_model(self, n_rows, n_columns, y_mean, y_scale):
+    def test_compute_marginal_log_likelihood(self, n_rows, n_bma_samples, noise_precision):
+        objective = _init_objective(n_rows=n_rows, n_bma_samples=n_bma_samples)
+
+        y = torch.randn(n_rows)
+        y_preds = torch.randn((n_rows, n_bma_samples))
+        var = 1 / noise_precision
+
+        lls = -np.log(np.sqrt(var)) - np.log(np.sqrt(2 * np.pi)) - 0.5 * (y.unsqueeze(dim=1) - y_preds) ** 2 / var
+
+        expected_mll = torch.logsumexp(lls + np.log(1 / n_bma_samples), dim=1).mean().item()
+
+        actual_mll = objective.compute_marginal_log_likelihood(y, y_preds, noise_precision)
+
+        assert isinstance(actual_mll, float)
+        assert np.isclose(actual_mll, expected_mll)
+
+    @pytest.mark.parametrize(
+        "n_rows, n_columns, y_mean, y_scale, noise_precision",
+        [
+            (10, 3, 3, 5, 0.1),
+            (20, 5, -2, 2, 1),
+        ]
+    )
+    def test_test_model(self, n_rows, n_columns, y_mean, y_scale, noise_precision):
         objective = _init_objective(n_rows, n_columns)
         model, variational_callback = _init_model_and_callback(n_rows, n_columns)
         X = torch.randn(n_rows, n_columns)
         y = torch.randn(n_rows)
 
-        ll, rmse = objective.test_model(model, variational_callback, X, y, y_mean, y_scale)
+        mll, rmse = objective.test_model(model, variational_callback, X, y, y_mean, y_scale, noise_precision)
 
-        assert ll < np.inf
+        assert mll < np.inf
         assert rmse < np.inf
 
     def test_train_model(self):
@@ -183,11 +204,11 @@ class TestObjective:
         train_index = np.arange(30)
         test_index = np.arange(30, 40)
 
-        ll, rmse = objective.train_and_test(
+        mll, rmse = objective.train_and_test(
             train_index, test_index, learning_rate=1e-3, prior_precision=1e-1, noise_precision=1e-1,
         )
 
-        assert ll < np.inf
+        assert mll < np.inf
         assert rmse < np.inf
 
     @pytest.mark.parametrize("n_trials", [1, 3])
@@ -261,9 +282,9 @@ def test_run_trial(test):
 
     for results in two_trial_results:
         if test:
-            assert set(results.keys()) == {'val_ll', 'val_rmse', 'test_ll', 'test_rmse'}
+            assert set(results.keys()) == {'val_mll', 'val_rmse', 'test_mll', 'test_rmse'}
         else:
-            assert set(results.keys()) == {'val_ll', 'val_rmse'}
+            assert set(results.keys()) == {'val_mll', 'val_rmse'}
 
     for key, val in two_trial_results[0].items():
         assert np.isclose(val, two_trial_results[1][key])
@@ -301,9 +322,9 @@ def test_run_experiment(test):
         assert set(results.columns) == {'mean', 'se'}
 
         if test:
-            assert set(results.index) == {'val_ll', 'val_rmse', 'test_ll', 'test_rmse'}
+            assert set(results.index) == {'val_mll', 'val_rmse', 'test_mll', 'test_rmse'}
         else:
-            assert set(results.index) == {'val_ll', 'val_rmse'}
+            assert set(results.index) == {'val_mll', 'val_rmse'}
 
     assert np.isclose(two_experiment_results[0].values, two_experiment_results[1].values).all()
 
