@@ -80,7 +80,7 @@ neural_net_predictions:
   hidden_dims: null # same as https://arxiv.org/pdf/1811.04504.pdf
   hidden_activation_fn: 'relu' # same as https://arxiv.org/pdf/1811.04504.pdf
   data_split_random_seed: 1 # same as https://github.com/yaringal/DropoutUncertaintyExps/tree/master/UCI_Datasets
-  test: false
+  test: true
   n_train_test_splits: 20 # same as https://arxiv.org/pdf/1811.04504.pdf
   train_fraction: 0.9  # same as https://arxiv.org/pdf/1811.04504.pdf
   datasets: # same as https://github.com/aaronpmishkin/SLANG/tree/master/code/python/libs/vi_lib/experiments/uci
@@ -93,7 +93,7 @@ neural_net_predictions:
       learning_rate_range: [0.001, 0.01]
       prior_precision_range: [0.01, 10]
       noise_precision_range: [0.01, 1]
-      n_bma_samples: 10
+      n_bma_samples: 100
     yacht_hydrodynamics:
       latent_dim: 1
       n_gradients_per_update: 4
@@ -103,7 +103,7 @@ neural_net_predictions:
       learning_rate_range: [0.001, 0.01]
       prior_precision_range: [0.01, 10]
       noise_precision_range: [0.01, 1]
-      n_bma_samples: 10
+      n_bma_samples: 100
     concrete_strength:
       latent_dim: 1
       n_gradients_per_update: 4
@@ -113,7 +113,7 @@ neural_net_predictions:
       learning_rate_range: [0.001, 0.01]
       prior_precision_range: [0.01, 10]
       noise_precision_range: [0.01, 1]
-      n_bma_samples: 10
+      n_bma_samples: 100
     energy_efficiency:
       latent_dim: 1
       n_gradients_per_update: 4
@@ -123,4 +123,4 @@ neural_net_predictions:
       learning_rate_range: [0.001, 0.01]
       prior_precision_range: [0.01, 10]
       noise_precision_range: [0.01, 1]
-      n_bma_samples: 10
+      n_bma_samples: 100
