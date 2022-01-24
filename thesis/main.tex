@@ -1427,19 +1427,19 @@ Test metrics from VIFA and SLANG are given in Table \ref{table:neural_nets_uci} 
  			\hline
  			Metric & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\ [0.5ex] 
  			\hline\hline
-			MMLL 	& Energy Efficiency 	& $2.57 \pm 0.02$  	& $2.53 \pm 0.02$ 	& $ \pm $ \\ 
+			NMLL 	& Energy Efficiency 	& $2.57 \pm 0.02$  	& $2.53 \pm 0.02$ 	& $ \pm $ \\ 
 					& Boston Housing 	& $3.07 \pm 0.12$ 	& $2.66 \pm 0.06$ 	& $ \pm $ \\ 
-					& Concrete Strength & $3.77 \pm 0.02$ 	& $ \pm $ 	& $ \pm $ \\ 
- 					& Yacht Hydro. 		& $3.65 \pm 0.04$ 	& $ \pm $ 	& $ \pm $ \\
+					& Concrete Strength & $3.77 \pm 0.02$ 	& $3.34 \pm 0.01$ 	& $ \pm $ \\ 
+ 					& Yacht Hydro. 		& $3.65 \pm 0.04$ 	& $2.36 \pm 0.06$ 	& $ \pm $ \\
  			\hline
 			RMSE 	& Energy Efficiency 	& $3.07 \pm 0.06$  	& $2.90 \pm 0.06$ 	& $ \pm $ \\ 
 					& Boston Housing 	& $4.64 \pm 0.23$ 	& $3.64 \pm 0.23$ 	& $ \pm $ \\ 
-					& Concrete Strength & $10.34 \pm 0.15$ 	& $ \pm $ 	& $ \pm $ \\ 
- 					& Yacht Hydro. 		& $8.96 \pm 0.29$ 	& $ \pm $ 	& $ \pm $ 
+					& Concrete Strength & $10.34 \pm 0.15$ 	& $6.77 \pm 0.09$ 	& $ \pm $ \\ 
+ 					& Yacht Hydro. 		& $8.96 \pm 0.29$ 	& $2.51 \pm 0.09$ 	& $ \pm $ 
 					\\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Test results for prediction experiments with UCI regression datasets. Metrics are the mean marginal log-likelihood (MMLL) and root mean squared error (RMSE). LR and NN refer to linear regression and neural network, respectively. Average test metrics over 20 different train-test splits are given, along with standard errors.}
+		\caption{Test results for prediction experiments with UCI regression datasets. Metrics are the average negative marginal log-likelihood (NMLL) and root mean squared error (RMSE). LR and NN refer to linear regression and neural network, respectively. Average test metrics over 20 different train-test splits are given, along with standard errors.}
 		\label{table:neural_nets_uci}
 	\end{center}
 \end{table}
