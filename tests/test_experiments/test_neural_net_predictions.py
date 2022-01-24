@@ -104,9 +104,9 @@ class TestObjective:
         y_preds = torch.randn((n_rows, n_bma_samples))
         var = 1 / noise_precision
 
-        lls = -np.log(np.sqrt(var)) - np.log(np.sqrt(2 * np.pi)) - 0.5 * (y.unsqueeze(dim=1) - y_preds) ** 2 / var
+        likelihoods = (1 / np.sqrt(var * 2 * np.pi)) * torch.exp(-0.5 * ((y.unsqueeze(dim=1) - y_preds) ** 2 / var))
 
-        expected_mll = torch.logsumexp(lls + np.log(1 / n_bma_samples), dim=1).mean().item()
+        expected_mll = torch.log(likelihoods.mean(dim=1)).mean().item()
 
         actual_mll = objective.compute_marginal_log_likelihood(y, y_preds, noise_precision)
 
