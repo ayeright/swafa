@@ -19,7 +19,7 @@ online_fa_analysis:
   min_samples: 100
 
 linear_regression_vi:
-  testing: false
+  testing: true
   datasets:
     boston_housing:
       latent_dim: 3
