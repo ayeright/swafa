@@ -1419,23 +1419,23 @@ When computing these metrics, the Monte Carlo average size was set to $L=10$, as
 
 \subsubsection{Results and Discussion} 
 
-Test metrics from VIFA and SLANG are given in Table \ref{table:neural_nets_uci} (TODO: these are actually validation metrics for now - swap for test at the end). As well as the results for neural networks, prediction metrics for VIFA applied to linear regression are also given. 
+Test metrics for VIFA and SLANG are given in Table \ref{table:neural_nets_uci}. As well as the results for neural networks, prediction metrics for VIFA applied to linear regression are also given. The extremely poor results for VIFA in the case of the Energy Efficiency dataset were caused by a single trial which returned average test marginal log-likelihood of $4.04 \times 10^{8}$ and test RMSE of $2.84 \times 10^{4}$. Otherwise, these metrics would have been $1.22$ and $6.53$, respectively. 
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.13\linewidth} p{0.21\linewidth} p{0.15\linewidth} p{0.15\linewidth} p{0.23\linewidth} ||} 
+		\begin{tabular}{|| p{0.10\linewidth} p{0.21\linewidth} p{0.15\linewidth} p{0.15\linewidth} p{0.27\linewidth} ||} 
  			\hline
  			Metric & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\ [0.5ex] 
  			\hline\hline
-			NMLL 	& Energy Efficiency 	& $2.57 \pm 0.02$  	& $2.53 \pm 0.02$ 	& $ \pm $ \\ 
-					& Boston Housing 	& $3.07 \pm 0.12$ 	& $2.66 \pm 0.06$ 	& $ \pm $ \\ 
-					& Concrete Strength & $3.77 \pm 0.02$ 	& $3.34 \pm 0.01$ 	& $ \pm $ \\ 
- 					& Yacht Hydro. 		& $3.65 \pm 0.04$ 	& $2.36 \pm 0.06$ 	& $ \pm $ \\
+			NMLL 	& Energy Efficiency 	& $\mathbf{2.57 \pm 0.02}$ 	& $\mathbf{2.53 \pm 0.02}$ 	& $2.13 \times 10^{7} \pm 2.01 \times 10^{7}$ \\ 
+					& Boston Housing 	& $3.07 \pm 0.12$			& $\mathbf{2.66 \pm 0.06}$ 	& $\mathbf{2.73 \pm 0.06}$ \\ 
+					& Concrete Strength & $3.77 \pm 0.02$ 			& $\mathbf{3.34 \pm 0.01}$ 	& $\mathbf{3.32 \pm 0.03}$ \\ 
+ 					& Yacht Hydro. 		& $3.65 \pm 0.04$ 			& $2.36 \pm 0.06$ 			& $\mathbf{1.63 \pm 0.04}$ \\
  			\hline
-			RMSE 	& Energy Efficiency 	& $3.07 \pm 0.06$  	& $2.90 \pm 0.06$ 	& $ \pm $ \\ 
-					& Boston Housing 	& $4.64 \pm 0.23$ 	& $3.64 \pm 0.23$ 	& $ \pm $ \\ 
-					& Concrete Strength & $10.34 \pm 0.15$ 	& $6.77 \pm 0.09$ 	& $ \pm $ \\ 
- 					& Yacht Hydro. 		& $8.96 \pm 0.29$ 	& $2.51 \pm 0.09$ 	& $ \pm $ 
+			RMSE 	& Energy Efficiency 	& $3.07 \pm 0.06$  			& $\mathbf{2.90 \pm 0.06}$ 	& $1.50 \times 10^{3} \pm 1.42 \times 10^{3}$ \\ 
+					& Boston Housing 	& $4.64 \pm 0.23$ 			& $\mathbf{3.64 \pm 0.23}$ 	& $15.87 \pm 4.36$ \\ 
+					& Concrete Strength & $10.34 \pm 0.15$ 			& $\mathbf{6.77 \pm 0.09}$ 	& $22.27 \pm 6.64$ \\ 
+ 					& Yacht Hydro. 		& $8.96 \pm 0.29$ 			& $\mathbf{2.51 \pm 0.09}$ 	& $8.03 \pm 4.58$ 
 					\\ [1ex] 
 			\hline
 		\end{tabular}
