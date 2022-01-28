@@ -228,7 +228,13 @@ def test_aggregate_results():
     results = pd.DataFrame({'a': a, 'b': b})
 
     expected_aggregated_results = pd.DataFrame(
-        {'mean': [a.mean(), b.mean()], 'se': [stats.sem(a), stats.sem(b)]},
+        {
+            'mean': [a.mean(), b.mean()],
+            'se': [stats.sem(a), stats.sem(b)],
+            'median': [np.median(a), np.median(b)],
+            'max': [np.max(a), np.max(b)],
+            'min': [np.min(a), np.min(b)],
+        },
         index=['a', 'b'],
     )
 
@@ -293,11 +299,12 @@ def test_run_trial(test):
 @pytest.mark.parametrize("test", [True, False])
 def test_run_experiment(test):
     dataset = pd.DataFrame(np.random.randn(50, 3))
+    n_train_test_splits = 2
 
     two_experiment_results = [
         run_experiment(
             dataset=dataset,
-            n_train_test_splits=2,
+            n_train_test_splits=n_train_test_splits,
             train_fraction=0.8,
             n_hyperparameter_trials=2,
             n_cv_folds=2,
@@ -318,15 +325,26 @@ def test_run_experiment(test):
         for _ in range(2)
     ]
 
-    for results in two_experiment_results:
-        assert set(results.columns) == {'mean', 'se'}
+    for experiment_results in two_experiment_results:
+        results, agg_results = experiment_results
+
+        assert len(results) == n_train_test_splits
+        assert set(agg_results.columns) == {'mean', 'se', 'median', 'max', 'min'}
 
         if test:
-            assert set(results.index) == {'val_mll', 'val_rmse', 'test_mll', 'test_rmse'}
+            assert set(results.columns) == {'val_mll', 'val_rmse', 'test_mll', 'test_rmse', 'runtime'}
+            assert set(agg_results.index) == {'val_mll', 'val_rmse', 'test_mll', 'test_rmse', 'runtime'}
         else:
-            assert set(results.index) == {'val_mll', 'val_rmse'}
+            assert set(results.columns) == {'val_mll', 'val_rmse', 'runtime'}
+            assert set(agg_results.index) == {'val_mll', 'val_rmse', 'runtime'}
 
-    assert np.isclose(two_experiment_results[0].values, two_experiment_results[1].values).all()
+    first_results = two_experiment_results[0][0]
+    second_results = two_experiment_results[1][0]
+
+    columns = list(first_results.columns)
+    columns.remove('runtime')
+
+    assert np.isclose(first_results[columns].values, second_results[columns].values).all()
 
 
 def _init_objective(

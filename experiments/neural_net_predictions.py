@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+import time
 from typing import Dict, List, Optional
 import warnings
 
@@ -495,7 +496,7 @@ def run_experiment(
         hidden_activation_fn: Optional[torch.nn.Module] = None,
         data_split_random_seed: Optional[int] = None,
         test: bool = False,
-) -> pd.DataFrame:
+) -> (pd.DataFrame, pd.DataFrame):
     """
     Run several trials for different train/test splits of the dataset.
 
@@ -538,9 +539,14 @@ def run_experiment(
         test: Whether or not to compute test results.
 
     Returns:
-        The mean and standard error of the average cross-validated marginal log-likelihood (val_mll) and root mean
-        squared error (val_rmse) corresponding to the best hyperparameters. Also, if test=True, the mean and standard
-        error of the average test marginal log-likelihood (test_mll) and test root mean squared error (test_rmse).
+        results: The average cross-validated marginal log-likelihood (val_mll) and root mean squared error (val_rmse)
+            corresponding to the best hyperparameters as well as the runtime for each separate train-test split. Also,
+            if test=True, the test marginal log-likelihood (test_mll) and test root mean squared error (test_rmse) for
+            each train-test split will also be returned.
+        agg_results: The mean, standard error, median, max and min of the average cross-validated marginal
+            log-likelihood (val_mll) and root mean squared error (val_rmse) corresponding to the best hyperparameters,
+            as well as the runtime. Also, if test=True, the same metrics for the test marginal log-likelihood (test_mll)
+            and test root mean squared error (test_rmse) will also be returned.
     """
     np.random.seed(data_split_random_seed)
     train_test_indices = [train_test_split(dataset, train_fraction) for _ in range(n_train_test_splits)]
@@ -549,6 +555,8 @@ def run_experiment(
     for i, train_test in enumerate(train_test_indices):
         print(f'Running train/test split {i + 1} of {n_train_test_splits}...')
         train_index, test_index = train_test
+
+        start_time = time.time()
 
         trial_results = run_trial(
             dataset=dataset,
@@ -571,9 +579,16 @@ def run_experiment(
             test=test,
         )
 
+        end_time = time.time()
+        trial_results['runtime'] = end_time - start_time
+
         results.append(trial_results)
 
-    return aggregate_results(pd.DataFrame(results))
+    results = pd.DataFrame(results)
+
+    agg_results = aggregate_results(results)
+
+    return results, agg_results
 
 
 def run_trial(
@@ -714,13 +729,17 @@ def aggregate_results(results: pd.DataFrame) -> pd.DataFrame:
         results: Un-aggregated results, of shape (n_rows, n_columns).
 
     Returns:
-        Aggregated results, of shape (n_columns, 2). First column is the mean and second column is the standard error.
+        Aggregated results, of shape (n_columns, 5). Columns are the mean, standard error, media, max and min, and
+        indices are the columns of the input.
     """
     means = results.mean()
     standard_errors = results.sem()
+    medians = results.median()
+    maximums = results.max()
+    minimums = results.min()
 
-    agg_results = pd.concat([means, standard_errors], axis=1)
-    agg_results.columns = ['mean', 'se']
+    agg_results = pd.concat([means, standard_errors, medians, maximums, minimums], axis=1)
+    agg_results.columns = ['mean', 'se', 'median', 'max', 'min']
 
     return agg_results
 
@@ -741,7 +760,7 @@ def main(dataset_label: str, dataset_input_path: str, results_output_dir: str):
     dataset = pd.read_parquet(dataset_input_path)
 
     print(f'Running experiment for {dataset_label} dataset...')
-    results = run_experiment(
+    results, agg_results = run_experiment(
         dataset=dataset,
         n_train_test_splits=params['n_train_test_splits'],
         train_fraction=params['train_fraction'],
@@ -764,6 +783,7 @@ def main(dataset_label: str, dataset_input_path: str, results_output_dir: str):
 
     Path(results_output_dir).mkdir(parents=True, exist_ok=True)
     results.to_csv(os.path.join(results_output_dir, 'results.csv'))
+    agg_results.to_csv(os.path.join(results_output_dir, 'aggregate_results.csv'))
 
 
 if __name__ == '__main__':
