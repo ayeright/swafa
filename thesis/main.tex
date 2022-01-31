@@ -728,13 +728,11 @@ Having generated a FA model, observations were sampled according to Equation (\r
 
 Figure \ref{fig:fa_covar_distance} shows the relative distance between the true covariance matrix of each FA model and the corresponding estimated covariance matrix of each learning algorithm, as a function of the number of samples used to fit the approximate models. The distance between two matrices is measured by the Frobenius norm (also sometimes called the Euclidean norm) of the difference between the two matrices. The distance is then divided by the Frobenius norm of the true covariance matrix to get the relative distance. 
 
-In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[1, 10]$. When $D=100$ (top-left), online EM approximates the true covariance matrix better than online SGA when the number of samples, $T$, is less than $20,000$. For $T \geq 20,000$, the result are very close and the standard error bars overlap. Moreover, for $T \geq 50,000$, both online algorithms are on par with batch SVD. When $D=1000$ (top-right), online EM beats SGA for $T \geq 200$ and matches batch SVD when $T=100,000$. This is in contrast to SGA, which appears to get stuck after $T=20,000$ and does not decrease the distance any further. In the second row of the figure are the results corresponding to a spectrum range of $[1, 100]$. For both $D=100$ (middle-left) and $D=1000$ (middle-right), online EM outperforms SGA for $T \geq 200$. Both plots are similar in the sense that online EM initially decreases the distance quite dramatically, even to a greater extent that batch SVD, then the rate of improvement slows before it again catches up with batch SVD at $T=100,000$. In the third row of the figure are the results corresponding to a spectrum range of $[1, 1000]$. In this case, online EM is again superior to SGA. Up until $T=5000$ the results are similar to those in the second row of the figure. However, in this case online EM does not learn as efficiently as $T$ becomes large and in the end it is not able to match batch SVD.
+In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[1, 10]$. When $D=100$ (top-left), online EM approximates the true covariance matrix better than online SGA when the number of samples, $T$, is less than $20,000$. For $T \geq 20,000$, the result are very close and the standard error bars overlap. Moreover, for $T \geq 50,000$, both online algorithms are on par with batch SVD. When $D=1000$ (top-right), online EM beats SGA for $T \geq 200$ and matches batch SVD when $T=100,000$. This is in contrast to SGA, which appears to get stuck after $T=20,000$ and does not decrease the distance any further. In the second row of the figure are the results corresponding to a spectrum range of $[1, 100]$. For both $D=100$ (middle-left) and $D=1000$ (middle-right), online EM outperforms SGA for $T \geq 200$. Both plots are similar in the sense that online EM initially decreases the distance quite dramatically, even to a greater extent that batch SVD, then the rate of improvement slows before it again catches up with batch SVD at $T=100,000$. In the third row of the figure are the results corresponding to a spectrum range of $[1, 1000]$. In this case, online EM is again superior to SGA. Up until $T=5000$ the results are similar to those in the second row of the figure. However, in this case online EM does not learn as efficiently as $T$ becomes large and in the end it is not able to match batch SVD. 
 
-Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance (TODO: add formula and citation) between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size. The distance is scaled by dividing by observation dimension. Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the Wasserstein distance in this case is just a different measure of distance between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to the shape of the plots in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. 
+Figure \ref{fig:fa_wasserstein} in Appendix \ref{app:online_fa} shows equivalent results for the scaled 2-Wasserstein distance metric (TODO: add citation). Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the 2-Wasserstein distance is just a different measure of distance between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to those in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. Also in Appendix \ref{app:online_fa}, Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples.
 
 In summary, these results suggest that online EM is in general better at fitting FA models than online SGA, for all combinations of observation dimension, latent dimension, spectrum range and sample size. The SGA algorithm could possibly be improved by tuning its learning rate, or even using a learning rate scheduler. However, tuning hyperparameters is often a hassle and the fact that this is not required for online EM is another distinct advantage. Compared to batch SVD, the results achieved by online EM are almost identical when $T=100,000$, except when the spectrum range is equal to $[1, 1000]$. This case would appear to be more challenging for online EM due to the larger conditioning number of the covariance matrix. It appears to get stuck in a local minimum at around $T=1000$ and the rate of improvement only starts to increase again after $T=20,000$. Perhaps online EM would be able to catch batch SVD if more than $100,000$ samples were used. However, this would be an unreasonably high number of neural network parameter vectors to sample for the use case in this thesis. 
-
-Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples.  
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
@@ -755,25 +753,6 @@ Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the 
 	\label{fig:fa_covar_distance}
 \end{figure}
 
-
-\begin{figure}[!htbp] 
-	\begin{tabular}{cc}
-		\includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=10.png}
-		& \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10.png} \\
-		(a) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
-		 & (b) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt] 
-		 \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=100.png} 
-		 & \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=100.png} \\
-		 (c) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$ 
-		 & (d) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$\\[6pt]
-		 \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=1000.png} 
-		 & \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=1000.png} \\
-		 (e) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$ 
-		 & (f) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$\\[6pt]
-	\end{tabular}
-	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension. The blue, orange and green lines show the 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
-	\label{fig:fa_wasserstein}
-\end{figure}
 
 \subsection{Obtaining Samples from the Posterior}\label{sec:linear_regression_posterior_experiments}
 
@@ -855,20 +834,7 @@ Figure \ref{fig:linear_regression_pdfs} shows, for each combination of the hyper
 	\label{fig:linear_regression_pdfs}
 \end{figure}
 
-These results suggest that, in general, SGD does not sample parameter vectors from the true posterior distribution. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For certain values of $\lambda$ (but not the theoretically motivated one), the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected of the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely. Since the ground truth cannot be compute in closed form, hyperparameter tuning would be far more difficult. Therefore, contrary to what is claimed in \cite{maddox2019}, this suggest that SWAG does not actually do approximate Bayesian inference in general.
-
-It was also observed in \cite{mandt2017} that the empirical covariance of the linear regression SGD iterates does not match the true posterior covariance. As such, the authors proposed a different technique for posterior sampling called \emph{finite window iterate averaging}. Instead of using the individual parameter vectors sampled after each mini-batch update of SGD, this algorithm averages the parameter vectors in fixed-length disjoint windows. These average parameter vectors are then considered samples from the posterior. Figure \ref{fig:linear_regression_average_iterates} shows examples of such samples for the same learning rate and regularisation strength as that in Figure \ref{fig:linear_regression_pdfs} (b). The theoretical work in \cite{mandt2017} suggests that the window size should be set to the number of training examples divided by the batch size, so that all training examples are use to generate a single posterior sample. In these experiments this value is $1000 / 100 = 10$. However, this setting does not produce samples which are representative of the true posterior, as observed in Figure \ref{fig:linear_regression_average_iterates} (a). Better samples can be obtained by setting the batch size to 10 and the window size to 50, as shown in Figure \ref{fig:linear_regression_average_iterates} (b). Unfortunately, this result is not theoretically motivated and was only obtained after significant tuning of both the batch size and window size. In the case of non-linear neural networks for which the true posterior is not known, this would not be possible. Therefore, this algorithm does not seem to be a viable option in practice. 
-
-\begin{figure}[!htbp] 
-	\begin{tabular}{cc}
-		 \includegraphics[width=70mm]{plots/linear_model_average_weight_iterates__lr=0.1__lambda=0.001__batch_size=100__window_size=10.png}
-		 & \includegraphics[width=70mm]{plots/linear_model_average_weight_iterates__lr=0.1__lambda=0.001__batch_size=10__window_size=50.png} \\
-		 (a) Batch size of 100, window size of 10
-		 & (b) Batch size of 10, window size of 50 \\[6pt]
-	\end{tabular}
-	\caption{Samples constructed via finite window iterate averaging for different combinations of batch size and window size. Each red dot is the mean of a set of linear regression parameter vectors sampled during consecutive mini-batch updates of SGD, with a learning rate of 0.1 and the regularisation strength set to 0.001. The contours show the pdf of the true posterior distribution. The white dot denotes the pre-trained parameter vector and the black star is the empirical mean of the red dots.}
-	\label{fig:linear_regression_average_iterates}
-\end{figure}
+These results suggest that, in general, SGD does not sample parameter vectors from the true posterior distribution, and hence, SWAG does not actually do approximate Bayesian inference. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For certain values of $\lambda$ (but not the theoretically motivated one), the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected of the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely. Since the ground truth cannot be compute in closed form, hyperparameter tuning would be far more difficult. In Appendix \ref{app:sgd_iterates}, better samples of the true posterior were obtained using a technique called \emph{finite window iterate averaging} \cite{mandt2017}. However, this method requires knowledge of the covariance matrix of the true posterior, making it impractical in the case of neural networks.
 
 
 \chapter{Variational Inference for Neural Networks}
@@ -1307,21 +1273,24 @@ where $\mathcal{B}$ is a mini-batch of $M$ training examples and $f(\matr{x}; \t
 
 \subsubsection{Results and Discussion}
 
-Figure \ref{fig:posterior_energy_efficiency} shows a qualitative comparison of the true posterior of a linear regression model fit to the Energy Efficiency dataset and the approximate posterior learned by VIFA. Figures \ref{fig:posterior_boston_housing}, \ref{fig:posterior_concrete_strength} and \ref{fig:posterior_yacht_hydrodynamics} show the same comparison for the Boston Housing, Concrete Compressive Strength and Yacht Hydrodynamics datasets, respectively. Quantitative results are also given in Table \ref{table:linear_regression_vi_posterior_uci}.
+Figures \ref{fig:posterior_yacht_hydrodynamics} and \ref{fig:posterior_boston_housing} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Yacht Hydrodynamics and Boston Housing datasets, respectively. In the interest of space, qualitative comparisons for the Energy Efficiency and Concrete Compressive Strength datasets can be found in Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_strength} in Appendix \ref{app:uci_posterior}, along with quantitative results for all four datasets in Table \ref{table:linear_regression_vi_posterior_uci}.
 
-TODO: add discussion once we add test results
+
+
+
+
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{c}
-		\includegraphics[width=140mm]{plots/energy_efficiency_posterior_mean.png} \\
+		\includegraphics[width=140mm]{plots/yacht_hydrodynamics_posterior_mean.png} \\
 		(a) Comparison of true and estimated posterior means \\[6pt] 
-		 \includegraphics[width=140mm]{plots/energy_efficiency_posterior_variance.png} \\
+		 \includegraphics[width=140mm]{plots/yacht_hydrodynamics_posterior_variance.png} \\
 		(b) Comparison of true and estimated posterior variances \\[6pt] 
-		\includegraphics[width=140mm]{plots/energy_efficiency_posterior_covariance.png} \\
+		\includegraphics[width=140mm]{plots/yacht_hydrodynamics_posterior_covariance.png} \\
 		(c) Comparison of true and estimated posterior covariances \\[6pt] 
 	\end{tabular}
-	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Energy Efficiency dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
-	\label{fig:posterior_energy_efficiency}
+	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Yacht Hydrodynamics dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
+	\label{fig:posterior_yacht_hydrodynamics}
 \end{figure}
 
 \begin{figure}[!htbp] 
@@ -1337,53 +1306,6 @@ TODO: add discussion once we add test results
 	\label{fig:posterior_boston_housing}
 \end{figure}
 
-\begin{figure}[!htbp] 
-	\begin{tabular}{c}
-		\includegraphics[width=140mm]{plots/concrete_strength_posterior_mean.png} \\
-		(a) Comparison of true and estimated posterior means \\[6pt] 
-		 \includegraphics[width=140mm]{plots/concrete_strength_posterior_variance.png} \\
-		(b) Comparison of true and estimated posterior variances \\[6pt] 
-		\includegraphics[width=140mm]{plots/concrete_strength_posterior_covariance.png} \\
-		(c) Comparison of true and estimated posterior covariances \\[6pt] 
-	\end{tabular}
-	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Concrete Compressive Strength dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
-	\label{fig:posterior_concrete_strength}
-\end{figure} 
-
-\begin{figure}[!htbp] 
-	\begin{tabular}{c}
-		\includegraphics[width=140mm]{plots/yacht_hydrodynamics_posterior_mean.png} \\
-		(a) Comparison of true and estimated posterior means \\[6pt] 
-		 \includegraphics[width=140mm]{plots/yacht_hydrodynamics_posterior_variance.png} \\
-		(b) Comparison of true and estimated posterior variances \\[6pt] 
-		\includegraphics[width=140mm]{plots/yacht_hydrodynamics_posterior_covariance.png} \\
-		(c) Comparison of true and estimated posterior covariances \\[6pt] 
-	\end{tabular}
-	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Yacht Hydrodynamics dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
-	\label{fig:posterior_yacht_hydrodynamics}
-\end{figure}
-
-
-\begin{table}[h!]
-	\begin{center}
-		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
- 			\hline
- 			Dataset & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
- 			\hline\hline
-			Energy Efficiency 	& 0.0051 	& 0.0421 & 0.0564 \\ 
-			\hline
-			Boston Housing 	& 0.0262 	& 0.3185 & 0.0468 \\ 
-			\hline
-			Concrete Strength 	& 0.0047 	& 0.0840 & 0.0278 \\ 
-			\hline
- 			Yacht Hydro. 		& 0.0435 	& 0.0391 & 0.1210 \\ [1ex] 
-			\hline
-		\end{tabular}
-		\caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the number of dimensions in the dataset.}
-		\label{table:linear_regression_vi_posterior_uci}
-	\end{center}
-\end{table}
-
 
 \subsection{Neural Network Predictions}
 
@@ -1391,7 +1313,7 @@ Given the encouraging results achieved by VIFA when applied to linear regression
 
 \subsubsection{Methodology}
 
-The setup for the experiments largely followed the methodology adopted by the authors of SLANG \cite{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set. The hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration to estimate the marginal log-likelihood. However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ were sampled log-uniformly from $[0.01, 0.02]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. To improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$ and Monte Carlo average size $L=4$.  Before each training run, the features and target were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation. Although in Algorithm \ref{alg:vi_fa} vanilla SGD is shown to optimise the parameters of the approximate posterior, in this case the Adam optimiser \cite{kingma2014} was used to perform the gradient updates.
+The setup for the experiments largely followed the methodology adopted by the authors of SLANG \cite{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set. The hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration to estimate the marginal log-likelihood. However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ were sampled log-uniformly from $[0.01, 0.02]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. To improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$ and Monte Carlo average size $L=4$. Although vanilla SGD is employed in Algorithm \ref{alg:vi_fa}, a whole host of gradient optimisers can be used in conjunction with VIFA. In this case, the Adam optimiser \cite{kingma2014} was used to perform the gradient updates. Before each training run, the features and target were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation.
 
 While training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
 \begin{equation}\label{eqn:train_nll}
@@ -1413,40 +1335,55 @@ where $\mathcal{D}$ is the training data and $p(\theta | \alpha, \beta, \mathcal
 	& = \log \Bigg( \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) - \log L,
 \end{split}
 \end{align}
-where $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity was averaged over the full test set to get the average approximate marginal log-likelihood. In addition, the test root mean squared error (RMSE) was also computed, where the squared error of a single test example is
+where $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity was averaged over the full test set to approximate the average marginal log-likelihood. In addition, the test root mean squared error (RMSE) was also computed, where the squared error of a single test example is
 \begin{equation}
 	\Bigg(y - \frac{1}{L} \sum_{l=1}^L f(\matr{x}; \theta_l)\Bigg)^2.
 \end{equation}
-When computing these metrics, the Monte Carlo average size was set to $L=10$, as in SLANG. Finally, the same experiments were re-run for SLANG\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some minor adjustments to their original setup to allow for a fairer comparison with VIFA. In particular, the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to match those of VIFA. 
+When computing these metrics, the Monte Carlo average size was set to $L=100$. The same experiments were re-run for SLANG\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some minor adjustments to the authors' original setup to allow for a fairer comparison with VIFA. In particular, the Monte Carlo average size when testing and the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to match those of VIFA. Finally, the VIFA experiments were also run for linear regression models. The only difference being that the hyperparameter range for the learning rate $\eta$ was set to $[0.001, 0.01]$, as this appeared to work better that $[0.01, 0.02]$ during some initial cross-validation runs. 
 
 
 \subsubsection{Results and Discussion} 
 
-Test metrics for VIFA and SLANG are given in Table \ref{table:neural_nets_uci}. As well as the results for neural networks, prediction metrics for VIFA applied to linear regression are also given. The extremely poor results for VIFA in the case of the Energy Efficiency dataset were caused by a single trial which returned average test marginal log-likelihood of $4.04 \times 10^{8}$ and test RMSE of $2.84 \times 10^{4}$. Otherwise, these metrics would have been $1.22$ and $6.53$, respectively. 
+Test metrics for VIFA and SLANG, which were aggregated over the 20 train-test splits, are given in Table \ref{table:neural_nets_uci}. In terms of negative marginal log-likelihood (NMLL), neither algorithm is better than the other on all datasets. For Boston Housing and Concrete Compressive Strength, the mean results for neural networks are essentially the same when standard errors are taken into account. SLANG achieves lower mean NMLL on Yacht Hydrodynamics, but performs extremely poorly on Energy Efficiency with respect to the same metric. It is worth noting that this was caused by a single trial which returned NMLL of $4.04 \times 10^{8}$. This outlier does not affect the median NMLL, which is actually lower than the equivalent value for VIFA. As for mean RMSE, VIFA is the best algorithm on all datasets by some distance. However, SLANG is better on Energy Efficiency and Yacht Hydrodynamics with respect to the median RMSE. The standard errors on the RMSE show that VIFA is very consistent on different train-test splits, whereas the performance of SLANG varies substantially, especially in the case of Energy Efficiency which returned a value of $2.84 \times 10^{4}$ in one trial.  One clear advantage that VIFA has over SLANG is speed. In all experiments involving neural networks, the average runtime of VIFA is roughly half that of SLANG. VIFA generally runs slightly faster when learning a linear regression posterior (although, surprisingly, not in the case of Yacht Hydrodynamics). However, the NMLL and RMSE results indicate that there are non-linear relationships in the datasets which are better captured by the neural network. 
+
+In summary, the choice between VIFA and SLANG depends on the dataset and evaluation metric. VIFA, though, has the advantage of being more efficient and appears less sensitive to variations in the training and test data. 
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.10\linewidth} p{0.21\linewidth} p{0.15\linewidth} p{0.15\linewidth} p{0.27\linewidth} ||} 
+		\begin{tabular}{|| p{0.10\linewidth} p{0.10\linewidth} p{0.10\linewidth}  p{0.15\linewidth} p{0.15\linewidth} p{0.27\linewidth} ||} 
  			\hline
- 			Metric & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\ [0.5ex] 
+ 			Metric & Statistic & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\ [0.5ex] 
  			\hline\hline
-			NMLL 	& Energy Efficiency 	& $\mathbf{2.57 \pm 0.02}$ 	& $\mathbf{2.53 \pm 0.02}$ 	& $2.13 \times 10^{7} \pm 2.01 \times 10^{7}$ \\ 
-					& Boston Housing 	& $3.07 \pm 0.12$			& $\mathbf{2.66 \pm 0.06}$ 	& $\mathbf{2.73 \pm 0.06}$ \\ 
-					& Concrete Strength & $3.77 \pm 0.02$ 			& $\mathbf{3.34 \pm 0.01}$ 	& $\mathbf{3.32 \pm 0.03}$ \\ 
- 					& Yacht Hydro. 		& $3.65 \pm 0.04$ 			& $2.36 \pm 0.06$ 			& $\mathbf{1.63 \pm 0.04}$ \\
+			NMLL 	& Mean 	& Energy 		& $\mathbf{2.57 \pm 0.02}$ 	& $\mathbf{2.53 \pm 0.02}$ 	& $2.13 \times 10^{7} \pm 2.01 \times 10^{7}$ \\ 	
+					&   		& Boston   	& $3.07 \pm 0.12$			& $\mathbf{2.66 \pm 0.06}$ 	& $\mathbf{2.73 \pm 0.06}$ \\ 			
+					&   		& Concrete	& $3.77 \pm 0.02$ 			& $\mathbf{3.34 \pm 0.01}$ 	& $\mathbf{3.32 \pm 0.03}$ \\ 			
+ 					&  		& Yacht    		& $3.65 \pm 0.04$ 			& $2.36 \pm 0.06$ 			& $\mathbf{1.63 \pm 0.04}$ \\
+					
+					
+					& Median	& Energy 		& $2.57$ 					& $2.54$ 					& $\mathbf{1.19}$ \\ 
+					& 		& Boston 		& $2.88$	 				& $\mathbf{2.65}$ 			& $2.68$ \\
+					& 		& Concrete 	& $3.76$ 					& $3.33$ 					& $\mathbf{3.32}$ \\ 
+					& 		& Yacht 		& $3.62$ 					& $2.38$ 					& $\mathbf{1.59}$ \\
  			\hline
-			RMSE 	& Energy Efficiency 	& $3.07 \pm 0.06$  			& $\mathbf{2.90 \pm 0.06}$ 	& $1.50 \times 10^{3} \pm 1.42 \times 10^{3}$ \\ 
-					& Boston Housing 	& $4.64 \pm 0.23$ 			& $\mathbf{3.64 \pm 0.23}$ 	& $15.87 \pm 4.36$ \\ 
-					& Concrete Strength & $10.34 \pm 0.15$ 			& $\mathbf{6.77 \pm 0.09}$ 	& $22.27 \pm 6.64$ \\ 
- 					& Yacht Hydro. 		& $8.96 \pm 0.29$ 			& $\mathbf{2.51 \pm 0.09}$ 	& $8.03 \pm 4.58$ 
-					\\ [1ex] 
+			RMSE 	& Mean	& Energy 	 	& $3.07 \pm 0.06$  			& $\mathbf{2.90 \pm 0.06}$ 	& $1.50 \times 10^{3} \pm 1.42 \times 10^{3}$ \\ 
+					& 		& Boston 	 	& $4.64 \pm 0.23$ 			& $\mathbf{3.64 \pm 0.23}$ 	& $15.87 \pm 4.36$ \\ 
+					& 		& Concrete  	& $10.34 \pm 0.15$ 			& $\mathbf{6.77 \pm 0.09}$ 	& $22.27 \pm 6.64$ \\ 
+ 					& 		& Yacht 		& $8.96 \pm 0.29$ 			& $\mathbf{2.51 \pm 0.09}$ 	& $8.03 \pm 4.58$ \\ 
+				 	& Median	& Energy  		& $3.04$ 					& $2.93$ 					& $\mathbf{1.19}$ \\ 
+					& 		& Boston  		& $4.31$ 					& $\mathbf{3.51}$ 			& $6.47$ \\ 
+					& 		& Concrete  	& $10.27$ 				& $\mathbf{6.77}$ 			& $9.03$ \\ 
+ 					& 		& Yacht  		& $9.07$ 					& $2.59$ 					& $\mathbf{1.21}$ \\ 
+			\hline			
+			Runtime 	& Mean	& Energy 	 	& $\mathbf{22.10}$   		& $22.59$  				& $40.38$  \\ 
+			(minutes)	&		& Boston 	 	& $\mathbf{14.78}$			& $16.18$					& $32.97$ \\ 
+					&		& Concrete 	& $\mathbf{25.23}$			& $28.41$					& $52.31$ \\ 
+ 					&		& Yacht 		& $11.78$					& $\mathbf{11.58}$			& $20.61$\\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{Test results for prediction experiments with UCI regression datasets. Metrics are the average negative marginal log-likelihood (NMLL) and root mean squared error (RMSE). LR and NN refer to linear regression and neural network, respectively. Average test metrics over 20 different train-test splits are given, along with standard errors.}
+		\caption{Test results for prediction experiments with UCI regression datasets. Metrics are the average negative marginal log-likelihood (NMLL) and root mean squared error (RMSE). LR and NN refer to linear regression and neural network, respectively. The  results were aggregated over 20 different train-test splits. The mean results for NMLL and RMSE include standard errors. The runtime refers to the total runtime for a single train-test split. That is, 30 rounds of 5-fold cross-validation on the training set followed by fitting the best model to the full training set and evaluating on the test set. The best results on each row are highlighted in bold.}
 		\label{table:neural_nets_uci}
 	\end{center}
 \end{table}
-
 
 
 \chapter{Conclusions}
@@ -1474,9 +1411,28 @@ usual late penalties based on your final submission time.
 
  \chapter{Supplementary Results}
  
- \section{Online Factor Analysis}
+ \section{Online Factor Analysis}\label{app:online_fa}
  
-Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples. 
+Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size as Figure \ref{fig:fa_covar_distance}. The distance is scaled by dividing by observation dimension. Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples. 
+
+\begin{figure}[!htbp] 
+	\begin{tabular}{cc}
+		\includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=10.png}
+		& \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=10.png} \\
+		(a) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$ 
+		 & (b) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 10)$\\[6pt] 
+		 \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=100.png} 
+		 & \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=100.png} \\
+		 (c) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$ 
+		 & (d) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 100)$\\[6pt]
+		 \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=1000.png} 
+		 & \includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=1000__latent_dim=10__spectrum_min=1__spectrum_max=1000.png} \\
+		 (e) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$ 
+		 & (f) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$\\[6pt]
+	\end{tabular}
+	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension. The blue, orange and green lines show the 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
+	\label{fig:fa_wasserstein}
+\end{figure}
  
 \begin{table}[h!]
 	\begin{center}
@@ -1519,26 +1475,71 @@ Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the 
 \end{table}
 
 
-% \section{Linear Regression Predictions}\label{appendix:linear_regression_predictions}
-% 
-% Table \ref{table:linear_regression_mse} contains the same results as Figure \ref{fig:linear_regression_mse}, but in tabular format.  
-% 
-% \begin{table}[h!]
-%	\begin{center}
-%		\begin{tabular}{|| p{0.21\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} p{0.16\linewidth} ||} 
-% 			\hline
-% 			Dataset & Pre-trained & SWA & SGA-FA & EM-FA \\ [0.5ex] 
-% 			\hline\hline
-%			Energy Efficiency & $10.13 \pm 0.55$ & $8.74 \pm 0.54$ & $8.93 \pm 0.53$ & $\bf{8.73 \pm 0.54}$ \\
-%			Boston Housing & $23.69 \pm 2.25$ & $\bf{23.27 \pm 2.07}$ & $23.69 \pm 2.06$ & $23.46 \pm 2.06$ \\
-%			Concrete Strength & $112.44 \pm 6.93$ & $109.83 \pm 6.44$ & $109.84 \pm 6.30$ & $\bf{109.79 \pm 6.41}$ \\
-%			Yacht Hydro. & $\bf{82.43 \pm 7.28}$ & $82.54 \pm 7.27$ & $83.35 \pm 7.78$ & $82.83 \pm 7.42$ \\ [1ex] 
-%			\hline
-%		\end{tabular}
-%		\caption{Average test mean squared error of linear regression models on four UCI regression datasets. Results are show for four different prediction methods: using the pre-trained parameter vector (second column), using the SWA solution (third column) and two ensembles formed by sampling parameter vectors from FA models fit to the SGD iterates, one via online SGA (fourth column) and another learned via online EM (fifth column). Results are average over ten folds of cross-validation, and standard errors are also given. Bold text highlights the lowest average error for each dataset, without taking into account the standard errors.}
-%		\label{table:linear_regression_mse}
-%	\end{center}
-%\end{table}
+ \section{Finite Window Iterate Averaging}\label{app:sgd_iterates}
+ 
+In the experiments in Section \ref{sec:linear_regression_posterior_experiments}, it was not possible to obtain representative linear regression posterior samples from the SGD iterates. It was also observed in \cite{mandt2017} that the empirical covariance of the linear regression SGD iterates does not match the true posterior covariance. As such, the authors proposed a different technique for posterior sampling called \emph{finite window iterate averaging}. Instead of using the individual parameter vectors sampled after each mini-batch update of SGD, this algorithm averages the parameter vectors in fixed-length disjoint windows. These average parameter vectors are then considered samples from the posterior. Figure \ref{fig:linear_regression_average_iterates} shows examples of such samples for the same learning rate and regularisation strength as that in Figure \ref{fig:linear_regression_pdfs} (b). The theoretical work in \cite{mandt2017} suggests that the window size should be set to the number of training examples divided by the batch size, so that all training examples are use to generate a single posterior sample. In these experiments this value is $1000 / 100 = 10$. However, this setting does not produce samples which are representative of the true posterior, as observed in Figure \ref{fig:linear_regression_average_iterates} (a). Better samples can be obtained by setting the batch size to 10 and the window size to 50, as shown in Figure \ref{fig:linear_regression_average_iterates} (b). Unfortunately, this result is not theoretically motivated and was only obtained after significant tuning of both the batch size and window size. In the case of non-linear neural networks for which the true posterior is not known, this would not be possible. Therefore, this algorithm does not seem to be a viable option in practice. 
+
+\begin{figure}[!htbp] 
+	\begin{tabular}{cc}
+		 \includegraphics[width=70mm]{plots/linear_model_average_weight_iterates__lr=0.1__lambda=0.001__batch_size=100__window_size=10.png}
+		 & \includegraphics[width=70mm]{plots/linear_model_average_weight_iterates__lr=0.1__lambda=0.001__batch_size=10__window_size=50.png} \\
+		 (a) Batch size of 100, window size of 10
+		 & (b) Batch size of 10, window size of 50 \\[6pt]
+	\end{tabular}
+	\caption{Samples constructed via finite window iterate averaging for different combinations of batch size and window size. Each red dot is the mean of a set of linear regression parameter vectors sampled during consecutive mini-batch updates of SGD, with a learning rate of 0.1 and the regularisation strength set to 0.001. The contours show the pdf of the true posterior distribution. The white dot denotes the pre-trained parameter vector and the black star is the empirical mean of the red dots.}
+	\label{fig:linear_regression_average_iterates}
+\end{figure}
+
+
+\section{UCI Posterior Estimation}\label{app:uci_posterior}
+
+Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_strength} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative results for all four UCI datasets. 
+
+\begin{figure}[!htbp] 
+	\begin{tabular}{c}
+		\includegraphics[width=140mm]{plots/energy_efficiency_posterior_mean.png} \\
+		(a) Comparison of true and estimated posterior means \\[6pt] 
+		 \includegraphics[width=140mm]{plots/energy_efficiency_posterior_variance.png} \\
+		(b) Comparison of true and estimated posterior variances \\[6pt] 
+		\includegraphics[width=140mm]{plots/energy_efficiency_posterior_covariance.png} \\
+		(c) Comparison of true and estimated posterior covariances \\[6pt] 
+	\end{tabular}
+	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Energy Efficiency dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
+	\label{fig:posterior_energy_efficiency}
+\end{figure}
+
+\begin{figure}[!htbp] 
+	\begin{tabular}{c}
+		\includegraphics[width=140mm]{plots/concrete_strength_posterior_mean.png} \\
+		(a) Comparison of true and estimated posterior means \\[6pt] 
+		 \includegraphics[width=140mm]{plots/concrete_strength_posterior_variance.png} \\
+		(b) Comparison of true and estimated posterior variances \\[6pt] 
+		\includegraphics[width=140mm]{plots/concrete_strength_posterior_covariance.png} \\
+		(c) Comparison of true and estimated posterior covariances \\[6pt] 
+	\end{tabular}
+	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Concrete Compressive Strength dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
+	\label{fig:posterior_concrete_strength}
+\end{figure} 
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
+ 			\hline
+ 			Dataset & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
+ 			\hline\hline
+			Energy Efficiency 	& 0.0051 	& 0.0421 & 0.0564 \\ 
+			\hline
+			Boston Housing 	& 0.0262 	& 0.3185 & 0.0468 \\ 
+			\hline
+			Concrete Strength 	& 0.0047 	& 0.0840 & 0.0278 \\ 
+			\hline
+ 			Yacht Hydro. 		& 0.0435 	& 0.0391 & 0.1210 \\ [1ex] 
+			\hline
+		\end{tabular}
+		\caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the number of dimensions in the dataset.}
+		\label{table:linear_regression_vi_posterior_uci}
+	\end{center}
+\end{table}
 
 
 
