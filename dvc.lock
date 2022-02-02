@@ -4,13 +4,20 @@ stages:
     cmd: python experiments/online_fa.py --results-output-path experiments/data/online_fa_results.parquet
     deps:
     - path: experiments/online_fa.py
-      md5: 9132c1a9a71e54e51569b6292a5cb74f
-      size: 31007
+      md5: 592189a4c6309263178e258157fedda4
+      size: 25441
+    - path: experiments/utils/factory.py
+      md5: 062bd0552c5a78324118a678ff844ce1
+      size: 92
+    - path: experiments/utils/metrics.py
+      md5: 2d474dd7f665dbbb7a2dca3deedf628c
+      size: 4354
     - path: swafa/fa.py
-      md5: cc1b7a6b51d948518febb978d5ecf7dc
-      size: 15158
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
     params:
       params.yaml:
+        online_fa.em_warm_up_time_steps: 100
         online_fa.experiments:
         - observation_dim: 100
           latent_dim: 10
@@ -48,6 +55,22 @@ stages:
           latent_dim: 10
           spectrum_range:
           - 1
+          - 1000
+          n_samples:
+          - 100
+          - 200
+          - 500
+          - 1000
+          - 2000
+          - 5000
+          - 10000
+          - 20000
+          - 50000
+          - 100000
+        - observation_dim: 100
+          latent_dim: 10
+          spectrum_range:
+          - 1
           - 10000
           n_samples:
           - 100
@@ -96,6 +119,22 @@ stages:
           latent_dim: 10
           spectrum_range:
           - 1
+          - 1000
+          n_samples:
+          - 100
+          - 200
+          - 500
+          - 1000
+          - 2000
+          - 5000
+          - 10000
+          - 20000
+          - 50000
+          - 100000
+        - observation_dim: 1000
+          latent_dim: 10
+          spectrum_range:
+          - 1
           - 10000
           n_samples:
           - 100
@@ -108,26 +147,790 @@ stages:
           - 20000
           - 50000
           - 100000
+        online_fa.gradient_optimiser: sgd
         online_fa.gradient_optimiser_kwargs:
           lr: 0.001
-        online_fa.init_factors_noise_std: 0.1
+        online_fa.gradient_warm_up_time_steps: 100
         online_fa.n_trials: 10
     outs:
     - path: experiments/data/online_fa_results.parquet
-      md5: 9cafc516965c6fe515ef3c70640dd889
-      size: 69603
+      md5: 8417706dd3592f5d8ed642dd61349827
+      size: 47803
   online_fa_analysis:
     cmd: python experiments/online_fa_analysis.py --results-input-path experiments/data/online_fa_results.parquet
       --analysis-output-dir experiments/data/online_fa_analysis
     deps:
     - path: experiments/data/online_fa_results.parquet
-      md5: 9cafc516965c6fe515ef3c70640dd889
-      size: 69603
+      md5: 8417706dd3592f5d8ed642dd61349827
+      size: 47803
     - path: experiments/online_fa_analysis.py
-      md5: 4027da8154524acd632d7791b7ea2067
-      size: 11850
+      md5: d8ffda8b4413e1d420fe33c101354a50
+      size: 10380
+    params:
+      params.yaml:
+        online_fa_analysis.min_samples: 100
     outs:
     - path: experiments/data/online_fa_analysis
-      md5: 033ed88ff767021e636a8db14f59ba54.dir
-      size: 1685455
-      nfiles: 36
+      md5: c32c8762db06e31191ea5afb4a7b8fd9.dir
+      size: 1264432
+      nfiles: 32
+  download_uci_datasets:
+    cmd: python experiments/uci_datasets.py --boston-housing-output-path experiments/data/uci_datasets/boston_housing.parquet
+      --yacht-hydrodynamics-output-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
+      --concrete-strength-output-path experiments/data/uci_datasets/concrete_strength.parquet
+      --energy-efficiency-output-path experiments/data/uci_datasets/energy_efficiency.parquet
+    deps:
+    - path: experiments/uci_datasets.py
+      md5: fa72ae41ab61e860c852afd5e630f2eb
+      size: 5251
+    outs:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+  linear_models:
+    cmd: python experiments/linear_models.py --boston-housing-input-path experiments/data/uci_datasets/boston_housing.parquet
+      --yacht-hydrodynamics-input-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
+      --concrete-strength-input-path experiments/data/uci_datasets/concrete_strength.parquet
+      --energy-efficiency-input-path experiments/data/uci_datasets/energy_efficiency.parquet
+      --results-output-path experiments/data/linear_models_results.parquet
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_models.py
+      md5: b19d9a52968caf1ac0061417d4686f45
+      size: 52699
+    - path: experiments/utils/callbacks.py
+      md5: 1ca303cc4d541248c9e87220efc9b0cf
+      size: 16586
+    - path: experiments/utils/factory.py
+      md5: 062bd0552c5a78324118a678ff844ce1
+      size: 92
+    - path: experiments/utils/metrics.py
+      md5: be90d358799f9bb27b82498068d55d96
+      size: 3788
+    - path: swafa/callbacks.py
+      md5: fee1e2977e514c342e665df05f930dcf
+      size: 4071
+    - path: swafa/fa.py
+      md5: ea32f65c4195eca8a1145573bd8afbd5
+      size: 15218
+    - path: swafa/models.py
+      md5: 8deca862d37e266c5dc1e3b2cf5fa592
+      size: 8685
+    - path: swafa/posterior.py
+      md5: aa4367171d1bc58dbdc1d3e2c8041d69
+      size: 2858
+    params:
+      params.yaml:
+        linear_models.batch_size: 32
+        linear_models.em_warm_up_time_steps: 100
+        linear_models.gradient_optimiser: sgd
+        linear_models.gradient_optimiser_kwargs:
+          lr: 0.001
+        linear_models.gradient_warm_up_time_steps: 100
+        linear_models.max_latent_dim: 3
+        linear_models.min_latent_dim: 3
+        linear_models.model_optimiser: sgd
+        linear_models.model_optimiser_kwargs:
+          lr: 0.1
+        linear_models.n_epochs: 1000
+        linear_models.n_trials: 10
+        linear_models.posterior_eval_epoch_frequency: 50
+        linear_models.posterior_update_epoch_start: 1
+        linear_models.precision_scaling_factor: 0.01
+    outs:
+    - path: experiments/data/linear_models_results.parquet
+      md5: 300535007643a99e571d54478bd909ba
+      size: 124885
+  linear_models_analysis:
+    cmd: python experiments/linear_models_analysis.py --results-input-path experiments/data/linear_models_results.parquet
+      --analysis-output-dir experiments/data/linear_models_analysis
+    deps:
+    - path: experiments/data/linear_models_results.parquet
+      md5: 6a2f7ef966ad14eb100d9d827d1bd0b6
+      size: 314708
+    - path: experiments/linear_models_analysis.py
+      md5: 522f5aeb68d3d18546f5431e20b25ae9
+      size: 14817
+    outs:
+    - path: experiments/data/linear_models_analysis
+      md5: 28bba34ed067cf592f3f5ee5a9b7720f.dir
+      size: 2088357
+      nfiles: 32
+  linear_regression_predictions:
+    cmd: python experiments/linear_regression_predictions.py --boston-housing-input-path
+      experiments/data/uci_datasets/boston_housing.parquet --yacht-hydrodynamics-input-path
+      experiments/data/uci_datasets/yacht_hydrodynamics.parquet --concrete-strength-input-path
+      experiments/data/uci_datasets/concrete_strength.parquet --energy-efficiency-input-path
+      experiments/data/uci_datasets/energy_efficiency.parquet --results-output-path
+      experiments/data/linear_regression_predictions_results.parquet
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_regression_predictions.py
+      md5: c9a175f542a04d21b26d049baeaae6de
+      size: 32841
+    - path: experiments/utils/factory.py
+      md5: 062bd0552c5a78324118a678ff844ce1
+      size: 92
+    - path: experiments/utils/metrics.py
+      md5: 22180b572f454b4ac25d5e990a683da4
+      size: 4347
+    - path: swafa/callbacks.py
+      md5: 7e3a06e1359edaaa02143002c96a6537
+      size: 6272
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 8deca862d37e266c5dc1e3b2cf5fa592
+      size: 8685
+    - path: swafa/posterior.py
+      md5: aa4367171d1bc58dbdc1d3e2c8041d69
+      size: 2858
+    params:
+      params.yaml:
+        linear_regression_predictions.em_warm_up_time_steps: 100
+        linear_regression_predictions.gradient_optimiser: sgd
+        linear_regression_predictions.gradient_optimiser_kwargs:
+          lr: 0.001
+        linear_regression_predictions.gradient_warm_up_time_steps: 100
+        linear_regression_predictions.latent_dim: 3
+        linear_regression_predictions.lr_pretrain: 0.001
+        linear_regression_predictions.lr_swa: 0.1
+        linear_regression_predictions.n_batches_per_epoch: 10
+        linear_regression_predictions.n_epochs_pretrain: 500
+        linear_regression_predictions.n_epochs_swa: 100
+        linear_regression_predictions.n_folds: 10
+        linear_regression_predictions.n_posterior_samples: 30
+        linear_regression_predictions.weight_decay: 0.001
+    outs:
+    - path: experiments/data/linear_regression_predictions_results.parquet
+      md5: e6e51a294e045ca2f437db0d55d420f8
+      size: 14605
+  linear_regression_predictions_analysis:
+    cmd: python experiments/linear_regression_predictions_analysis.py --results-input-path
+      experiments/data/linear_regression_predictions_results.parquet --analysis-output-dir
+      experiments/data/linear_regression_predictions_analysis
+    deps:
+    - path: experiments/data/linear_regression_predictions_results.parquet
+      md5: e6e51a294e045ca2f437db0d55d420f8
+      size: 14605
+    - path: experiments/linear_regression_predictions_analysis.py
+      md5: f65d94d6ae9ba04314974534e9f84a61
+      size: 5406
+    outs:
+    - path: experiments/data/linear_regression_predictions_analysis
+      md5: b0125db5b3698d9e5fbc3a7716ab2ce0.dir
+      size: 125070
+      nfiles: 12
+  linear_regression_posterior:
+    cmd: python experiments/linear_regression_posterior.py --boston-housing-input-path
+      experiments/data/uci_datasets/boston_housing.parquet --yacht-hydrodynamics-input-path
+      experiments/data/uci_datasets/yacht_hydrodynamics.parquet --concrete-strength-input-path
+      experiments/data/uci_datasets/concrete_strength.parquet --energy-efficiency-input-path
+      experiments/data/uci_datasets/energy_efficiency.parquet --results-output-path
+      experiments/data/linear_regression_posterior_results.parquet
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_regression_posterior.py
+      md5: 880e46a6200df242282832525cd635c4
+      size: 53848
+    - path: experiments/utils/callbacks.py
+      md5: 1d6c36fdd22f138d77668dbb9f6279bc
+      size: 19241
+    - path: experiments/utils/factory.py
+      md5: 062bd0552c5a78324118a678ff844ce1
+      size: 92
+    - path: experiments/utils/metrics.py
+      md5: be90d358799f9bb27b82498068d55d96
+      size: 3788
+    - path: swafa/callbacks.py
+      md5: 7e3a06e1359edaaa02143002c96a6537
+      size: 6272
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 8deca862d37e266c5dc1e3b2cf5fa592
+      size: 8685
+    - path: swafa/posterior.py
+      md5: aa4367171d1bc58dbdc1d3e2c8041d69
+      size: 2858
+    params:
+      params.yaml:
+        linear_regression_posterior.em_warm_up_time_steps: 10
+        linear_regression_posterior.gradient_optimiser: sgd
+        linear_regression_posterior.gradient_optimiser_kwargs:
+          lr: 0.001
+        linear_regression_posterior.gradient_warm_up_time_steps: 10
+        linear_regression_posterior.iterate_averaging_window_size: 50
+        linear_regression_posterior.lr_pretrain: 0.001
+        linear_regression_posterior.lr_swa: 0.1
+        linear_regression_posterior.max_latent_dim: 3
+        linear_regression_posterior.min_latent_dim: 1
+        linear_regression_posterior.n_batches_per_epoch: 100
+        linear_regression_posterior.n_epochs_pretrain: 500
+        linear_regression_posterior.n_epochs_swa: 500
+        linear_regression_posterior.n_trials: 2
+        linear_regression_posterior.posterior_eval_epoch_frequency: 50
+        linear_regression_posterior.precision_scaling_factor: 0.01
+        linear_regression_posterior.weight_decay: 0.001
+    outs:
+    - path: experiments/data/linear_regression_posterior_results.parquet
+      md5: 461e51dfa5865d6c0b02734d59604c00
+      size: 52921
+  linear_regression_posterior_analysis:
+    cmd: python experiments/linear_regression_posterior_analysis.py --results-input-path
+      experiments/data/linear_regression_posterior_results.parquet --analysis-output-dir
+      experiments/data/linear_regression_posterior_analysis
+    deps:
+    - path: experiments/data/linear_regression_posterior_results.parquet
+      md5: 461e51dfa5865d6c0b02734d59604c00
+      size: 52921
+    - path: experiments/linear_regression_posterior_analysis.py
+      md5: c6927134a497a76b673f8c0a27d0c02f
+      size: 15107
+    outs:
+    - path: experiments/data/linear_regression_posterior_analysis
+      md5: c61e196c4a752ab965b01649268c509e.dir
+      size: 1663955
+      nfiles: 32
+  download_libsvm_datasets:
+    cmd: python experiments/libsvm_datasets.py --australian-output-path experiments/data/libsvm_datasets/australian.parquet
+      --breast-cancer-output-path experiments/data/libsvm_datasets/breast_cancer.parquet
+    deps:
+    - path: experiments/libsvm_datasets.py
+      md5: 6d0a12914fbcab81b4d7edabde787160
+      size: 2792
+    outs:
+    - path: experiments/data/libsvm_datasets
+      md5: b7d1d43cada6a3f75da7559f05e5e81b.dir
+      size: 41067
+      nfiles: 2
+  linear_regression_vi:
+    cmd: python experiments/linear_regression_vi.py --boston-housing-input-path experiments/data/uci_datasets/boston_housing.parquet
+      --yacht-hydrodynamics-input-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
+      --concrete-strength-input-path experiments/data/uci_datasets/concrete_strength.parquet
+      --energy-efficiency-input-path experiments/data/uci_datasets/energy_efficiency.parquet
+      --results-output-dir experiments/data/linear_regression_vi_results
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_regression_posterior.py
+      md5: 616b38ce9a69a577613b6f4f0cf9b7c9
+      size: 52755
+    - path: experiments/linear_regression_vi.py
+      md5: 2df4e8f1e1e7084c66fae1091ef6e7f1
+      size: 22502
+    - path: experiments/utils/factory.py
+      md5: 062bd0552c5a78324118a678ff844ce1
+      size: 92
+    - path: swafa/callbacks.py
+      md5: 77658af7e4ec44416f8be0b49bad225b
+      size: 22722
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    params:
+      params.yaml:
+        linear_regression_vi.dataset_params:
+          boston_housing:
+            latent_dim: 6
+            n_gradients_per_update: 4
+            optimiser: sgd
+            bias_optimiser_kwargs:
+              lr: 0.01
+            factors_optimiser_kwargs:
+              lr: 0.01
+            noise_optimiser_kwargs:
+              lr: 0.01
+            max_grad_norm: 10
+            batch_size: 10
+            n_epochs: 1000
+          yacht_hydrodynamics:
+            latent_dim: 3
+            n_gradients_per_update: 4
+            optimiser: sgd
+            bias_optimiser_kwargs:
+              lr: 0.01
+            factors_optimiser_kwargs:
+              lr: 0.01
+            noise_optimiser_kwargs:
+              lr: 0.01
+            max_grad_norm: 10
+            batch_size: 10
+            n_epochs: 1000
+          concrete_strength:
+            latent_dim: 4
+            n_gradients_per_update: 4
+            optimiser: sgd
+            bias_optimiser_kwargs:
+              lr: 0.01
+            factors_optimiser_kwargs:
+              lr: 0.01
+            noise_optimiser_kwargs:
+              lr: 0.01
+            max_grad_norm: 10
+            batch_size: 10
+            n_epochs: 1000
+          energy_efficiency:
+            latent_dim: 4
+            n_gradients_per_update: 4
+            optimiser: sgd
+            bias_optimiser_kwargs:
+              lr: 0.01
+            factors_optimiser_kwargs:
+              lr: 0.01
+            noise_optimiser_kwargs:
+              lr: 0.01
+            max_grad_norm: 10
+            batch_size: 10
+            n_epochs: 1000
+        linear_regression_vi.testing: false
+    outs:
+    - path: experiments/data/linear_regression_vi_results
+      md5: eef3d0909eed092cac186f0ae84abd39.dir
+      size: 280653
+      nfiles: 13
+  linear_regression_vi@concrete_strength:
+    cmd: python experiments/linear_regression_vi.py --dataset-label concrete_strength
+      --dataset-input-path experiments/data/uci_datasets/concrete_strength.parquet
+      --results-output-dir experiments/data/linear_regression_vi_results/concrete_strength
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_regression_posterior.py
+      md5: 616b38ce9a69a577613b6f4f0cf9b7c9
+      size: 52755
+    - path: experiments/linear_regression_vi.py
+      md5: 2d2a28a201ba389a46930f2c22f0415d
+      size: 16034
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    params:
+      params.yaml:
+        linear_regression_vi.datasets.concrete_strength:
+          latent_dim: 3
+          n_gradients_per_update: 10
+          optimiser: sgd
+          bias_optimiser_kwargs:
+            lr: 0.01
+          factors_optimiser_kwargs:
+            lr: 0.01
+          noise_optimiser_kwargs:
+            lr: 0.01
+          max_grad_norm: 10
+          batch_size: 100
+          n_epochs: 20000
+        linear_regression_vi.testing: true
+    outs:
+    - path: experiments/data/linear_regression_vi_results/concrete_strength
+      md5: 1aedc55b8a5d7f6b33eba8d66aee0f1b.dir
+      size: 70291
+      nfiles: 4
+  linear_regression_vi@yacht_hydrodynamics:
+    cmd: python experiments/linear_regression_vi.py --dataset-label yacht_hydrodynamics
+      --dataset-input-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
+      --results-output-dir experiments/data/linear_regression_vi_results/yacht_hydrodynamics
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_regression_posterior.py
+      md5: 616b38ce9a69a577613b6f4f0cf9b7c9
+      size: 52755
+    - path: experiments/linear_regression_vi.py
+      md5: 2d2a28a201ba389a46930f2c22f0415d
+      size: 16034
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    params:
+      params.yaml:
+        linear_regression_vi.datasets.yacht_hydrodynamics:
+          latent_dim: 3
+          n_gradients_per_update: 10
+          optimiser: sgd
+          bias_optimiser_kwargs:
+            lr: 0.01
+          factors_optimiser_kwargs:
+            lr: 0.01
+          noise_optimiser_kwargs:
+            lr: 0.01
+          max_grad_norm: 10
+          batch_size: 100
+          n_epochs: 45000
+        linear_regression_vi.testing: true
+    outs:
+    - path: experiments/data/linear_regression_vi_results/yacht_hydrodynamics
+      md5: 0627f76829f15bec00130a318cb9fecf.dir
+      size: 61681
+      nfiles: 4
+  linear_regression_vi@boston_housing:
+    cmd: python experiments/linear_regression_vi.py --dataset-label boston_housing
+      --dataset-input-path experiments/data/uci_datasets/boston_housing.parquet --results-output-dir
+      experiments/data/linear_regression_vi_results/boston_housing
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_regression_posterior.py
+      md5: 616b38ce9a69a577613b6f4f0cf9b7c9
+      size: 52755
+    - path: experiments/linear_regression_vi.py
+      md5: 2d2a28a201ba389a46930f2c22f0415d
+      size: 16034
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    params:
+      params.yaml:
+        linear_regression_vi.datasets.boston_housing:
+          latent_dim: 3
+          n_gradients_per_update: 10
+          optimiser: sgd
+          bias_optimiser_kwargs:
+            lr: 0.001
+          factors_optimiser_kwargs:
+            lr: 0.001
+          noise_optimiser_kwargs:
+            lr: 0.001
+          max_grad_norm: 10
+          batch_size: 100
+          n_epochs: 25000
+        linear_regression_vi.testing: true
+    outs:
+    - path: experiments/data/linear_regression_vi_results/boston_housing
+      md5: 29418e339652e38e06da8bf4447a1479.dir
+      size: 81758
+      nfiles: 4
+  linear_regression_vi@energy_efficiency:
+    cmd: python experiments/linear_regression_vi.py --dataset-label energy_efficiency
+      --dataset-input-path experiments/data/uci_datasets/energy_efficiency.parquet
+      --results-output-dir experiments/data/linear_regression_vi_results/energy_efficiency
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/linear_regression_posterior.py
+      md5: 616b38ce9a69a577613b6f4f0cf9b7c9
+      size: 52755
+    - path: experiments/linear_regression_vi.py
+      md5: 2d2a28a201ba389a46930f2c22f0415d
+      size: 16034
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    params:
+      params.yaml:
+        linear_regression_vi.datasets.energy_efficiency:
+          latent_dim: 3
+          n_gradients_per_update: 10
+          optimiser: sgd
+          bias_optimiser_kwargs:
+            lr: 0.01
+          factors_optimiser_kwargs:
+            lr: 0.01
+          noise_optimiser_kwargs:
+            lr: 0.01
+          max_grad_norm: 10
+          batch_size: 100
+          n_epochs: 25000
+        linear_regression_vi.testing: true
+    outs:
+    - path: experiments/data/linear_regression_vi_results/energy_efficiency
+      md5: ce51a99a8f32bf3340ee02e4223173d3.dir
+      size: 63318
+      nfiles: 4
+  neural_net_predictions@energy_efficiency:
+    cmd: python experiments/neural_net_predictions.py --dataset-label energy_efficiency
+      --dataset-input-path experiments/data/uci_datasets/energy_efficiency.parquet
+      --results-output-dir experiments/data/neural_net_predictions_results/energy_efficiency
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/neural_net_predictions.py
+      md5: 88de44d1d185a5e8a40ed2544aecfa68
+      size: 37060
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    - path: swafa/utils.py
+      md5: 492492aae27ecc779fb30408a5285ed9
+      size: 4134
+    params:
+      params.yaml:
+        neural_net_predictions.data_split_random_seed: 1
+        neural_net_predictions.datasets.energy_efficiency:
+          latent_dim: 1
+          n_gradients_per_update: 4
+          max_grad_norm: 10
+          batch_size: 10
+          n_epochs: 120
+          learning_rate_range:
+          - 0.01
+          - 0.02
+          prior_precision_range:
+          - 0.01
+          - 10
+          noise_precision_range:
+          - 0.01
+          - 1
+          n_bma_samples: 100
+        neural_net_predictions.hidden_activation_fn: relu
+        neural_net_predictions.hidden_dims:
+        - 50
+        neural_net_predictions.n_cv_folds: 5
+        neural_net_predictions.n_hyperparameter_trials: 30
+        neural_net_predictions.n_train_test_splits: 20
+        neural_net_predictions.test: true
+        neural_net_predictions.train_fraction: 0.9
+    outs:
+    - path: experiments/data/neural_net_predictions_results/energy_efficiency
+      md5: d2308b8ab672a425c8677ee0097223dc.dir
+      size: 2558
+      nfiles: 2
+  neural_net_predictions@yacht_hydrodynamics:
+    cmd: python experiments/neural_net_predictions.py --dataset-label yacht_hydrodynamics
+      --dataset-input-path experiments/data/uci_datasets/yacht_hydrodynamics.parquet
+      --results-output-dir experiments/data/neural_net_predictions_results/yacht_hydrodynamics
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/neural_net_predictions.py
+      md5: 88de44d1d185a5e8a40ed2544aecfa68
+      size: 37060
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    - path: swafa/utils.py
+      md5: 492492aae27ecc779fb30408a5285ed9
+      size: 4134
+    params:
+      params.yaml:
+        neural_net_predictions.data_split_random_seed: 1
+        neural_net_predictions.datasets.yacht_hydrodynamics:
+          latent_dim: 1
+          n_gradients_per_update: 4
+          max_grad_norm: 10
+          batch_size: 10
+          n_epochs: 120
+          learning_rate_range:
+          - 0.01
+          - 0.02
+          prior_precision_range:
+          - 0.01
+          - 10
+          noise_precision_range:
+          - 0.01
+          - 1
+          n_bma_samples: 100
+        neural_net_predictions.hidden_activation_fn: relu
+        neural_net_predictions.hidden_dims:
+        - 50
+        neural_net_predictions.n_cv_folds: 5
+        neural_net_predictions.n_hyperparameter_trials: 30
+        neural_net_predictions.n_train_test_splits: 20
+        neural_net_predictions.test: true
+        neural_net_predictions.train_fraction: 0.9
+    outs:
+    - path: experiments/data/neural_net_predictions_results/yacht_hydrodynamics
+      md5: 463303d04e7015289deb7b0ce0bf5ac6.dir
+      size: 2510
+      nfiles: 2
+  neural_net_predictions@concrete_strength:
+    cmd: python experiments/neural_net_predictions.py --dataset-label concrete_strength
+      --dataset-input-path experiments/data/uci_datasets/concrete_strength.parquet
+      --results-output-dir experiments/data/neural_net_predictions_results/concrete_strength
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/neural_net_predictions.py
+      md5: 88de44d1d185a5e8a40ed2544aecfa68
+      size: 37060
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    - path: swafa/utils.py
+      md5: 492492aae27ecc779fb30408a5285ed9
+      size: 4134
+    params:
+      params.yaml:
+        neural_net_predictions.data_split_random_seed: 1
+        neural_net_predictions.datasets.concrete_strength:
+          latent_dim: 1
+          n_gradients_per_update: 4
+          max_grad_norm: 10
+          batch_size: 10
+          n_epochs: 120
+          learning_rate_range:
+          - 0.01
+          - 0.02
+          prior_precision_range:
+          - 0.01
+          - 10
+          noise_precision_range:
+          - 0.01
+          - 1
+          n_bma_samples: 100
+        neural_net_predictions.hidden_activation_fn: relu
+        neural_net_predictions.hidden_dims:
+        - 50
+        neural_net_predictions.n_cv_folds: 5
+        neural_net_predictions.n_hyperparameter_trials: 30
+        neural_net_predictions.n_train_test_splits: 20
+        neural_net_predictions.test: true
+        neural_net_predictions.train_fraction: 0.9
+    outs:
+    - path: experiments/data/neural_net_predictions_results/concrete_strength
+      md5: 6eea37a85c49a1595085629963a20d02.dir
+      size: 2505
+      nfiles: 2
+  neural_net_predictions@boston_housing:
+    cmd: python experiments/neural_net_predictions.py --dataset-label boston_housing
+      --dataset-input-path experiments/data/uci_datasets/boston_housing.parquet --results-output-dir
+      experiments/data/neural_net_predictions_results/boston_housing
+    deps:
+    - path: experiments/data/uci_datasets
+      md5: 4dad383e47f1038a526ca4490bb48cbc.dir
+      size: 83291
+      nfiles: 4
+    - path: experiments/neural_net_predictions.py
+      md5: 88de44d1d185a5e8a40ed2544aecfa68
+      size: 37060
+    - path: experiments/utils/factory.py
+      md5: 7960ddc7662f7f451f0bb099277eb8ca
+      size: 165
+    - path: swafa/callbacks.py
+      md5: 9e598fd806bc2176d2d917a68093839e
+      size: 22720
+    - path: swafa/fa.py
+      md5: 077618ed0fd684d88acce1cfc8127be0
+      size: 16044
+    - path: swafa/models.py
+      md5: 4e73d59506bf591dc4cd54324b463bfc
+      size: 13456
+    - path: swafa/utils.py
+      md5: 492492aae27ecc779fb30408a5285ed9
+      size: 4134
+    params:
+      params.yaml:
+        neural_net_predictions.data_split_random_seed: 1
+        neural_net_predictions.datasets.boston_housing:
+          latent_dim: 1
+          n_gradients_per_update: 4
+          max_grad_norm: 10
+          batch_size: 10
+          n_epochs: 120
+          learning_rate_range:
+          - 0.01
+          - 0.02
+          prior_precision_range:
+          - 0.01
+          - 10
+          noise_precision_range:
+          - 0.01
+          - 1
+          n_bma_samples: 100
+        neural_net_predictions.hidden_activation_fn: relu
+        neural_net_predictions.hidden_dims:
+        - 50
+        neural_net_predictions.n_cv_folds: 5
+        neural_net_predictions.n_hyperparameter_trials: 30
+        neural_net_predictions.n_train_test_splits: 20
+        neural_net_predictions.test: true
+        neural_net_predictions.train_fraction: 0.9
+    outs:
+    - path: experiments/data/neural_net_predictions_results/boston_housing
+      md5: e6af019317ebcbed5a0a36b1609372c6.dir
+      size: 2494
+      nfiles: 2
