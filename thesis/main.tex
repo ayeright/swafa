@@ -130,28 +130,7 @@ usual late penalties based on your final submission time.
 
 \chapter{Background}\label{ch:background}
 
-\section{Factor Analysis}\label{sec:fa}
-
-Factor analysis (FA) is a latent variable model which generates observations $\theta \in \R^D$ as follows. First, a latent vector $\matr{h} \in \R^K$, for some $K < D$, is sampled from $p(\matr{h}) = \mathcal{N}(\matr{0}, \matr{I})$. Next, $\matr{h}$ is transformed onto a $K$-dimensional linear subspace of $\R^D$ by left-multiplying it by a \emph{factor loading} matrix $\matr{F} \in \R^{D \times K}$. The origin of this subspace is then shifted by adding a bias term $\matr{c} \in \R^D$. Finally, the data is perturbed by adding some zero mean Gaussian noise $\epsilon \in \R^D$ sampled from $\mathcal{N}(\matr{0}, \Psi)$, where $\Psi$ is a $D\times D$ diagonal matrix \cite{barber2007}. Putting all this together, an observation $\theta \in \R^D$ is generated according to 
-\begin{equation}\label{eqn:fa_model}
-	\theta = \matr{Fh} + \matr{c} + \epsilon.
-\end{equation}
-In the context of this thesis, an observation $\theta$ is the parameter vector of a neural network. 
-
-It follows that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$ \cite{barber2007}. Formally,
-\begin{equation}\label{eqn:fa_cond_dist}
-	p(\theta | \matr{h}) 
-	= \mathcal{N}\Big( \matr{Fh} + \matr{c}, \Psi \Big)
-	= \frac{1}{\sqrt{(2\pi)^D |\Psi|}} 
-	\exp \Big(-\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c})\Big),
-\end{equation}
-where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, integrating $p(\theta | \matr{h})$ over $\matr{h}$ gives the marginal distribution
-\begin{equation}\label{eqn:fa_marginal_dist}
-	p(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big).
-\end{equation}
-The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\theta_{\text{SWA}}$. 
-%By substituting $\matr{c} = \theta_{\text{SWA}}$ into $p(\theta)$, the distribution in (\ref{eqn:fa_dist}) is obtained. 
-Having set the bias term, an expectation-maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Chapter \ref{ch:online_fa}.
+This chapter presents the background necessary to understand the rest of the thesis. Bayesian linear regression, whose posterior can be computed in closed for, provides a nice testbed for the algorithms. Moreover, it can be viewed as a simple neural network with a single layer from input to output. Therefore, it is introduced first, followed by the general case of a neural network with multiple layers. The most common training algorithm for neural networks, stochastic gradient descent, is described next. Factor analysis is then introduced, as this is the basis of all original algorithms presented in this thesis. Finally, variational inference is described as a pre-requisite for algorithms which use this approach to learn the posterior distribution of a neural network. 
 
 \section{Bayesian Linear Regression}\label{sec:bayesian_lr}
 
@@ -163,11 +142,7 @@ for some unknown $\theta \in \R^D$. The underlying signal, $\theta^\intercal \ma
 \begin{equation}
 	\epsilon \sim \mathcal{N}(0, \sigma^2), 
 \end{equation}
-for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}).
-
-\subsection{Computing the Posterior}
-
-Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon$ is Gaussian distributed, the conditional pdf of $y_n$ is 
+for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}). Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon$ is Gaussian distributed, the conditional pdf of $y_n$ is 
 \begin{equation}\label{eqn:linear_regression_pdf}
 	p(y_n | \theta, \matr{x}_n) 
 	= \mathcal{N}\big(\theta^\intercal \matr{x}_n, \sigma^2\big)
@@ -189,76 +164,23 @@ Assuming that the observations in $\mathcal{D}$ are independent and identically 
 	+ \text{constant},
 \end{split}
 \end{align}
-where $\beta = \frac{1}{\sigma^2}$ \cite{barber2007}. In Bayesian linear regression, a prior distribution for $\theta$ is also specified. A common choice  is 
+where $\beta = \frac{1}{\sigma^2}$ is the \emph{noise precision} \cite{barber2007}. In Bayesian linear regression, a prior distribution for $\theta$ is also specified. A common choice  is 
 \begin{equation}\label{eqn:linear_regression_prior}
 	p(\theta) 
 	= \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)
 	= \Big(\frac{\alpha}{2\pi}\Big)^{\frac{D}{2}} \exp\Big(-\frac{\alpha}{2} \theta^\intercal \theta \Big)
 \end{equation}
-for some $\alpha > 0$, which is a hyperparameter known as the \emph{precision} \cite{barber2007}. Applying the logarithm, 
-\begin{align}\label{eqn:linear_regression_log_prior}
-\begin{split}
-	\log p(\theta) 
-	& = \frac{D}{2} \log \frac{\alpha}{2\pi} - \frac{\alpha}{2} \theta^\intercal \theta \\
-	& = -\frac{\alpha}{2} \theta^\intercal \theta + \frac{D}{2} \log \alpha + \text{constant}.
-\end{split}
-\end{align}
-Now, using Bayes' rule and Equation (\ref{eqn:linear_regression_log_likelihood}) and Equation (\ref{eqn:linear_regression_log_prior}), it follows that the log-posterior distribution of $\theta$ for fixed $\alpha$ and $\beta$ is 
-\begin{align}\label{eqn:linear_regression_log_posterior}
-\begin{split}
-	\log p(\theta | \mathcal{D}) 
-	& = \log \frac{p(\mathcal{D} | \theta) p(\theta)}{p(\mathcal{D})} \\
-	& = \log p(\mathcal{D} | \theta) + \log p(\theta) - \log p(\mathcal{D}) \\
-	& = -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-	-\frac{\alpha}{2} \theta^\intercal \theta 
-	+ \text{constant} \\
-	& = -\frac{\beta}{2} \sum_{n=1}^N\big( y_n^2 - 2 y_n \theta^\intercal \matr{x}_n + (\theta^\intercal \matr{x}_n)^2 \big)
-	-\frac{\alpha}{2} \theta^\intercal \theta
-	+ \text{constant} \\
-	& = -\frac{\beta}{2} \sum_{n=1}^N y_n^2
-	+ \beta \sum_{n=1}^N y_n \theta^\intercal \matr{x}_n
-	-\frac{\beta}{2} \sum_{n=1}^N \theta^\intercal \matr{x}_n \matr{x}_n^\intercal \theta
-	-\frac{\alpha}{2} \theta^\intercal \theta
-	+ \text{constant} \\
-	& = \Big(\beta \sum_{n=1}^N y_n \matr{x}_n \Big)^\intercal \theta 
-	-\frac{1}{2} \theta^\intercal \Big( \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal \Big) \theta 
-	+ \text{constant} \\
-	& = \matr{b}^\intercal \theta 
-	- \frac{1}{2} \theta^\intercal \matr{A} \theta 
-	+ \text{constant},
-\end{split}
-\end{align}
-where 
+for some $\alpha > 0$, which is a hyperparameter known as the \emph{prior precision} \cite{barber2007}. Given the log-likelihood and the prior, it turns out that the posterior distribution of $\theta$ is Gaussian and can be computed in closed form. Formally, 
+\begin{equation}\label{eqn:linear_regression_posterior}
+	p(\theta | \mathcal{D}) = \mathcal{N}(\matr{A}^{-1} \matr{b}, \matr{A}^{-1}),
+\end{equation}
+where
 \begin{equation}\label{eqn:linear_model_A_and_b}
 	\matr{A} = \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal
 	\quad \text{and} \quad 
 	\matr{b} = \beta \sum_{n=1}^N y_n \matr{x}_n.
 \end{equation}
-Now, using a result from \cite{barber2007} to complete the square of Equation (\ref{eqn:linear_regression_log_posterior}),
-\begin{align}
-\begin{split}
-	\log p(\theta | \mathcal{D}) 
-	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
-	+ \frac{1}{2} \matr{b}^\intercal \matr{A}^{-1} \matr{b}
-	+ \text{constant} \\
-	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
-	+ \text{constant} \\
-	& = -\frac{1}{2} \big(\theta - \matr{m} \big)^\intercal \matr{S}^{-1} \big(\theta - \matr{m} \big)
-	+ \text{constant},
-\end{split}
-\end{align}
-where
-\begin{equation}\label{eqn:linear_regression_posterior_params}
-	\matr{m} = \matr{A}^{-1} \matr{b}
-	\quad \text{and} \quad 
-	\matr{S} = \matr{A}^{-1}.
-\end{equation}
-Hence, the posterior distribution of $\theta$ is 
-\begin{align}\label{eqn:linear_regression_posterior}
-\begin{split}
-	p(\theta | \mathcal{D}) = \mathcal{N}(\matr{m}, \matr{S}).
-\end{split}
-\end{align}
+See Appendix \ref{app:bayesian_linear_regression_posterior} for a full derivation.
 
 
 \section{Neural Networks}
@@ -267,14 +189,37 @@ Let $f(\matr{x}): \R^J \mapsto \R$ be a neural network with a single hidden laye
 \begin{equation}
 	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x} + b_h),
 \end{equation} 
-where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Notice that this is similar to the functional form of linear regression. That difference is that, instead of the output being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
+where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Notice that this is similar to the functional form of linear regression. The difference is that, instead of the output being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
 \begin{equation}
 	f(\matr{x}) = \matr{w}_2^T \Big(g_2\big(\matr{W}_1 g_1(\matr{W}_0 \matr{x} + \matr{b}_0) + \matr{b}_1 \big) \Big) + b,
 \end{equation} 
-where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \times H_0}$, $\matr{w} \in \R^{H_1}$ and biases $\matr{b}_0 \in \R^{H_0}$, $\matr{b}_1 \in \R^{H_1}$, $b \in \R$ are learnable parameters and $g_1(x):\R \mapsto \R$, $g_2(x):\R \mapsto \R$ are non-linear activation functions applied to the matrices element-wise. The total number of learnable parameters in this model is $D=H_0(J + 1) + H_1(H_0 + 1) + (H_1 + 1)$, and they are collectively denoted by $\theta \in \R^D$. This network is already considered \emph{deep}, as it has multiple hidden layers. However, it is not uncommon for neural networks to have tens or even hundreds of hidden layers (TODO: add citations for some big networks). Such networks usually have millions of learnable parameters. 
+where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \times H_0}$, $\matr{w} \in \R^{H_1}$ and biases $\matr{b}_0 \in \R^{H_0}$, $\matr{b}_1 \in \R^{H_1}$, $b \in \R$ are learnable parameters and $g_1(x):\R \mapsto \R$, $g_2(x):\R \mapsto \R$ are non-linear activation functions applied to the matrices element-wise. The total number of learnable parameters in this model is $D=H_0(J + 1) + H_1(H_0 + 1) + (H_1 + 1)$, and they are collectively denoted by $\theta \in \R^D$. This network is already considered \emph{deep}, as it has multiple hidden layers. However, it is not uncommon for neural networks to have tens or even hundreds of hidden layers \cite{krizhevsky09} \cite{he2015}. Such networks usually have millions of learnable parameters. 
 
 
 \section{Stochastic Gradient Descent}
+
+
+\section{Factor Analysis}\label{sec:fa}
+
+Factor analysis (FA) is a latent variable model which generates observations $\theta \in \R^D$ as follows. First, a latent vector $\matr{h} \in \R^K$, for some $K < D$, is sampled from $p(\matr{h}) = \mathcal{N}(\matr{0}, \matr{I})$. Next, $\matr{h}$ is transformed onto a $K$-dimensional linear subspace of $\R^D$ by left-multiplying it by a \emph{factor loading} matrix $\matr{F} \in \R^{D \times K}$. The origin of this subspace is then shifted by adding a bias term $\matr{c} \in \R^D$. Finally, the data is perturbed by adding some zero mean Gaussian noise $\epsilon \in \R^D$ sampled from $\mathcal{N}(\matr{0}, \Psi)$, where $\Psi$ is a $D\times D$ diagonal matrix \cite{barber2007}. Putting all this together, an observation $\theta \in \R^D$ is generated according to 
+\begin{equation}\label{eqn:fa_model}
+	\theta = \matr{Fh} + \matr{c} + \epsilon.
+\end{equation}
+In the context of this thesis, an observation $\theta$ is the parameter vector of a neural network. It follows from Equation (\ref{eqn:fa_model}) that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$ \cite{barber2007}. Formally,
+\begin{equation}\label{eqn:fa_cond_dist}
+	p(\theta | \matr{h}) 
+	= \mathcal{N}\Big( \matr{Fh} + \matr{c}, \Psi \Big)
+	= \frac{1}{\sqrt{(2\pi)^D |\Psi|}} 
+	\exp \Big(-\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c})\Big),
+\end{equation}
+where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, integrating $p(\theta | \matr{h})$ over $\matr{h}$ gives the marginal distribution
+\begin{equation}\label{eqn:fa_marginal_dist}
+	p(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big).
+\end{equation}
+The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\theta_{\text{SWA}}$. 
+%By substituting $\matr{c} = \theta_{\text{SWA}}$ into $p(\theta)$, the distribution in (\ref{eqn:fa_dist}) is obtained. 
+Having set the bias term, an expectation-maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Chapter \ref{ch:online_fa}.
+
 
 \section{Variational Inference}\label{sec:vi}
 
@@ -1407,6 +1352,76 @@ usual late penalties based on your final submission time.
 
 % You can include appendices like this:
  \appendix
+ 
+ \chapter{Derivations}
+ 
+ \section{Bayesian Linear Regression Posterior}\label{app:bayesian_linear_regression_posterior}
+ 
+Applying the logarithm to the prior in Equation (\ref{eqn:linear_regression_prior}), 
+\begin{align}\label{eqn:linear_regression_log_prior}
+\begin{split}
+	\log p(\theta) 
+	& = \frac{D}{2} \log \frac{\alpha}{2\pi} - \frac{\alpha}{2} \theta^\intercal \theta \\
+	& = -\frac{\alpha}{2} \theta^\intercal \theta + \frac{D}{2} \log \alpha + \text{constant}.
+\end{split}
+\end{align}
+Now, using Bayes' rule and Equation (\ref{eqn:linear_regression_log_likelihood}) and Equation (\ref{eqn:linear_regression_log_prior}), it follows that the log-posterior distribution of $\theta$ for fixed prior precision $\alpha$ and noise precision $\beta$ is 
+\begin{align}\label{eqn:linear_regression_log_posterior}
+\begin{split}
+	\log p(\theta | \mathcal{D}) 
+	& = \log \frac{p(\mathcal{D} | \theta) p(\theta)}{p(\mathcal{D})} \\
+	& = \log p(\mathcal{D} | \theta) + \log p(\theta) - \log p(\mathcal{D}) \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	-\frac{\alpha}{2} \theta^\intercal \theta 
+	+ \text{constant} \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N\big( y_n^2 - 2 y_n \theta^\intercal \matr{x}_n + (\theta^\intercal \matr{x}_n)^2 \big)
+	-\frac{\alpha}{2} \theta^\intercal \theta
+	+ \text{constant} \\
+	& = -\frac{\beta}{2} \sum_{n=1}^N y_n^2
+	+ \beta \sum_{n=1}^N y_n \theta^\intercal \matr{x}_n
+	-\frac{\beta}{2} \sum_{n=1}^N \theta^\intercal \matr{x}_n \matr{x}_n^\intercal \theta
+	-\frac{\alpha}{2} \theta^\intercal \theta
+	+ \text{constant} \\
+	& = \Big(\beta \sum_{n=1}^N y_n \matr{x}_n \Big)^\intercal \theta 
+	-\frac{1}{2} \theta^\intercal \Big( \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal \Big) \theta 
+	+ \text{constant} \\
+	& = \matr{b}^\intercal \theta 
+	- \frac{1}{2} \theta^\intercal \matr{A} \theta 
+	+ \text{constant},
+\end{split}
+\end{align}
+where 
+\begin{equation}
+	\matr{A} = \alpha \matr{I} + \beta \sum_{n=1}^N \matr{x}_n \matr{x}_n^\intercal
+	\quad \text{and} \quad 
+	\matr{b} = \beta \sum_{n=1}^N y_n \matr{x}_n.
+\end{equation}
+Now, using a result from \cite{barber2007} to complete the square of Equation (\ref{eqn:linear_regression_log_posterior}),
+\begin{align}
+\begin{split}
+	\log p(\theta | \mathcal{D}) 
+	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
+	+ \frac{1}{2} \matr{b}^\intercal \matr{A}^{-1} \matr{b}
+	+ \text{constant} \\
+	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
+	+ \text{constant} \\
+	& = -\frac{1}{2} \big(\theta - \matr{m} \big)^\intercal \matr{S}^{-1} \big(\theta - \matr{m} \big)
+	+ \text{constant},
+\end{split}
+\end{align}
+where
+\begin{equation}
+	\matr{m} = \matr{A}^{-1} \matr{b}
+	\quad \text{and} \quad 
+	\matr{S} = \matr{A}^{-1}.
+\end{equation}
+Hence, the posterior distribution of $\theta$ is 
+\begin{align}
+\begin{split}
+	p(\theta | \mathcal{D}) = \mathcal{N}(\matr{m}, \matr{S}).
+\end{split}
+\end{align}
+
 
  \chapter{Supplementary Results}
  
