@@ -185,18 +185,24 @@ See Appendix \ref{app:bayesian_linear_regression_posterior} for a full derivatio
 
 \section{Neural Networks}
 
-Let $f(\matr{x}): \R^J \mapsto \R$ be a neural network with a single hidden layer. Its functional from can be written as
+Let $f(\matr{x}): \R^J \mapsto \R$ be a neural network with a single \emph{hidden} layer. Its functional from can be written as
 \begin{equation}
 	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x} + b_h),
 \end{equation} 
 where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Notice that this is similar to the functional form of linear regression. The difference is that, instead of the output being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
-\begin{equation}
-	f(\matr{x}) = \matr{w}_2^T \Big(g_2\big(\matr{W}_1 g_1(\matr{W}_0 \matr{x} + \matr{b}_0) + \matr{b}_1 \big) \Big) + b,
+\begin{equation}\label{eqn:multi_layer_nn}
+	f(\matr{x}) = \matr{w}_2^T \Big(g_2\big(\matr{W}_1 g_1(\matr{W}_0 \matr{x} + \matr{b}_0) + \matr{b}_1 \big) \Big) + b_2,
 \end{equation} 
-where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \times H_0}$, $\matr{w} \in \R^{H_1}$ and biases $\matr{b}_0 \in \R^{H_0}$, $\matr{b}_1 \in \R^{H_1}$, $b \in \R$ are learnable parameters and $g_1(x):\R \mapsto \R$, $g_2(x):\R \mapsto \R$ are non-linear activation functions applied to the matrices element-wise. The total number of learnable parameters in this model is $D=H_0(J + 1) + H_1(H_0 + 1) + (H_1 + 1)$, and they are collectively denoted by $\theta \in \R^D$. This network is already considered \emph{deep}, as it has multiple hidden layers. However, it is not uncommon for neural networks to have tens or even hundreds of hidden layers \cite{krizhevsky09} \cite{he2015}. Such networks usually have millions of learnable parameters. 
+where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \times H_0}$, $\matr{w}_2 \in \R^{H_1}$ and biases $\matr{b}_0 \in \R^{H_0}$, $\matr{b}_1 \in \R^{H_1}$, $b_2 \in \R$ are learnable parameters and $g_1(x):\R \mapsto \R$, $g_2(x):\R \mapsto \R$ are non-linear activation functions, applied element-wise to the vectors. The total number of learnable parameters in this model is $D=H_0(J + 1) + H_1(H_0 + 1) + (H_1 + 1)$, and they are collectively denoted by $\theta \in \R^D$. This network is already considered \emph{deep}, as it has multiple hidden layers. However, it is not uncommon for neural networks to have tens or even hundreds of hidden layers and millions of learnable parameters \cite{krizhevsky09} \cite{he2015}. Unlike in linear regression, it is not possible to compute the posterior of $\theta$ in closed due to the non-linear activation function(s). Instead, numerical methods are required. Moreover, due to the large dimensionality of $\theta$, it us usually impractical to estimate the full $D \times D$ posterior covariance matrix and some simplification must be made.  
 
 
 \section{Stochastic Gradient Descent}
+
+The parameters $\theta$ of a neural network $f_\theta$ are most commonly learned via stochastic gradient descent (SGD) \cite{goodfellow2016}. Given training data $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, this iterative algorithm usually begins from a random initialisation of $\theta$ and then proceeds to update $\theta$ in the direction of the negative gradient of the training loss. Typical loss functions are mean squared error for regression and cross-entropy loss for classification, and it is common to add a \emph{regularisation} term to prevent overfitting. There are many variants of SGD \cite{ruder2016}, but the vanilla update rule on iteration $m$ is 
+\begin{equation}\label{eqn:sgd}
+	\theta_{m+1} = \theta_m - \eta \nabla_{\theta_m} \Bigg( \frac{1}{|\mathcal{B}|} \sum_{(\matr{x}, y) \in \mathcal{B}} \mathcal{L}_P \big(y, f_{\theta_m}(\matr{x})\big) + \lambda \mathcal{L}_R (\theta_m) \Bigg),
+\end{equation}
+where $\mathcal{B} \subset \mathcal{D}$ is a mini-batch of training examples, $\mathcal{L}_P \big(y, f_{\theta_m}(\matr{x})\big)$ is the prediction loss for training example $(\matr{x}, y)$ and $\lambda \mathcal{L}_R (\theta_m)$ is the regularisation penalty \cite{brownlie2021}. The regularisation strength $\lambda > 0$ and the learning rate $\eta > 0$ are hyperparameters. While training, computing the $f_{\theta_m}(\matr{x})$ is known as the \emph{forward pass}. The partial derivatives $\nabla_{\theta_m}(\cdot)$ are then obtained via the back-propagation algorithm \cite{rumelhart1986}, which uses the chain rule from calculus to \emph{back-propagate} the gradients through the network.
 
 
 \section{Factor Analysis}\label{sec:fa}
