@@ -130,7 +130,7 @@ usual late penalties based on your final submission time.
 
 \chapter{Background}\label{ch:background}
 
-This chapter presents the background necessary to understand the rest of the thesis. Bayesian linear regression, whose posterior can be computed in closed for, provides a nice testbed for the algorithms. Moreover, it can be viewed as a simple neural network with a single layer from input to output. Therefore, it is introduced first, followed by the general case of a neural network with multiple layers. The most common training algorithm for neural networks, stochastic gradient descent, is described next. Factor analysis is then introduced, as this is the basis of all original algorithms presented in this thesis. Finally, variational inference is described as a pre-requisite for algorithms which use this approach to learn the posterior distribution of a neural network. 
+This chapter presents the background necessary to understand the rest of the thesis. Bayesian linear regression, whose posterior can be computed in closed for, provides a nice testbed for the algorithms. Moreover, it can be viewed as a simple neural network with a single layer from input to output. Therefore, it is introduced first, followed by the general case of a neural network with multiple layers. The most common training algorithm for neural networks, stochastic gradient descent, is described next. Factor analysis is then introduced, as this is the basis of the main contributions in this thesis. Finally, variational inference is described as a pre-requisite for algorithms which use this approach to learn the posterior distribution of a neural network. 
 
 \section{Bayesian Linear Regression}\label{sec:bayesian_lr}
 
@@ -198,11 +198,11 @@ where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \t
 
 \section{Stochastic Gradient Descent}
 
-The parameters $\theta$ of a neural network $f_\theta$ are most commonly learned via stochastic gradient descent (SGD) \cite{goodfellow2016}. Given training data $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, this iterative algorithm usually begins from a random initialisation of $\theta$ and then proceeds to update $\theta$ in the direction of the negative gradient of the training loss. Typical loss functions are mean squared error for regression and cross-entropy loss for classification, and it is common to add a \emph{regularisation} term to prevent overfitting. There are many variants of SGD \cite{ruder2016}, but the vanilla update rule on iteration $m$ is 
+The parameters $\theta$ of a neural network $f_\theta$ are most commonly learned via stochastic gradient descent (SGD) \cite{goodfellow2016}. Given training data $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, this iterative algorithm usually begins from a random initialisation of $\theta$ and then proceeds to update $\theta$ in the direction of the negative gradient of the training loss. Typical loss functions are mean squared error for regression and cross-entropy loss for classification, and it is common to add a \emph{regularisation} term to prevent overfitting. There are many variants of SGD \cite{ruder2016}, but the vanilla update rule on iteration $t$ is 
 \begin{equation}\label{eqn:sgd}
-	\theta_{m+1} = \theta_m - \eta \nabla_{\theta_m} \Bigg( \frac{1}{|\mathcal{B}|} \sum_{(\matr{x}, y) \in \mathcal{B}} \mathcal{L}_P \big(y, f_{\theta_m}(\matr{x})\big) + \lambda \mathcal{L}_R (\theta_m) \Bigg),
+	\theta_{t+1} = \theta_t - \eta \nabla_{\theta_t} \Bigg( \frac{1}{|\mathcal{B}|} \sum_{(\matr{x}, y) \in \mathcal{B}} \mathcal{L}_P \big(y, f_{\theta_t}(\matr{x})\big) + \lambda \mathcal{L}_R (\theta_t) \Bigg),
 \end{equation}
-where $\mathcal{B} \subset \mathcal{D}$ is a mini-batch of training examples, $\mathcal{L}_P \big(y, f_{\theta_m}(\matr{x})\big)$ is the prediction loss for training example $(\matr{x}, y)$ and $\lambda \mathcal{L}_R (\theta_m)$ is the regularisation penalty \cite{brownlie2021}. The regularisation strength $\lambda > 0$ and the learning rate $\eta > 0$ are hyperparameters. While training, computing the $f_{\theta_m}(\matr{x})$ is known as the \emph{forward pass}. The partial derivatives $\nabla_{\theta_m}(\cdot)$ are then obtained via the back-propagation algorithm \cite{rumelhart1986}, which uses the chain rule from calculus to \emph{back-propagate} the gradients through the network.
+where $\mathcal{B} \subset \mathcal{D}$ is a mini-batch of training examples, $\mathcal{L}_P \big(y, f_{\theta_t}(\matr{x})\big)$ is the prediction loss for training example $(\matr{x}, y)$ and $\lambda \mathcal{L}_R (\theta_t)$ is the regularisation penalty \cite{brownlie2021}. The regularisation strength $\lambda > 0$ and the learning rate $\eta > 0$ are hyperparameters. In each iteration, the network first predicts the $f_{\theta_t}(\matr{x})$ in the \emph{forward pass}. Next, the average mini-batch regularised training loss in computed. Then the partial derivatives $\nabla_{\theta_t}(\cdot)$ are obtained via the back-propagation algorithm \cite{rumelhart1986}, which uses the chain rule from calculus to \emph{back-propagate} the gradients through the network. Finally, the gradient vector is used to update the parameters. 
 
 
 \section{Factor Analysis}\label{sec:fa}
@@ -214,7 +214,7 @@ Factor analysis (FA) is a latent variable model which generates observations $\t
 In the context of this thesis, an observation $\theta$ is the parameter vector of a neural network. It follows from Equation (\ref{eqn:fa_model}) that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$ \cite{barber2007}. Formally,
 \begin{equation}\label{eqn:fa_cond_dist}
 	p(\theta | \matr{h}) 
-	= \mathcal{N}\Big( \matr{Fh} + \matr{c}, \Psi \Big)
+	= \mathcal{N}\big( \matr{Fh} + \matr{c}, \Psi \big)
 	= \frac{1}{\sqrt{(2\pi)^D |\Psi|}} 
 	\exp \Big(-\frac{1}{2} (\theta - \matr{Fh} - \matr{c})^\intercal \Psi^{-1} (\theta - \matr{Fh} - \matr{c})\Big),
 \end{equation}
@@ -222,21 +222,17 @@ where $|\Psi|$ is the \emph{determinant} of $\Psi$. From \cite{barber2007}, inte
 \begin{equation}\label{eqn:fa_marginal_dist}
 	p(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big).
 \end{equation}
-The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}, which in this case is $\theta_{\text{SWA}}$. 
-%By substituting $\matr{c} = \theta_{\text{SWA}}$ into $p(\theta)$, the distribution in (\ref{eqn:fa_dist}) is obtained. 
-Having set the bias term, an expectation-maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. Two alternative online algorithms are presented in Chapter \ref{ch:online_fa}.
+Given observations $\theta_1, \theta_2, \dots, \theta_T$, a model of this form can be fit to the data. The parameters of the model are $\matr{c}, \matr{F}$ and $\Psi$. The value of $\matr{c}$ which maximises the likelihood of the observed data is the empirical mean of the observations \cite{barber2007}. Having set $\matr{c}$, an expectation-maximisation (EM) or singular value decomposition (SVD) algorithm can find the maximum likelihood estimates of $\matr{F}$ and $\Psi$ \cite{barber2007}. However, both methods require storing all the observations in memory, making them impractical for high-dimensional data, such as the parameter vectors of deep neural networks. In this case, alternative online algorithms are needed.  
 
 
 \section{Variational Inference}\label{sec:vi}
 
-For linear regression, computing the posterior in Equation (\ref{eqn:linear_regression_posterior}) is possible because the log-likelihood, $p(\mathcal{D} | \theta)$, is a quadratic expression of $\theta$. However, when $\theta$ is the parameter vector of a neural network with even a single non-linear hidden layer, the log-likelihood is not so simple and the posterior cannot be written in closed form. Instead, the marginal likelihood, $p(\mathcal{D}) = \int_\theta p(\mathcal{D} | \theta) p(\theta)$, must be evaluated, which is intractable for high-dimensional $\theta$. 
-
-An alternative strategy is to approximate the posterior directly with a Gaussian distribution $q(\theta) = \mathcal{N}(\mu, \Sigma)$, where the parameters $\mu$ and $\Sigma$ are chosen to minimise some measure of dissimilarity between $q(\theta)$ and $p(\theta | \mathcal{D})$. Because $q(\theta)$ is essentially a variable in an optimisation procedure, this approach is known as \emph{variational inference} (VI) \cite{barber2007}. A common measure of dissimilarity between two distributions is the Kullback-Leibler (KL) divergence \cite{barber2007}, which in this case is
+For linear regression, computing the posterior in Equation (\ref{eqn:linear_regression_posterior}) is possible because the log-likelihood, $p(\mathcal{D} | \theta)$, is a quadratic expression of $\theta$. However, when $\theta$ is the parameter vector of a neural network with even a single non-linear hidden layer, the log-likelihood is not so simple and the posterior cannot be written in closed-form. Instead, the marginal likelihood, $p(\mathcal{D}) = \int_\theta p(\mathcal{D} | \theta) p(\theta)$, must be evaluated, which is intractable for high-dimensional $\theta$. An alternative strategy is to approximate the posterior with a Gaussian distribution $q(\theta) = \mathcal{N}(\mu, \Sigma)$, where the parameters $\mu$ and $\Sigma$ are chosen to minimise some measure of dissimilarity between $q(\theta)$ and $p(\theta | \mathcal{D})$. Because $q(\theta)$ is essentially a variable in an optimisation procedure, this approach is known as \emph{variational inference} (VI) \cite{barber2007}. A common measure of dissimilarity between two distributions is the Kullback-Leibler (KL) divergence \cite{barber2007}, which in this case is
 \begin{align}
 \begin{split}
 	\D_{KL}[q(\theta) \Vert p(\theta | \mathcal{D})] 
 	& = \E_{q(\theta)} \Big[\log \frac{q(\theta)}{p(\theta | \mathcal{D})}\Big] \\
-	& = \E_{q(\theta)} \Big[\log \frac{q(\theta) p(\mathcal{D})}{p(\mathcal{D} | \theta) p(\theta)}\Big] \\
+	%& = \E_{q(\theta)} \Big[\log \frac{q(\theta) p(\mathcal{D})}{p(\mathcal{D} | \theta) p(\theta)}\Big] \\
 	& = \E_{q(\theta)} [\log q(\theta) - \log p(\theta) - \log p(\mathcal{D} | \theta) + \log p(\mathcal{D})].
 \end{split}
 \end{align}
@@ -244,18 +240,54 @@ Since $p(\mathcal{D})$ is a constant, it can be ignored and the optimal distribu
 \begin{equation}\label{eqn:vi_objective}
 	\min_{\mu, \Sigma} \big[ \E_{q(\theta)} [\log q(\theta)] - \E_{q(\theta)} [\log p(\theta) ] - \E_{q(\theta)} [\log p(\mathcal{D} | \theta)] \big].
 \end{equation}
-One way to do this is by using a stochastic gradient algorithm, which approximates the true gradient of the objective function with Monte Carlo estimates of the form
+One way to tackle this is via an iterative gradient algorithm. Depending on the structure of $\Sigma$ and the form of the prior $p(\theta)$, it may be possible to compute the partial derivatives $\nabla_{\mu, \Sigma} \E_{q(\theta)} [\log q(\theta)]$ and $\nabla_{\mu, \Sigma} \E_{q(\theta)} [\log p(\theta) ]$ exactly \cite{kingma2013}. However, when the likelihood is parameterised by a neural network, is not possible to obtain $ \nabla_{\mu, \Sigma}\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]$ analytically. Alternatively, the true gradient can be approximated by Monte Carlo estimates of the form 
 \begin{equation}\label{eqn:vi_derivatives}
-	\frac{1}{ML} \sum_{m=1}^M \sum_{l=1}^L \big[ \nabla_{\mu, \Sigma} \log q(\theta_l) - \nabla_{\mu, \Sigma} \log p(\theta_l) -  \nabla_{\mu, \Sigma} \log p(y_m | \matr{x}_m, \theta_l) \big],
+	 \nabla_{\mu, \Sigma} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+	\approx \nabla_{\mu, \Sigma} \Bigg(\frac{1}{L}  \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg)\Bigg),
 \end{equation}
-where $\{(y_m, \matr{x}_m)\}_{m=1}^M$ is a batch of observed data sampled from $\mathcal{D}$ and $\theta_l \sim \mathcal{N}(\mu, \Sigma)$. Normally it would not be possible to compute partial derivatives with respect to $\mu$ and $\Sigma$, given that they only take part via the random sampling operation. However, this can in fact be done by using the \emph{re-parameterisation trick} \cite{goodfellow2016}. Instead of sampling from $\mathcal{N}(\mu, \Sigma)$ directly, a random variable $\matr{z}_l$ is sampled from $\mathcal{N}(\matr{0}, \matr{I})$ and then transformed to $\theta_l$ via a deterministic operation involving $\mu$ and $\Sigma$. This simple trick means that Equation (\ref{eqn:vi_derivatives}) can be evaluated and used in conjunction with SGD or any of its variants to optimise the objective in Equation (\ref{eqn:vi_objective}). This is the idea behind the \emph{auto-encoding variational Bayes} algorithm \cite{kingma2013}.
+where each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$, and $\theta_l \sim \mathcal{N}(\mu, \Sigma)$. Normally it would not be possible to compute these partial derivatives with respect to $\mu$ and $\Sigma$, given that they only take part via the sampling operation. However, this can in fact be done by using the \emph{re-parameterisation trick} \cite{goodfellow2016}. Instead of sampling $\theta_l$ from $\mathcal{N}(\mu, \Sigma)$ directly, a random variable $\matr{z}_l$ is sampled from $\mathcal{N}(\matr{0}, \matr{I})$ and then transformed to $\theta_l$ via a deterministic operation involving $\mu$ and $\Sigma$. This simple trick means that Equation (\ref{eqn:vi_derivatives}) can be evaluated and used in conjunction with SGD or any of its variants to optimise the objective in Equation (\ref{eqn:vi_objective}).
 
 
-\chapter{Related Work and Research Questions}\label{ch:previous_work}
+\chapter{Related Work and Project Goals}\label{ch:previous_work}
 
 \section{Related Work}\label{sec:related_work}
 
+TODO: once we've written the introduction, add some texts here which follows on from the big picture introduced there, before diving into more detail about SWA and SLANG. 
+
 \subsection{Stochastic Weight Averaging}
+
+Under certain assumptions on the learning rate, SGD is guaranteed to converge to a local minimum of the (regularised) training loss \cite{ruder2016}. While this is a nice property, the training loss is only a proxy for finding solutions with low test error. Recent work suggests that good regions of the loss surface with respect to train and test error are rarely perfectly aligned \cite{izmailov2018}. Moreover, SGD with a decaying learning rate actually converges to solutions on the \emph{periphery} of a set of parameters with low test error. It is thought that such solutions lie in sharp regions of the training loss surface, where even a small shift can result in poor generalisation \cite{izmailov2018}. Therefore, solutions in flatter regions of the training loss surface, which are more likely to remain good even are being shifted, are desirable. When used with a high constant learning rate, SGD first approaches a local minimum and then proceeds to bounce around in its vicinity \cite{mandt2017}. In doing so, it is thought that SGD visits those points which are on the periphery of regions corresponding to low test error, while hopping back and forth over a flat region of the training loss surface \cite{izmailov2018}. By averaging the SGD iterates, a solution closer to the centre of this flat region can be obtained. This is the idea behind the SWA solution, $\theta_{\text{SWA}}$, from \cite{izmailov2018}. Formally, given parameter vectors $\theta_1, \theta_2, \dots, \theta_T \in \R^D$ encountered along the SGD trajectory,
+\begin{equation}\label{eqn:swa_solution}
+	\theta_{\text{SWA}} = \frac{1}{T}\sum_{t=1}^T \theta_t.
+\end{equation}
+There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error. SWA also finds \emph{wider} optima than SGD, in the sense that one has to move further away from $\theta_{\text{SWA}}$ to increase both the train and test error by a given amount \cite{izmailov2018}. 
+
+One limitation of the SWA solution is that it does not convey the uncertainty in the model parameters. The method was later extended to also include a low-rank plus diagonal approximation of the covariance matrix of the SGD iterates \cite{maddox2019}. The diagonal part is
+\begin{equation}
+	\frac{1}{2}\Sigma_\text{diag} = \frac{1}{2} \text{diag}\Bigg(\frac{1}{T}\sum_{t=1}^T \bgreek{\theta}_t^2 - \theta_{\text{SWA}}^2 \Bigg),
+\end{equation}
+where the squares are applied element-wise. For a rank $K$ approximation, the low-rank part is
+\begin{equation}
+	\frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal,
+\end{equation}
+where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating the vectors
+\begin{equation}
+	(\theta_{t_1} - \overline{\theta}_{t_1}), 
+	(\theta_{t_2} - \overline{\theta}_{t_2}),
+	\dots, (\theta_{t_K} - \overline{\theta}_{t_K})
+\end{equation}
+for some $t_1, t_2, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. Note that 
+\begin{equation}
+	\frac{1}{K-1} \hat{\matr{D}}\hat{\matr{D}}^\intercal
+	= \frac{1}{K-1} \sum_{i=1}^K (\theta_{t_i} - \overline{\theta}_{t_i}) (\theta_{t_i} - \overline{\theta}_{t_i})^\intercal,
+\end{equation}
+which is similar to the empirical covariance of $\theta_{t_1}, \theta_{t_2}, \dots, \theta_{t_K}$, except that the running averages $\overline{\theta}_{t_i}$ are used instead of the true mean, which is not know during training. Together, the mean and the approximate covariance give rise to an approximate posterior distribution, 
+\begin{equation}\label{eqn:swag_dist}
+	p(\theta | \mathcal{D}) \approx 
+	\mathcal{N}\Big(\theta_\text{SWA}, \frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal + \frac{1}{2}\Sigma_\text{diag}\Big).
+\end{equation}
+This method is known as SWA-Gaussian, or SWAG \cite{maddox2019}. One undesirable property of SWAG is that the rank $K$ and the number of SGD iterates used to form $\hat{\matr{D}}$ are one and the same. This means that, if $K \ll T$, only a tiny subset of $\theta_1, \theta_2, \dots, \theta_T$ will be used to estimate $\hat{\matr{D}}$ and the rest will be wasted. For example, in SWAG, the authors construct $\hat{\matr{D}}$ using only the final parameter vector from each of the last $K$ training epochs. 
+
 
 \subsection{Stochastic, Low-rank Approximate Natural Gradient}
 
@@ -269,7 +301,7 @@ where $\eta_\mu, \eta_\Sigma > 0$ are learning rates, $\alpha$ is the precision 
 	\hat{\matr{g}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i, \quad
 	\hat{\matr{G}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i (\matr{g}_\theta^i)^\intercal,
 \end{equation}
-where $\matr{g}_\theta^i = \nabla_\theta \log p(y_i | \matr{x}_i, \theta)$ and $\mathcal{B}$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. When $\theta$ is the parameter vector of a neural network, the gradients $\matr{g}_\theta^i$ can be computed via back-propagation \cite{rumelhart1986}. However, for large neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is in general infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$.
+where $\matr{g}_\theta^i = \nabla_\theta \log p(y_i | \matr{x}_i, \theta)$ and $\mathcal{B}$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. When $\theta$ is the parameter vector of a neural network, the gradients $\matr{g}_\theta^i$ can be computed via back-propagation \cite{rumelhart1986}. However, for large neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is generally infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$.
 
 A computationally tractable version of VOGN can be obtained by using a low-rank plus diagonal approximation of the inverse of the covariance matrix. This is the approach taken by SLANG \cite{mishkin2018}, which stands for stochastic, low-rank, approximate natural gradient. This algorithm sets $\Sigma^{-1} = \matr{U} \matr{U}^\intercal + \matr{D}$ for some $\matr{U} \in \R^{D \times K}$ and a $D \times D$ diagonal matrix $\matr{D}$. Substituting this definition into Equation (\ref{eqn:vogn_update}), the update can be written as
 \begin{equation}
@@ -287,9 +319,24 @@ where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ large
 
 \section{Project Goals}
 
+%SWAG and SLANG are two promising approaches to estimating the posterior distribution of a neural network. One thing 
+%
+%They both  
+%
+%However, both methods have 
+
 \subsection{Online Factor Analysis}
 
-\subsection{Variational Inference for Neural Networks}
+The first goal of this project is motivated by the fact that SWAG does not make use of all the available data when estimating the low-rank plus diagonal approximation of the posterior covariance. This is unnecessary, since a covariance matrix with the exact same structure can be learned from \emph{all} the SGD iterates via FA. To see this, let $\matr{F} = \frac{1}{\sqrt{2(K-1)}} \hat{\matr{D}}$ and $\Psi = \frac{1}{2} \Sigma_\text{diag}$. Then the SWAG posterior from Equation (\ref{eqn:swag_dist}) becomes $\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big)$,
+%\begin{equation}
+	%\mathcal{N}\Big(\theta_\text{SWA}, \frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal + \frac{1}{2}\Sigma_\text{diag}\Big)
+	%\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big),
+%\end{equation}
+which is the same as the FA model from Equation (\ref{eqn:fa_marginal_dist}) with $\matr{c} = \theta_\text{SWA}$ \cite{brownlie2021}. In theory, such a model could be fit to $\theta_1, \theta_2, \dots, \theta_T$ using either the EM or SVD algorithm from \cite{barber2007}. However, given these are both batch algorithms, the SGD iterates would have to be stored in memory, which is not practical for deep neural networks with tens of millions of parameters. Hence, an online, iterative approach is required. To the best of this author's knowledge, no such algorithm exists. \textbf{To fill this gap, this thesis presents two novel online FA algorithms which scale to high-dimensional data, such as the parameter vectors of deep neural networks.}
+
+\subsection{VIFA: Variational Inference with a Factor Analysis Posterior}
+
+The second goal of this project is motivated by the fact that SLANG can only be applied to feed-forward neural networks. More complex architectures are extremely common in research and industry, especially convolutional layers in computer vision and transformer layers in natural language processing. In these domains, the applicability of SLANG is limited. \textbf{Therefore, this thesis presents a novel, model-agnostic, VI algorithm which learns a FA posterior of a neural network. This method sacrifices the natural gradient used by SLANG in favour of the standard gradient, such that it can be applied to any neural network architecture with no extra effort.} 
 
 
 \chapter{Online Factor Analysis}\label{ch:online_fa}
@@ -298,7 +345,7 @@ This chapter presents two algorithms which can be used to approximate the poster
 
 \section{Online Stochastic Gradient Ascent}\label{sec:gradient_fa}
 
-Suppose that samples from the posterior, $\theta_1,\dots,\theta_T$, are readily available. In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ given the observed data is 
+Suppose that samples from the posterior, $\theta_1, \theta_2, \dots,\theta_T$, are readily available. In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case, the log-likelihood of the parameters $\matr{F}$ and $\Psi$ given the observed data is 
 \begin{equation}
 	L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \log p(\theta_t | \matr{F}, \Psi).
 \end{equation}
@@ -788,11 +835,11 @@ Figure \ref{fig:linear_regression_pdfs} shows, for each combination of the hyper
 These results suggest that, in general, SGD does not sample parameter vectors from the true posterior distribution, and hence, SWAG does not actually do approximate Bayesian inference. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For certain values of $\lambda$ (but not the theoretically motivated one), the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected of the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely. Since the ground truth cannot be compute in closed form, hyperparameter tuning would be far more difficult. In Appendix \ref{app:sgd_iterates}, better samples of the true posterior were obtained using a technique called \emph{finite window iterate averaging} \cite{mandt2017}. However, this method requires knowledge of the covariance matrix of the true posterior, making it impractical in the case of neural networks.
 
 
-\chapter{Variational Inference for Neural Networks}
+\chapter{VIFA: Variational Inference with a Factor Analysis Posterior}
 
-\section{Factor Analysis Posterior via Variational Inference}
+\section{TODO}
 
-Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} both assume that samples from the true posterior can be obtained via some separate procedure. This chapter presents an alternative method based on VI which learns a FA posterior directly.  
+%Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} both assume that samples from the true posterior can be obtained via some separate procedure. This chapter presents an alternative method based on VI which learns a FA posterior directly.  
 
 In Section \ref{sec:vi}, a general VI algorithm was outlined for learning an approximate Gaussian posterior of the parameter vector of a neural network. Suppose that the approximate posterior is a FA model. That is, $q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ for some $\matr{c} \in \R^D$, $\matr{F} \in \R^{D \times K}$ and $D \times D$ diagonal matrix $\Psi$. Then the gradient of the VI objective in Equation (\ref{eqn:vi_objective}) becomes 
 \begin{equation}\label{eqn:vi_fa_derivatives}
