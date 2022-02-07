@@ -260,23 +260,18 @@ Under certain assumptions on the learning rate, SGD is guaranteed to converge to
 \begin{equation}\label{eqn:swa_solution}
 	\theta_{\text{SWA}} = \frac{1}{T}\sum_{t=1}^T \theta_t.
 \end{equation}
-There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error. SWA also finds \emph{wider} optima than SGD, in the sense that one has to move further away from $\theta_{\text{SWA}}$ to increase both the train and test error by a given amount \cite{izmailov2018}. 
+There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error. 
+%SWA also finds \emph{wider} optima than SGD, in the sense that one has to move further away from $\theta_{\text{SWA}}$ to increase both the train and test error by a given amount \cite{izmailov2018}. 
 
 One limitation of the SWA solution is that it does not convey the uncertainty in the model parameters. The method was later extended to also include a low-rank plus diagonal approximation of the covariance matrix of the SGD iterates \cite{maddox2019}. The diagonal part is
 \begin{equation}
 	\frac{1}{2}\Sigma_\text{diag} = \frac{1}{2} \text{diag}\Bigg(\frac{1}{T}\sum_{t=1}^T \bgreek{\theta}_t^2 - \theta_{\text{SWA}}^2 \Bigg),
 \end{equation}
-where the squares are applied element-wise. For a rank $K$ approximation, the low-rank part is
+where the squares are applied element-wise. For rank $K \in \N$, the low-rank part is
 \begin{equation}
 	\frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal,
 \end{equation}
-where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating the vectors
-\begin{equation}
-	(\theta_{t_1} - \overline{\theta}_{t_1}), 
-	(\theta_{t_2} - \overline{\theta}_{t_2}),
-	\dots, (\theta_{t_K} - \overline{\theta}_{t_K})
-\end{equation}
-for some $t_1, t_2, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. Note that 
+where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating the vectors $(\theta_{t_1} - \overline{\theta}_{t_1}), \dots, (\theta_{t_K} - \overline{\theta}_{t_K})$ for some $t_1, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. Note that 
 \begin{equation}
 	\frac{1}{K-1} \hat{\matr{D}}\hat{\matr{D}}^\intercal
 	= \frac{1}{K-1} \sum_{i=1}^K (\theta_{t_i} - \overline{\theta}_{t_i}) (\theta_{t_i} - \overline{\theta}_{t_i})^\intercal,
@@ -286,12 +281,12 @@ which is similar to the empirical covariance of $\theta_{t_1}, \theta_{t_2}, \do
 	p(\theta | \mathcal{D}) \approx 
 	\mathcal{N}\Big(\theta_\text{SWA}, \frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal + \frac{1}{2}\Sigma_\text{diag}\Big).
 \end{equation}
-This method is known as SWA-Gaussian, or SWAG \cite{maddox2019}. One undesirable property of SWAG is that the rank $K$ and the number of SGD iterates used to form $\hat{\matr{D}}$ are one and the same. This means that, if $K \ll T$, only a tiny subset of $\theta_1, \theta_2, \dots, \theta_T$ will be used to estimate $\hat{\matr{D}}$ and the rest will be wasted. For example, in SWAG, the authors construct $\hat{\matr{D}}$ using only the final parameter vector from each of the last $K$ training epochs. 
+This method is known as SWA-Gaussian, or SWAG \cite{maddox2019}. One undesirable property of SWAG is that the rank $K$ and the number of SGD iterates used to construct $\hat{\matr{D}}$ are one and the same. This means that, if $K \ll T$, only a tiny subset of $\theta_1, \theta_2, \dots, \theta_T$ will be used to estimate $\hat{\matr{D}}$ and the rest will be wasted. In SWAG, the authors construct $\hat{\matr{D}}$ using only the final parameter vector from each of the last $K$ training epochs. 
 
 
 \subsection{Stochastic, Low-rank Approximate Natural Gradient}
 
-Several methods have been suggested for optimising the variational objective in Equation (\ref{eqn:vi_objective}). The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one such approach. It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. The online update rule is
+The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one approach to optimising the variational objective in Equation (\ref{eqn:vi_objective}). It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. The online update rule is
 \begin{equation}\label{eqn:vogn_update}
 	\mu \leftarrow \mu - \eta_\mu \Sigma (\hat{\matr{g}}_\theta + \alpha \mu), \quad 
 	\Sigma^{-1} \leftarrow (1 - \eta_\Sigma) \Sigma^{-1} + \eta_\Sigma(\hat{\matr{G}}_\theta + \alpha \matr{I}),
@@ -301,7 +296,7 @@ where $\eta_\mu, \eta_\Sigma > 0$ are learning rates, $\alpha$ is the precision 
 	\hat{\matr{g}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i, \quad
 	\hat{\matr{G}}_\theta = -\frac{N}{M} \sum_{(\matr{x}_i, y_i) \in \mathcal{B}} \matr{g}_\theta^i (\matr{g}_\theta^i)^\intercal,
 \end{equation}
-where $\matr{g}_\theta^i = \nabla_\theta \log p(y_i | \matr{x}_i, \theta)$ and $\mathcal{B}$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. When $\theta$ is the parameter vector of a neural network, the gradients $\matr{g}_\theta^i$ can be computed via back-propagation \cite{rumelhart1986}. However, for large neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is generally infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$.
+where $\matr{g}_\theta^i = \nabla_\theta \log p(y_i | \matr{x}_i, \theta)$ and $\mathcal{B}$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. Since $\theta$ is the parameter vector of a neural network, the gradients $\matr{g}_\theta^i$ can be computed via back-propagation \cite{rumelhart1986}. However, for deep neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is generally infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$.
 
 A computationally tractable version of VOGN can be obtained by using a low-rank plus diagonal approximation of the inverse of the covariance matrix. This is the approach taken by SLANG \cite{mishkin2018}, which stands for stochastic, low-rank, approximate natural gradient. This algorithm sets $\Sigma^{-1} = \matr{U} \matr{U}^\intercal + \matr{D}$ for some $\matr{U} \in \R^{D \times K}$ and a $D \times D$ diagonal matrix $\matr{D}$. Substituting this definition into Equation (\ref{eqn:vogn_update}), the update can be written as
 \begin{equation}
@@ -314,29 +309,24 @@ To make this tractable, the non-diagonal component of the right-hand side is app
 	(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta 
 	\approx \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal,
 \end{equation}
-where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ largest eigenvalues of $(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta$, and the columns of $\matr{Q}_{1:K} \in \R^{D \times K}$ are the corresponding eigenvectors. In order to compute this eigen-decomposition, the individual gradients $\matr{g}_\theta^i$ for training examples  $(\matr{x}_i, y_i) \in \mathcal{B}$ are required. When using the standard back-propagation algorithm in deep learning frameworks such as PyTorch \cite{paszke2019}, this is only possible by looping over the mini-batch samples one-by-one and storing each $\matr{g}_\theta^i$, which is very inefficient. A faster approach - which was adopted by SLANG - is outlined in \cite{goodfellow2015} for standard neural networks However, the authors of SLANG admit that this speed-up is limited to feed-forward layers and a separate implementation would be required to handle each different type of layer. This limits the applicability of SLANG in the case of more general neural networks, such as those with commonly used convolutional \cite{krizhevsky09}, residual \cite{he2015}, recurrent \cite{hochreiter1997} or transformer layers \cite{vaswani2017}.  
+where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ largest eigenvalues of $(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta$, and the columns of $\matr{Q}_{1:K} \in \R^{D \times K}$ are the corresponding eigenvectors. In order to compute this eigen-decomposition, the individual gradients $\matr{g}_\theta^i$ for each  $(\matr{x}_i, y_i) \in \mathcal{B}$ are required. When using the standard back-propagation algorithm in deep learning frameworks such as PyTorch \cite{paszke2019}, this is only possible by looping over the mini-batch samples one-by-one and storing each $\matr{g}_\theta^i$, which is very inefficient. A faster approach - which was adopted by SLANG - is outlined in \cite{goodfellow2015} for standard neural networks. However, the authors of SLANG admit that this speed-up is limited to feed-forward layers and a separate implementation would be required to handle each different type of layer. 
+%This limits the applicability of SLANG in the case of more general neural networks, such as those with commonly used convolutional \cite{krizhevsky09}, residual \cite{he2015}, recurrent \cite{hochreiter1997} or transformer layers \cite{vaswani2017}.  
 
 
 \section{Project Goals}
 
-%SWAG and SLANG are two promising approaches to estimating the posterior distribution of a neural network. One thing 
-%
-%They both  
-%
-%However, both methods have 
-
-\subsection{Online Factor Analysis}
-
+Although SWAG and SLANG are distinctly different approaches to Bayesian deep learning, they both opt for a low-rank plus diagonal approximation to simplify the estimation of the posterior covariance matrix. The low-rank plus diagonal covariance is also a defining feature of the FA model. However, there is more to the FA than that. In particular, it is a latent variable model which generates observations according to Equation (\ref{eqn:fa_model}). \textbf{The overall objective of this project is to use these specific properties of FA to overcome some of the limitations of SWAG and SLANG.}
+\\ \\
+\textbf{Online Factor Analysis}.
 The first goal of this project is motivated by the fact that SWAG does not make use of all the available data when estimating the low-rank plus diagonal approximation of the posterior covariance. This is unnecessary, since a covariance matrix with the exact same structure can be learned from \emph{all} the SGD iterates via FA. To see this, let $\matr{F} = \frac{1}{\sqrt{2(K-1)}} \hat{\matr{D}}$ and $\Psi = \frac{1}{2} \Sigma_\text{diag}$. Then the SWAG posterior from Equation (\ref{eqn:swag_dist}) becomes $\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big)$,
 %\begin{equation}
 	%\mathcal{N}\Big(\theta_\text{SWA}, \frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal + \frac{1}{2}\Sigma_\text{diag}\Big)
 	%\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big),
 %\end{equation}
 which is the same as the FA model from Equation (\ref{eqn:fa_marginal_dist}) with $\matr{c} = \theta_\text{SWA}$ \cite{brownlie2021}. In theory, such a model could be fit to $\theta_1, \theta_2, \dots, \theta_T$ using either the EM or SVD algorithm from \cite{barber2007}. However, given these are both batch algorithms, the SGD iterates would have to be stored in memory, which is not practical for deep neural networks with tens of millions of parameters. Hence, an online, iterative approach is required. To the best of this author's knowledge, no such algorithm exists. \textbf{To fill this gap, this thesis presents two novel online FA algorithms which scale to high-dimensional data, such as the parameter vectors of deep neural networks.}
-
-\subsection{VIFA: Variational Inference with a Factor Analysis Posterior}
-
-The second goal of this project is motivated by the fact that SLANG can only be applied to feed-forward neural networks. More complex architectures are extremely common in research and industry, especially convolutional layers in computer vision and transformer layers in natural language processing. In these domains, the applicability of SLANG is limited. \textbf{Therefore, this thesis presents a novel, model-agnostic, VI algorithm which learns a FA posterior of a neural network. This method sacrifices the natural gradient used by SLANG in favour of the standard gradient, such that it can be applied to any neural network architecture with no extra effort.} 
+\\ \\
+\textbf{Variational Inference with a Factor Analysis Posterior}.
+The second goal of this project is motivated by the fact that SLANG can only be applied to feed-forward neural networks. More complex architectures are extremely common in research and industry, especially convolutional layers \cite{krizhevsky09} in computer vision and recurrent \cite{hochreiter1997} and transformer \cite{vaswani2017} layers in natural language processing. In these domains, the applicability of SLANG is limited. \textbf{With a focus on practicallity, this thesis presents a novel, model-agnostic, VI algorithm which learns a FA posterior of a neural network. This method sacrifices the natural gradient used by SLANG in favour of the standard gradient, such that it can be applied to any neural network architecture with no extra effort.} 
 
 
 \chapter{Online Factor Analysis}\label{ch:online_fa}
@@ -835,9 +825,9 @@ Figure \ref{fig:linear_regression_pdfs} shows, for each combination of the hyper
 These results suggest that, in general, SGD does not sample parameter vectors from the true posterior distribution, and hence, SWAG does not actually do approximate Bayesian inference. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For certain values of $\lambda$ (but not the theoretically motivated one), the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected of the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely. Since the ground truth cannot be compute in closed form, hyperparameter tuning would be far more difficult. In Appendix \ref{app:sgd_iterates}, better samples of the true posterior were obtained using a technique called \emph{finite window iterate averaging} \cite{mandt2017}. However, this method requires knowledge of the covariance matrix of the true posterior, making it impractical in the case of neural networks.
 
 
-\chapter{VIFA: Variational Inference with a Factor Analysis Posterior}
+\chapter{Variational Inference with a Factor Analysis Posterior}
 
-\section{TODO}
+\section{VIFA}
 
 %Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} both assume that samples from the true posterior can be obtained via some separate procedure. This chapter presents an alternative method based on VI which learns a FA posterior directly.  
 
