@@ -254,7 +254,7 @@ where each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from
 
 TODO: once we've written the introduction, add some texts here which follows on from the big picture introduced there, before diving into more detail about SWA and SLANG. 
 
-\subsection{Stochastic Weight Averaging}
+\subsection{Stochastic Weight Averaging}\label{sec:swa}
 
 Under certain assumptions on the learning rate, SGD is guaranteed to converge to a local minimum of the (regularised) training loss \cite{ruder2016}. While this is a nice property, the training loss is only a proxy for finding solutions with low test error. Recent work suggests that good regions of the loss surface with respect to train and test error are rarely perfectly aligned \cite{izmailov2018}. Moreover, SGD with a decaying learning rate actually converges to solutions on the \emph{periphery} of a set of parameters with low test error. It is thought that such solutions lie in sharp regions of the training loss surface, where even a small shift can result in poor generalisation \cite{izmailov2018}. Therefore, solutions in flatter regions of the training loss surface, which are more likely to remain good even are being shifted, are desirable. When used with a high constant learning rate, SGD first approaches a local minimum and then proceeds to bounce around in its vicinity \cite{mandt2017}. In doing so, it is thought that SGD visits those points which are on the periphery of regions corresponding to low test error, while hopping back and forth over a flat region of the training loss surface \cite{izmailov2018}. By averaging the SGD iterates, a solution closer to the centre of this flat region can be obtained. This is the idea behind the SWA solution, $\theta_{\text{SWA}}$, from \cite{izmailov2018}. Formally, given parameter vectors $\theta_1, \theta_2, \dots, \theta_T \in \R^D$ encountered along the SGD trajectory,
 \begin{equation}\label{eqn:swa_solution}
@@ -267,7 +267,7 @@ One limitation of the SWA solution is that it does not convey the uncertainty in
 \begin{equation}
 	\frac{1}{2}\Sigma_\text{diag} = \frac{1}{2} \text{diag}\Bigg(\frac{1}{T}\sum_{t=1}^T \bgreek{\theta}_t^2 - \theta_{\text{SWA}}^2 \Bigg),
 \end{equation}
-where the squares are applied element-wise. For rank $K \in \N$, the low-rank part is
+where the squares are applied element-wise. For rank $K \in \N^+$, the low-rank part is
 \begin{equation}
 	\frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal,
 \end{equation}
@@ -284,7 +284,7 @@ which is similar to the empirical covariance of $\theta_{t_1}, \theta_{t_2}, \do
 This method is known as SWA-Gaussian, or SWAG \cite{maddox2019}. One undesirable property of SWAG is that the rank $K$ and the number of SGD iterates used to construct $\hat{\matr{D}}$ are one and the same. This means that, if $K \ll T$, only a tiny subset of $\theta_1, \theta_2, \dots, \theta_T$ will be used to estimate $\hat{\matr{D}}$ and the rest will be wasted. In SWAG, the authors construct $\hat{\matr{D}}$ using only the final parameter vector from each of the last $K$ training epochs. 
 
 
-\subsection{Stochastic, Low-rank Approximate Natural Gradient}
+\subsection{Stochastic, Low-rank Approximate Natural Gradient}\label{sec:slang}
 
 The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one approach to optimising the variational objective in Equation (\ref{eqn:vi_objective}). It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. The online update rule is
 \begin{equation}\label{eqn:vogn_update}
@@ -331,7 +331,7 @@ The second goal of this project is motivated by the fact that SLANG can only be 
 
 \chapter{Online Factor Analysis}\label{ch:online_fa}
 
-This chapter presents two algorithms which can be used to approximate the posterior distribution of the parameter vector of a neural network with a FA model, assuming that samples of the posterior can be obtained via some separate procedure. Crucially, both algorithms are executed online in an iterative fashion, making them suitable for high-dimensional deep neural networks.
+This chapter presents two algorithms which can be used to approximate the posterior distribution of the parameter vector of a neural network with a FA model, assuming that samples of the posterior can be obtained via some separate procedure, such as that employed by SWA and its variants. Crucially, both algorithms are executed online in an iterative fashion, making them suitable for high-dimensional deep neural networks.
 
 \section{Online Stochastic Gradient Ascent}\label{sec:gradient_fa}
 
@@ -343,8 +343,7 @@ The partial derivatives of the log-likelihood with respect to $\matr{F}$ and $\P
 \begin{equation}
 	\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi).
 \end{equation}
-Computing $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$ in full would require a pass over all observations, $\theta_1, \dots, \theta_T$. However, a stochastic gradient algorithm can be used instead, as long as the expectation of the sample derivatives is proportional to $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$. By using $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$, $t=1,\dots,T$, as the sample derivatives, this condition clearly holds. Hence, as long as the partial derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ can be computed efficiently, they can be used in conjunction with SGD or any of its variants to optimise $\matr{F}$ and $\Psi$ online. 
-%After each $\theta_t$ is sampled and used to perform a gradient step, it can immediately be discarded. 
+Computing $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$ in full would require a pass over all observations, $\theta_1, \theta_2, \dots, \theta_T$. However, a stochastic gradient algorithm can be used instead, as long as the expectation of the sample derivatives is proportional to $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$. By using the $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ as the sample derivatives, this condition clearly holds. Hence, as long as the partial derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ can be computed efficiently, they can be used in conjunction with SGD or any of its variants to optimise $\matr{F}$ and $\Psi$ online \cite{brownlie2021}. 
 
 By adapting an argument for general latent variable models in \cite{barber2007} to FA, the required sample derivatives can be written as
 \begin{align}\label{eqn:grad_log_likelihood}
@@ -411,7 +410,7 @@ From the E-step of the EM algorithm for FA in \cite{barber2007}, $p(\matr{h}_t |
 	\Sigma = (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1}
 	\quad \text{and} \quad \matr{m}_t = \Sigma \matr{F}^\intercal \Psi^{-1} \matr{d}_t.
 \end{equation}
-Hence, using identities from \cite{petersen2012}, 
+Hence, using identities for vector and matrix expectations from \cite{petersen2012}, 
 \begin{equation}\label{eqn:expected_value_h_hh}
 	\E \big[ \matr{h}_t^\intercal \big] = \matr{m}_t^\intercal \quad \text{and} \quad \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] = \Sigma + \matr{m}_t \matr{m}_t^\intercal.
 \end{equation}
@@ -441,7 +440,7 @@ for $d=1, \dots, D$. Since the partial derivatives of Equation (\ref{eqn:aXa}) w
 	& = -\diag\big(\diag(\matr{X}^{-2}) \odot \matr{a}^2\big),
 \end{split}
 \end{align}  
-where $\odot$ denotes the element-wise matrix product (with broadcasting, if applicable) and the square of a vector is applied element-wise. Also, when applied to a $D$-length vector, $\diag(\cdot)$ represents the $D \times D$ diagonal matrix with the vector on its diagonal, and when applied to a $D \times D$ matrix, $\diag(\cdot)$ represents the $D$-length vector consisting of the diagonal entries of the matrix. Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
+where $\odot$ denotes the element-wise matrix product (with broadcasting, if applicable) and the square of the vector is applied element-wise. Also, when applied to a $D$-length vector, $\diag(\cdot)$ represents the $D \times D$ diagonal matrix with the vector on its diagonal, and when applied to a $D \times D$ matrix, $\diag(\cdot)$ represents the $D$-length vector consisting of the diagonal entries of the matrix. Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
 \begin{equation}\label{eqn:derivatives_wrt_Psi_1}
 	\nabla_\Psi (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) 
 	= -\diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big).
@@ -488,9 +487,7 @@ Finally, substituting Equation (\ref{eqn:expected_gradient_d_Fh}) into Equation 
 
 \subsection{Practical implementation}
 
-In practice, storing the full $D\times D$ covariance matrix $\Psi$ (or its inverse) would be infeasible for high-dimensional $\theta_t \in \R^D$. However, since $\Psi$ is diagonal and the partial derivatives of the log-likelihood with respect to the off-diagonal are always zero, it suffices to work with the diagonal entries only. All occurrences of $D \times D$ matrices can then be removed from the gradient calculations. 
-
-First, note that the partial derivatives with respect to both $\matr{F}$ and $\Psi$ depend on $\matr{m}_t$ and $\Sigma$ from Equation (\ref{eqn:variational_params}), which themselves depend on  $\Psi^{-1}$. Let $\psi = \diag(\Psi)$ and $\psi^{-n} = \diag(\Psi^{-n})$ for $n \in \N^+$. Then 
+In practice, storing the full $D\times D$ covariance matrix $\Psi$ (or its inverse) would be infeasible for high-dimensional $\theta_t \in \R^D$. However, since $\Psi$ is diagonal and the partial derivatives of the log-likelihood with respect to the off-diagonal are always zero, it suffices to work with the diagonal entries only. All occurrences of $D \times D$ matrices can then be removed from the gradient calculations. First, note that the partial derivatives with respect to both $\matr{F}$ and $\Psi$ depend on $\matr{m}_t$ and $\Sigma$ from Equation (\ref{eqn:variational_params}), which themselves depend on  $\Psi^{-1}$. Let $\psi = \diag(\Psi)$ and $\psi^{-n} = \diag(\Psi^{-n})$ for $n \in \N^+$. Then 
 \begin{equation}
 	\matr{F}^\intercal \Psi^{-1} = (\matr{F} \odot \psi^{-1})^\intercal.
 \end{equation}
@@ -498,7 +495,7 @@ Now, setting $\matr{C} =  (\matr{F} \odot \psi^{-1})^\intercal$ and substituting
 \begin{equation}\label{eqn:efficient_m_and_sigma}
 	\Sigma = (\matr{I} + \matr{C} \matr{F})^{-1} \quad \text{and} \quad \matr{m}_t = \Sigma \matr{C} \matr{d}_t.
 \end{equation}
-These more efficient values can then be used in Equation (\ref{eqn:derivatives_wrt_F}), which itself can be simplified to 
+These more efficient definitions can then be used in Equation (\ref{eqn:derivatives_wrt_F}), which itself can be simplified to 
 \begin{align}\label{eqn:efficient_derivatives_wrt_F}
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
@@ -558,7 +555,7 @@ where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\r
 
 \section{Online Expectation-Maximisation}\label{sec:online_em}
 
-Again, suppose that samples from the posterior, $\theta_1,\dots,\theta_T$, are available. The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
+Again, suppose that samples from the posterior, $\theta_1, \theta_2, \dots,\theta_T$, are available. The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
 \begin{equation}\label{eqn:EM_bound}
 	L(\matr{F}, \Psi) \geq 
 	- \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log q(\matr{h}_t | \theta_t)\big]
@@ -572,7 +569,7 @@ In the batch E-step, $\matr{F}$ and $\Psi$ are fixed and Equation (\ref{eqn:EM_b
 \begin{equation}
 	q(\matr{h}_t | \theta_t) = p(\matr{h}_t | \theta_t, \matr{F}, \Psi)  \propto \mathcal{N}(\matr{m}_t, \Sigma), 
 \end{equation}
-where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM all $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ will be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it will be replaced by the running average of the neural network's parameter vectors, as in the online SGA algorithm from Section \ref{sec:gradient_fa}.
+where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM all $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ will be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it will be replaced by the running average of the neural network's parameter vectors, as in Algorithm \ref{alg:gradient_fa}.
 
 
 \subsection{M-step}
@@ -633,6 +630,10 @@ All that remains to complete the online algorithm is to define the incremental u
 \end{align}
 Pseudo code for the practical implementation is given in Algorithm \ref{alg:online_em}.
 
+\section{Factors Initialisation}\label{sec:F_init}
+
+One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$. 
+
 \begin{algorithm}[!htbp] 
 	\caption{Online Expectation-Maximisation for Factor Analysis}
 	\label{alg:online_em}
@@ -664,16 +665,11 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:onli
 \end{algorithm}
 
 
-\section{Factors Initialisation}\label{sec:F_init}
-
-One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$. 
-
-
 \section{Experiments}
 
 \subsection{Learning Synthetic Factor Analysis Models}\label{ch:online_fa_experiments}
 
-The aim of these experiments is to test how well the online FA algorithms from Chapter \ref{ch:online_fa} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both online FA algorithms (Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}) by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
+The aim of these experiments is to test how well Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both algorithms by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
 \begin{equation}
 	(\matr{F} \matr{A}) (\matr{F} \matr{A})^\intercal + \Psi
 	= \matr{F} \matr{A} \matr{A}^\intercal \matr{F}^\intercal + \Psi
@@ -683,33 +679,9 @@ Therefore, the $\matr{F}$ estimated by an online FA algorithm cannot be directly
 
 \subsubsection{Methodology}
 
-Since the covariance matrices have shape $D \times D$, memory requirements dictate that $D$, the observation dimension, cannot be too large. Therefore, values of $D=100$ and $D=1000$ were used in all experiments in this section. In all cases the latent dimension was set to $K=10$, meaning that two different observation to latent ratios were tested: $\frac{D}{K} = 10$ and $\frac{D}{K} = 100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^D$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that its columns spanned the $K$-dimensional latent space and the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{D \times D}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^D$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number of a matrix is equal to
-\begin{equation}
-	\max_{i, j} \frac{| \lambda_i |}{| \lambda_j |},
-\end{equation}
-where the $\lambda_i$ and $\lambda_j$ are eigenvalues of the matrix \cite{goodfellow2016}. This ratio can be controlled by specifying the  range of $\matr{s}$, or alternatively, the range of $\matr{s}^2$, which is called the \emph{spectrum}. The larger the ratio of the upper to lower bound of the spectrum, the larger the ratio of the eigenvalues. In each experiment the spectrum was sampled from a uniform distribution with one of the following ranges: $[1, 10]$, $[1, 100]$ or $[1, 1000]$. Finally, the diagonal entries of $\Psi$ were sampled from a uniform distribution with upper bound equal to the maximum value of $\matr{s}^2$. This is consistent with the FA assumption that an observation, $\theta = \matr{Fh} + \matr{c} + \epsilon$, is generated by corrupting the signal $\matr{Fh} + \matr{c}$ with some random noise $\epsilon \sim \mathcal{N}(\matr{0}, \Psi)$. The full details of how FA models were generated are given in Algorithm \ref{alg:generate_fa}.
+Since the covariance matrices have shape $D \times D$, memory requirements dictate that $D$, the observation dimension, cannot be too large. Therefore, values of $D=100$ and $D=1000$ were used in all experiments in this section. In all cases the latent dimension was set to $K=10$, meaning that two different observation to latent ratios were tested: $\frac{D}{K} = 10$ and $\frac{D}{K} = 100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^D$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that its columns spanned the $K$-dimensional latent space and the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{D \times D}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^D$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number of a matrix is equal to $\max_{i, j} \{| \lambda_i | / | \lambda_j |\}$, where the $\lambda_i$ and $\lambda_j$ are eigenvalues of the matrix \cite{goodfellow2016}. This ratio can be controlled by specifying the  range of $\matr{s}$, or alternatively, the range of $\matr{s}^2$, which is called the \emph{spectrum}. The larger the ratio of the upper to lower bound of the spectrum, the larger the ratio of the eigenvalues. In each experiment the spectrum was sampled from a uniform distribution with one of the following ranges: $[1, 10]$, $[1, 100]$ or $[1, 1000]$. Finally, the diagonal entries of $\Psi$ were sampled from a uniform distribution with upper bound equal to the maximum value of $\matr{s}^2$. This is consistent with the FA assumption that an observation, $\theta = \matr{Fh} + \matr{c} + \epsilon$, is generated by corrupting the signal $\matr{Fh} + \matr{c}$ with some random noise $\epsilon \sim \mathcal{N}(\matr{0}, \Psi)$. Pseudo code for generating FA models is given in Algorithm \ref{alg:generate_fa} in Appendix \ref{app:online_fa}.
 
-\begin{algorithm}[!htbp] 
-	\caption{Generate a Factor Analysis Model}
-	\label{alg:generate_fa}
-	\begin{algorithmic}[1]
-		\Require{Observation dimension $D$, latent dimension $K$, spectrum range $[a, b]$} 
-		\State Generate $\matr{c} \in \R^D$ by sampling entries independently from $\mathcal{N}(0, 1)$
-		\State Generate $\matr{A} \in \R^{D \times D}$ by sampling entries independently from $\mathcal{N}(0, 1)$
-		\State $\matr{M} \leftarrow \matr{A} \matr{A}^\intercal$
-		\State Compute the $K$ eigenvectors, $\matr{v}_1, \dots, \matr{v}_K \in \R^D$, corresponding to the $K$ largest eigenvalues of $\matr{M}$
-		\State Construct the matrix $\matr{V}_K \in \R^{D \times K}$ with columns $\matr{v}_1, \dots, \matr{v}_K$
-		\State Generate $\matr{s}^2 \in \R^D$ by sampling entries independently from $\mathcal{U}(a, b)$
-		\State $\matr{s} \leftarrow \sqrt{\matr{s}^2}$ (square root is applied element-wise) 
-		\State $\matr{F} \leftarrow \matr{V}_K \odot \matr{s}$ (with broadcasting)
-		\State $s_{max} \leftarrow \max({\matr{s}^2})$ (largest element of ${\matr{s}^2}$)
-		\State Generate $\psi \in \R^D$ by sampling entries independently from $\mathcal{U}(0, s_{max}) $
-		\State $\Psi \leftarrow \text{diag}(\psi)$
-		\State \Return $\matr{c}, \matr{F}, \Psi$	
-	\end{algorithmic}
-\end{algorithm}
-
-Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007}. The \emph{randomised} version of SVD was used, which for most applications is  ``sufficiently precise while providing significant speed gains" \cite{pedregosa2012}. Each algorithm was tested on samples of varying size, from 100 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ was initialised as described in Section \ref{sec:F_init}, and online SGA ran with a learning rate of 0.001. Additionally, both online algorithms were allowed a \emph{warm-up} period of 100 iterations during which the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, were updated, while $\matr{F}$ and $\Psi$ remained fixed (TODO: perhaps include in an appendix the derivation that Michael sent, about how this is equivalent to specifying a prior). Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
+Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007}. The \emph{randomised} version of SVD was used, which for most applications is  ``sufficiently precise while providing significant speed gains" \cite{pedregosa2012}. Each algorithm was tested on samples of varying size, from 100 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ was initialised as described in Section \ref{sec:F_init}, and online SGA ran with a learning rate of 0.001. Additionally, both online algorithms were allowed a \emph{warm-up} period of 100 iterations during which the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, were updated, while $\matr{F}$ and $\Psi$ remained fixed. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
 
 
 \subsubsection{Results and Discussion}
@@ -1073,93 +1045,9 @@ for learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$. Pseudo code
 
 \subsection{Comparison of VIFA and SLANG}
 
-There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an Empirical Fisher matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}.
+There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an Empirical Fisher matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}. 
 
-Setting the Monte Carlo average size to $L=1$ for simplicity, the update rules for the posterior mean in VIFA and SLANG are, respectively,
- \begin{equation}
- 	\matr{c} \leftarrow \matr{c} - \eta_\matr{c} (\alpha \matr{c} + N \matr{g}_\theta) \quad \text{and} \quad 
- 	\mu \leftarrow \mu - \eta_\mu \Sigma (\alpha \mu + N \matr{g}_\theta),
-\end{equation}
-where
-\begin{equation}
-	\matr{g}_\theta = \nabla_\theta \Big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\Big)
-\end{equation}
-is the mini-batch gradient of the average negative log-likelihood with respect to $\theta$. The only difference between the two rules is that, in SLANG, the gradient vector is multiplied by the posterior covariance matrix. As for the update rules for the covariance itself, the similarities are less clear. In the case of VIFA, the update rule for $\matr{F}$ can be written as
-\begin{equation}
-	\matr{F} \leftarrow \matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big).
-\end{equation}
-Hence,
-\begin{align}
-\begin{split}
-	\matr{F}\matr{F}^\intercal
-	& \leftarrow \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big) \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big)^\intercal \\
-	& = \matr{F}\matr{F}^\intercal 
-	- \eta \matr{F} \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal
-	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
-	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal \\
-	& = \matr{F}\matr{F}^\intercal 
-	- \eta \matr{F} \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big)
-	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
-	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big) \\
-	& = \matr{F}\matr{F}^\intercal  
-	+ \eta \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	+ \eta \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \\
-	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta^2 \alpha \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
-	& \quad - \eta^2 \alpha \matr{F} \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha^2 \matr{F} \matr{F}^\intercal + \eta^2 \alpha N \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
-	& \quad - \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal + \eta^2 N^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
-	& = (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
-	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
-	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
-	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
-	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal.
-\end{split}
-\end{align}
-Also, the update rule for $\Psi$ in VIFA can be written as
-\begin{align}
-\begin{split}
-	\Psi & \leftarrow \Psi - \eta\Big(
-		-\frac{1}{2} \diag\big(\diag\big(\matr{S}^{-1}\big)\big) 
-		+\frac{\alpha}{2} \matr{I} 
-		+\frac{N}{2} \diag\big(\diag\big( \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\big) 
-	\Big) \\
-	& = \Psi +
-		\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
-		- \frac{\eta \alpha}{2} \matr{I}.
-\end{split}
-\end{align}
-Therefore, the update rule for the covariance matrix in VIFA is
-\begin{align}
-\begin{split}
-	\matr{F}\matr{F}^\intercal + \Psi
-	& \leftarrow (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
-	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
-	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
-	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
-	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
-	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal \\
-	& \quad + \Psi +
-	\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
-	- \frac{\eta \alpha}{2} \matr{I}.
-\end{split}
-\end{align}
-In comparison, the update rule for the inverse covariance matrix in SLANG is 
-\begin{align}
-\begin{split}
-	\big(\matr{U}\matr{U}^\intercal + \matr{D}\big)^{-1}
-	& \leftarrow  \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal
-	+ (1 - \eta) \matr{D} + \eta \alpha \matr{I},
-\end{split}
-\end{align}
-where $\matr{Q}_{1:K}$ and $\Lambda_{1:K}$ are obtained by computing the top-$K$ eigen-decomposition of $(1 - \eta) \matr{U} \matr{U}^\intercal + \eta \hat{\matr{G}}_\theta$ (recall that $\hat{\matr{G}}_\theta$ is the Empirical Fisher matrix). 
-
-Although on first sight the VIFA update may look more complicated, it can be implemented using only simple matrix operations and the standard back-propagation algorithm (as shown in Algorithm \ref{alg:vi_fa}). In contrast, the SLANG update requires a randomised eigen-decomposition algorithm \cite{mishkin2018}. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:related_work}, this is problematic, since an efficient algorithm requires a separate implementation of back-propagation for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the average negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation tools in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. In this sense, VIFA is a much more practical algorithm that SLANG.
+Although on first sight the VIFA updates in Algorithm \ref{alg:vi_fa} may look more complicated, they are implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, the SLANG update requires a randomised eigen-decomposition algorithm \cite{mishkin2018}. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:slang}, this is problematic, since an efficient algorithm requires a separate implementation of back-propagation for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the average negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation tools in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. In this regard, VIFA is a much more practical algorithm that SLANG.
 
 
 \section{Experiments}
@@ -1168,21 +1056,19 @@ Although on first sight the VIFA update may look more complicated, it can be imp
  
 \subsubsection{Methodology}
 
-Algorithm \ref{alg:vi_fa} was executed with the same synthetic data and precision $\alpha$ as in the experiments in Section \ref{sec:linear_regression_posterior_experiments}. In this case, the training process ran for 5000 epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.0001 and 0.01, respectively. The reason for using a smaller learning rate for $\matr{F}$ is that its contribution to the full covariance matrix is $\matr{F}\matr{F}^\intercal$. Two different latent dimensions were tested for the approximate FA posterior, namely $K=1$ and $K=2$. When computing the log-likelihood term involved in the gradient calculations, the variance of the outputs $y$ was set to the true value, $\sigma^2 = \frac{1}{\beta} = 10$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
+Algorithm \ref{alg:vi_fa} was executed with the same synthetic data and precision $\alpha$ as in the experiments in Section \ref{sec:linear_regression_posterior_experiments}. In this case, the training process ran for 5000 epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.0001 and 0.01, respectively. The reason for using a smaller learning rate for $\matr{F}$ is that its contribution to the full covariance matrix is $\matr{F}\matr{F}^\intercal$. The latent dimension of the approximate FA posterior was set to $K=1$. When computing the log-likelihood term involved in the gradient calculations, the variance of the outputs $y$ was set to the true value, $\sigma^2 = \frac{1}{\beta} = 10$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
 
 \subsubsection{Results and Discussion}
 
-The results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to using the SGD iterates, the more direct VI approach does a much better job of approximating the true covariance matrix. For the FA model with a single latent dimension, the average distance of the estimated covariance from the ground truth is 0.0983, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The much improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrices of the two FA models are very similar to the ground truth. Moreover, in these experiments the FA model with a single latent dimension achieved better results than the FA with two latent dimensions. This is encouraging, since applying this algorithm to estimate the posterior of a deep neural network is only feasible if the latent dimension can be set to a value much less than the number of learnable parameters in the model. 
+The results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table \ref{table:linear_regression_vi_posterior}. Compared to using the SGD iterates, the more direct VI approach does a much better job of approximating the true covariance matrix. The average distance of the estimated covariance from the ground truth is 0.0983, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The much improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrices of the two FA models are very similar to the ground truth.
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
+		\begin{tabular}{|| p{0.3\linewidth} p{0.3\linewidth} p{0.3\linewidth} ||} 
  			\hline
- 			Latent Dimension of FA Model & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
+ 			Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
  			\hline\hline
-			1 	& $0.0031 \pm 0.0005$ 	& $0.0983 \pm 0.0129$ 	& $0.0194 \pm 0.0023$ \\ [1ex] 
-			\hline
- 			2 	& $0.0040 \pm 0.0008$ 	& $ 0.1053 \pm 0.0199$ 	& $0.0242 \pm 0.0030$ \\ [1ex] 
+			$0.0031 \pm 0.0005$ 	& $0.0983 \pm 0.0129$ 	& $0.0194 \pm 0.0023$ \\ [1ex] 
 			\hline
 		\end{tabular}
 		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the dimension of the distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
@@ -1195,11 +1081,9 @@ The results of applying Algorithm \ref{alg:vi_fa} to the data are shown in Table
 		 \includegraphics[width=70mm]{plots/linear_model_true_posterior__alpha=0.01__beta=0.1.png}
 		 & \includegraphics[width=70mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=1.png} \\
 		 (a) Ground truth
-		 & (b) VIFA: latent dim = 1 \\
-		 \includegraphics[width=70mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=2.png} \\
-		 (c) VIFA: latent dim = 2 \\[6pt]
+		 & (b) VIFA \\[6pt]
 	\end{tabular}
-	\caption{The true posterior pdf of a linear regression model with two learnable parameters, plus the pdfs of two FA models fit to the same data using VIFA. Both approximations are very similar to the ground truth, including the FA model with only a single latent dimension.}
+	\caption{The true posterior pdf of a linear regression model with two learnable parameters, plus the pdf of a FA model with a single latent dimension which was fit to the same data using VIFA.}
 	\label{fig:linear_regression_vi_posterior}
 \end{figure}
 
@@ -1470,6 +1354,28 @@ Hence, the posterior distribution of $\theta$ is
  
  \section{Online Factor Analysis}\label{app:online_fa}
  
+Algorithm \ref{alg:generate_fa} shows how the synthetic FA models were generated for the experiments in Section \ref{ch:online_fa_experiments}.
+ 
+ \begin{algorithm}[!htbp] 
+	\caption{Generate a Factor Analysis Model}
+	\label{alg:generate_fa}
+	\begin{algorithmic}[1]
+		\Require{Observation dimension $D$, latent dimension $K$, spectrum range $[a, b]$} 
+		\State Generate $\matr{c} \in \R^D$ by sampling entries independently from $\mathcal{N}(0, 1)$
+		\State Generate $\matr{A} \in \R^{D \times D}$ by sampling entries independently from $\mathcal{N}(0, 1)$
+		\State $\matr{M} \leftarrow \matr{A} \matr{A}^\intercal$
+		\State Compute the $K$ eigenvectors, $\matr{v}_1, \dots, \matr{v}_K \in \R^D$, corresponding to the $K$ largest eigenvalues of $\matr{M}$
+		\State Construct the matrix $\matr{V}_K \in \R^{D \times K}$ with columns $\matr{v}_1, \dots, \matr{v}_K$
+		\State Generate $\matr{s}^2 \in \R^D$ by sampling entries independently from $\mathcal{U}(a, b)$
+		\State $\matr{s} \leftarrow \sqrt{\matr{s}^2}$ (square root is applied element-wise) 
+		\State $\matr{F} \leftarrow \matr{V}_K \odot \matr{s}$ (with broadcasting)
+		\State $s_{max} \leftarrow \max({\matr{s}^2})$ (largest element of ${\matr{s}^2}$)
+		\State Generate $\psi \in \R^D$ by sampling entries independently from $\mathcal{U}(0, s_{max}) $
+		\State $\Psi \leftarrow \text{diag}(\psi)$
+		\State \Return $\matr{c}, \matr{F}, \Psi$	
+	\end{algorithmic}
+\end{algorithm}
+ 
 Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size as Figure \ref{fig:fa_covar_distance}. The distance is scaled by dividing by observation dimension. Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples. 
 
 \begin{figure}[!htbp] 
@@ -1597,6 +1503,92 @@ Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_st
 		\label{table:linear_regression_vi_posterior_uci}
 	\end{center}
 \end{table}
+
+
+
+%Setting the Monte Carlo average size to $L=1$ for simplicity, the update rules for the posterior mean in VIFA and SLANG are, respectively,
+% \begin{equation}
+% 	\matr{c} \leftarrow \matr{c} - \eta_\matr{c} (\alpha \matr{c} + N \matr{g}_\theta) \quad \text{and} \quad 
+% 	\mu \leftarrow \mu - \eta_\mu \Sigma (\alpha \mu + N \matr{g}_\theta),
+%\end{equation}
+%where
+%\begin{equation}
+%	\matr{g}_\theta = \nabla_\theta \Big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\Big)
+%\end{equation}
+%is the mini-batch gradient of the average negative log-likelihood with respect to $\theta$. The only difference between the two rules is that, in SLANG, the gradient vector is multiplied by the posterior covariance matrix. As for the update rules for the covariance itself, the similarities are less clear. In the case of VIFA, the update rule for $\matr{F}$ can be written as
+%\begin{equation}
+%	\matr{F} \leftarrow \matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big).
+%\end{equation}
+%Hence,
+%\begin{align}
+%\begin{split}
+%	\matr{F}\matr{F}^\intercal
+%	& \leftarrow \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big) \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big)^\intercal \\
+%	& = \matr{F}\matr{F}^\intercal 
+%	- \eta \matr{F} \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal
+%	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
+%	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal \\
+%	& = \matr{F}\matr{F}^\intercal 
+%	- \eta \matr{F} \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big)
+%	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
+%	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big) \\
+%	& = \matr{F}\matr{F}^\intercal  
+%	+ \eta \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{F} \matr{h} \matr{g}_\theta^\intercal
+%	+ \eta \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \\
+%	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta^2 \alpha \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
+%	& \quad - \eta^2 \alpha \matr{F} \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha^2 \matr{F} \matr{F}^\intercal + \eta^2 \alpha N \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
+%	& \quad - \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal + \eta^2 N^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
+%	& = (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
+%	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+%	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
+%	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+%	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
+%	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
+%	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
+%	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
+%	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal.
+%\end{split}
+%\end{align}
+%Also, the update rule for $\Psi$ in VIFA can be written as
+%\begin{align}
+%\begin{split}
+%	\Psi & \leftarrow \Psi - \eta\Big(
+%		-\frac{1}{2} \diag\big(\diag\big(\matr{S}^{-1}\big)\big) 
+%		+\frac{\alpha}{2} \matr{I} 
+%		+\frac{N}{2} \diag\big(\diag\big( \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\big) 
+%	\Big) \\
+%	& = \Psi +
+%		\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
+%		- \frac{\eta \alpha}{2} \matr{I}.
+%\end{split}
+%\end{align}
+%Therefore, the update rule for the covariance matrix in VIFA is
+%\begin{align}
+%\begin{split}
+%	\matr{F}\matr{F}^\intercal + \Psi
+%	& \leftarrow (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
+%	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+%	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
+%	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
+%	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
+%	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
+%	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
+%	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
+%	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal \\
+%	& \quad + \Psi +
+%	\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
+%	- \frac{\eta \alpha}{2} \matr{I}.
+%\end{split}
+%\end{align}
+%In comparison, the update rule for the inverse covariance matrix in SLANG is 
+%\begin{align}
+%\begin{split}
+%	\big(\matr{U}\matr{U}^\intercal + \matr{D}\big)^{-1}
+%	& \leftarrow  \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal
+%	+ (1 - \eta) \matr{D} + \eta \alpha \matr{I},
+%\end{split}
+%\end{align}
+%where $\matr{Q}_{1:K}$ and $\Lambda_{1:K}$ are obtained by computing the top-$K$ eigen-decomposition of $(1 - \eta) \matr{U} \matr{U}^\intercal + \eta \hat{\matr{G}}_\theta$ (recall that $\hat{\matr{G}}_\theta$ is the Empirical Fisher matrix). 
 
 
 
