@@ -350,7 +350,7 @@ By adapting an argument for general latent variable models in \cite{barber2007} 
 \begin{split}
 	\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} p(\theta_t | \matr{F}, \Psi) \\
-	& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} \int_{\matr{h}_t} p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \\
+	%& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} \int_{\matr{h}_t} p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \\
 	& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \int_{\matr{h}_t} \nabla_{\matr{F}, \Psi} p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \\
 	& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \int_{\matr{h}_t} p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \nabla_{\matr{F}, \Psi} \log p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \\
 	& = \int_{\matr{h}_t} \frac{p(\theta_t, \matr{h}_t | \matr{F}, \Psi)}{p(\theta_t | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} \log p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \\
@@ -358,12 +358,13 @@ By adapting an argument for general latent variable models in \cite{barber2007} 
 	& = \E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \big].
 \end{split}
 \end{align}
-This is as far as the derivation in \cite{barber2007} goes. However, given the form of the FA model, it is possible to manipulate the sample derivatives further. In particular, using the fact that $\matr{h}_t \sim \mathcal{N}(\matr{0}, \matr{I})$ is independent from $\matr{F}$ and $\Psi$,
+%This is as far as the derivation in \cite{barber2007} goes. However, given the form of the FA model, it is possible to manipulate the sample derivatives further. In particular, 
+Now, using the fact that $\matr{h}_t \sim \mathcal{N}(\matr{0}, \matr{I})$ is independent from $\matr{F}$ and $\Psi$,
 \begin{align}\label{eqn:grad_log_complete_likelihood}
 \begin{split}
 	\nabla_{\matr{F}, \Psi} \log p(\theta_t, \matr{h}_t | \matr{F}, \Psi)
 	& = \nabla_{\matr{F}, \Psi} \log \big(p(\theta_t | \matr{h}_t, \matr{F}, \Psi)p(\matr{h}_t | \matr{F}, \Psi)\big) \\
-	& = \nabla_{\matr{F}, \Psi} \log \big(p(\theta_t | \matr{h}_t, \matr{F}, \Psi)p(\matr{h}_t)\big) \\
+	%& = \nabla_{\matr{F}, \Psi} \log \big(p(\theta_t | \matr{h}_t, \matr{F}, \Psi)p(\matr{h}_t)\big) \\
 	& = \nabla_{\matr{F}, \Psi} \big( \log p(\theta_t | \matr{h}_t, \matr{F}, \Psi) + \log p(\matr{h}_t)\big) \\
 	& = \nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{h}_t, \matr{F}, \Psi).
 \end{split}
@@ -399,8 +400,8 @@ It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \E \big[ \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal \big] \\
-	& = \Psi^{-1} \big(\E \big[ \matr{d}_t \matr{h}_t^\intercal \big] 
-	- \E \big[ \matr{Fh}_t \matr{h}_t^\intercal \big] \big) \\
+	%& = \Psi^{-1} \big(\E \big[ \matr{d}_t \matr{h}_t^\intercal \big] 
+	%- \E \big[ \matr{Fh}_t \matr{h}_t^\intercal \big] \big) \\
 	& = \Psi^{-1}\big( \matr{d}_t \E \big[ \matr{h}_t^\intercal \big] 
 	- \matr{F}  \E \big[ \matr{h}_t \matr{h}_t^\intercal \big]\big).
 \end{split}
@@ -460,7 +461,7 @@ Again, letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}
 \begin{split}
 	2 \cdot \nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \E \big[ \diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big) - \Psi^{-1} \big] \\
-	& = \diag\Big(\E \big[\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big]\Big) - \E \big[ \Psi^{-1} \big] \\
+	%& = \diag\Big(\E \big[\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big]\Big) - \E \big[ \Psi^{-1} \big] \\
 	& = \diag\Big(\diag(\Psi^{-2}) \odot \E \big[(\matr{d}_t - \matr{Fh}_t)^2\big]\Big) - \Psi^{-1}.
 \end{split}
 \end{align} 
@@ -470,7 +471,7 @@ Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}) and
 	\E \big[(\matr{d}_t - \matr{Fh}_t)^2\big] 
 	& = \E \big[\matr{d}_t \odot \matr{d}_t \big] - 2\E \big[ \matr{d}_t \odot (\matr{Fh}_t) \big] + \E \big[ (\matr{Fh}_t) \odot (\matr{Fh}_t) \big] \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \big(\matr{F} \E \big[ \matr{h}_t \big]\big) + \E \big[ \diag(\matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal) \big] \\
-	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big(\E \big[ \matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal \big]\big) \\
+	%& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big(\E \big[ \matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal \big]\big) \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big( \matr{F} \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] \matr{F}^\intercal \big) \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big( \matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \matr{F}^\intercal \big).
 \end{split}
@@ -552,7 +553,6 @@ where $\nabla_{\psi} \log p(\theta_t | \matr{F}, \Psi)$ is given in Equation (\r
 	\end{algorithmic}
 \end{algorithm}
 
-
 \section{Online Expectation-Maximisation}\label{sec:online_em}
 
 Again, suppose that samples from the posterior, $\theta_1, \theta_2, \dots,\theta_T$, are available. The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
@@ -574,11 +574,7 @@ where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_
 
 \subsection{M-step}
 
-In the batch M-step, $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$, are fixed and Equation (\ref{eqn:EM_bound}) is maximised with respect to $\matr{F}$ and $\Psi$. From \cite{barber2007}, the optimal values are 
-\begin{equation}
-	\matr{F} = \matr{A}\matr{H}^{-1},
-\end{equation}
-where
+In the batch M-step, $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$, are fixed and Equation (\ref{eqn:EM_bound}) is maximised with respect to $\matr{F}$ and $\Psi$. From \cite{barber2007}, the optimal values are $\matr{F} = \matr{A}\matr{H}^{-1}$, where
 \begin{equation}\label{eqn:em_A_and_H_update}
 	\matr{A} = \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{m}_t^\intercal \quad \text{and} \quad 
 	\matr{H} = \Sigma + \frac{1}{T} \sum_{t=1}^T \matr{m}_t \matr{m}_t^\intercal,
@@ -596,11 +592,7 @@ Let $\overline{\matr{A}}_t$ and $\overline{\matr{H}}_t$ be the estimates of $\ma
 	\overline{\matr{A}}_t = \frac{1}{t} \sum_{i=1}^t \matr{d}_i \matr{m}_i^\intercal \quad \text{and} \quad 
 	\overline{\matr{H}}_t = \Sigma + \frac{1}{t} \sum_{i=1}^t \matr{m}_i \matr{m}_i^\intercal.
 \end{equation}
-Then the estimates of $\matr{F}$ and $\Psi$ on iteration $t$ become
-\begin{equation}
-	\matr{F} = \overline{\matr{A}}_t \overline{\matr{H}}_t^{-1}
-\end{equation}
-and
+Then the estimates of $\matr{F}$ and $\Psi$ on iteration $t$ become $\matr{F} = \overline{\matr{A}}_t \overline{\matr{H}}_t^{-1}$ and
 \begin{equation}\label{eqn:em_Psi_incremental_update}
 	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{t} \sum_{i=1}^t \matr{d}_i \matr{d}_i^\intercal - 2 \matr{F}\overline{\matr{A}}_t^\intercal + \matr{F}\overline{\matr{H}}_t \matr{F}^\intercal \Bigg)\Bigg).
 \end{equation}
@@ -628,11 +620,7 @@ All that remains to complete the online algorithm is to define the incremental u
 	& = \overline{\matr{A}}_{t-1} + \frac{1}{t} \big(\matr{d}_t \matr{m}_t^\intercal - \overline{\matr{A}}_{t-1} \big).
 \end{split}
 \end{align}
-Pseudo code for the practical implementation is given in Algorithm \ref{alg:online_em}.
-
-\section{Factors Initialisation}\label{sec:F_init}
-
-One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$. 
+Pseudo code for the practical implementation is given in Algorithm \ref{alg:online_em}. 
 
 \begin{algorithm}[!htbp] 
 	\caption{Online Expectation-Maximisation for Factor Analysis}
@@ -664,6 +652,10 @@ One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em}
 	\end{algorithmic}
 \end{algorithm}
 
+\section{Factors Initialisation}\label{sec:F_init}
+
+One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$.
+
 
 \section{Experiments}
 
@@ -677,24 +669,24 @@ The aim of these experiments is to test how well Algorithms \ref{alg:gradient_fa
 \end{equation}
 Therefore, the $\matr{F}$ estimated by an online FA algorithm cannot be directly compared to the true $\matr{F}$. The comparison must be made between the full covariance matrices.  
 
-\subsubsection{Methodology}
-
 Since the covariance matrices have shape $D \times D$, memory requirements dictate that $D$, the observation dimension, cannot be too large. Therefore, values of $D=100$ and $D=1000$ were used in all experiments in this section. In all cases the latent dimension was set to $K=10$, meaning that two different observation to latent ratios were tested: $\frac{D}{K} = 10$ and $\frac{D}{K} = 100$. Since computing the maximum likelihood estimate of $\matr{c} \in \R^D$ is trivial, in all experiments the entries of $\matr{c}$ were simply sampled independently from a standard normal distribution. Each factor loading matrix $\matr{F}$ was generated in such a way that its columns spanned the $K$-dimensional latent space and the conditioning number of the resultant covariance matrix could be controlled. This was achieved by finding the first $K$ eigenvectors of a symmetric positive semi-definite matrix $\matr{M} \in \R^{D \times D}$, and then setting the columns of $\matr{F}$ equal to these eigenvectors multiplied by a vector $\matr{s} > \matr{0} \in \R^D$ (element-wise). By construction, the $K$ eigenvectors are linearly independent and therefore span the latent space, and scaling them by $\matr{s}$ affects the conditioning number of $\matr{F}\matr{F}^\intercal$. The conditioning number of a matrix is equal to $\max_{i, j} \{| \lambda_i | / | \lambda_j |\}$, where the $\lambda_i$ and $\lambda_j$ are eigenvalues of the matrix \cite{goodfellow2016}. This ratio can be controlled by specifying the  range of $\matr{s}$, or alternatively, the range of $\matr{s}^2$, which is called the \emph{spectrum}. The larger the ratio of the upper to lower bound of the spectrum, the larger the ratio of the eigenvalues. In each experiment the spectrum was sampled from a uniform distribution with one of the following ranges: $[1, 10]$, $[1, 100]$ or $[1, 1000]$. Finally, the diagonal entries of $\Psi$ were sampled from a uniform distribution with upper bound equal to the maximum value of $\matr{s}^2$. This is consistent with the FA assumption that an observation, $\theta = \matr{Fh} + \matr{c} + \epsilon$, is generated by corrupting the signal $\matr{Fh} + \matr{c}$ with some random noise $\epsilon \sim \mathcal{N}(\matr{0}, \Psi)$. Pseudo code for generating FA models is given in Algorithm \ref{alg:generate_fa} in Appendix \ref{app:online_fa}.
 
-Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA (Algorithm \ref{alg:gradient_fa}), online EM (Algorithm \ref{alg:online_em}) and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007}. The \emph{randomised} version of SVD was used, which for most applications is  ``sufficiently precise while providing significant speed gains" \cite{pedregosa2012}. Each algorithm was tested on samples of varying size, from 100 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ was initialised as described in Section \ref{sec:F_init}, and online SGA ran with a learning rate of 0.001. Additionally, both online algorithms were allowed a \emph{warm-up} period of 100 iterations during which the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, were updated, while $\matr{F}$ and $\Psi$ remained fixed. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
+Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA, online EM and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007}. The \emph{randomised} version of SVD was used, which for most applications is  ``sufficiently precise while providing significant speed gains" \cite{pedregosa2012}. Each algorithm was tested on samples of varying size, from 100 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ was initialised as described in Section \ref{sec:F_init}, and online SGA ran with a learning rate of 0.001. Additionally, both online algorithms were allowed a \emph{warm-up} period of 100 iterations during which the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, were updated, while $\matr{F}$ and $\Psi$ remained fixed. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
 
 
 \subsubsection{Results and Discussion}
 
-Figure \ref{fig:fa_covar_distance} shows the relative distance between the true covariance matrix of each FA model and the corresponding estimated covariance matrix of each learning algorithm, as a function of the number of samples used to fit the approximate models. The distance between two matrices is measured by the Frobenius norm (also sometimes called the Euclidean norm) of the difference between the two matrices. The distance is then divided by the Frobenius norm of the true covariance matrix to get the relative distance. 
+Figure \ref{fig:fa_covar_distance} shows the relative distance between the true covariance matrix of each FA model and the corresponding estimated covariance matrix of each learning algorithm, as a function of the number of samples used to fit the approximate models. 
+%The distance between two matrices is measured by the Frobenius norm (also sometimes called the Euclidean norm) of the difference between the two matrices. The distance is then divided by the Frobenius norm of the true covariance matrix to get the relative distance. 
+In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[1, 10]$. When $D=100$ (top-left), online EM approximates the true covariance matrix better than online SGA when the number of samples, $T$, is less than $20,000$. For $T \geq 20,000$, the result are very close and the standard error bars overlap. Moreover, for $T \geq 50,000$, both online algorithms are on par with batch SVD. When $D=1000$ (top-right), online EM beats SGA for $T \geq 200$ and matches batch SVD when $T=100,000$. This is in contrast to SGA, which appears to get stuck after $T=20,000$ and does not decrease the distance any further. In the second row of the figure are the results corresponding to a spectrum range of $[1, 100]$. For both $D=100$ (middle-left) and $D=1000$ (middle-right), online EM outperforms SGA for $T \geq 200$. Both plots are similar in the sense that online EM initially decreases the distance quite dramatically, even to a greater extent that batch SVD, then the rate of improvement slows before it again catches up with batch SVD at $T=100,000$. In the third row of the figure are the results corresponding to a spectrum range of $[1, 1000]$. In this case, online EM is again superior to SGA. Up until $T=5000$ the results are similar to those in the second row of the figure. However, in this case online EM does not learn as efficiently as $T$ becomes large and in the end it is not able to match batch SVD. Figure \ref{fig:fa_wasserstein} in Appendix \ref{app:online_fa} shows equivalent results for the scaled 2-Wasserstein distance metric. 
+%Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the 2-Wasserstein distance is just a different measure of distance between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to those in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. Also in Appendix \ref{app:online_fa}, Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples.
 
-In the first row of the figure are the results corresponding to FA models whose factor loading matrices were generated with a spectrum range of $[1, 10]$. When $D=100$ (top-left), online EM approximates the true covariance matrix better than online SGA when the number of samples, $T$, is less than $20,000$. For $T \geq 20,000$, the result are very close and the standard error bars overlap. Moreover, for $T \geq 50,000$, both online algorithms are on par with batch SVD. When $D=1000$ (top-right), online EM beats SGA for $T \geq 200$ and matches batch SVD when $T=100,000$. This is in contrast to SGA, which appears to get stuck after $T=20,000$ and does not decrease the distance any further. In the second row of the figure are the results corresponding to a spectrum range of $[1, 100]$. For both $D=100$ (middle-left) and $D=1000$ (middle-right), online EM outperforms SGA for $T \geq 200$. Both plots are similar in the sense that online EM initially decreases the distance quite dramatically, even to a greater extent that batch SVD, then the rate of improvement slows before it again catches up with batch SVD at $T=100,000$. In the third row of the figure are the results corresponding to a spectrum range of $[1, 1000]$. In this case, online EM is again superior to SGA. Up until $T=5000$ the results are similar to those in the second row of the figure. However, in this case online EM does not learn as efficiently as $T$ becomes large and in the end it is not able to match batch SVD. 
+In summary, these results suggest that online EM is generally better at fitting FA models than online SGA, for almost all combinations of observation dimension, latent dimension, spectrum range and sample size. 
+%The SGA algorithm could possibly be improved by tuning its learning rate, or even using a learning rate scheduler. However, tuning hyperparameters is often a hassle and the fact that this is not required for online EM is another distinct advantage. 
+Compared to batch SVD, the results achieved by online EM are almost identical when $T=100,000$, except when the spectrum range is equal to $[1, 1000]$. This case would appear to be more challenging for online EM due to the larger conditioning number of the covariance matrix. It would be interesting to estimate the conditioning number that could be expected for a deep neural network, but this is beyond the scope of this project.  
+%It appears to get stuck in a local minimum at around $T=1000$ and the rate of improvement only starts to increase again after $T=20,000$. Perhaps online EM would be able to catch batch SVD if more than $100,000$ samples were used. However, this would be an unreasonably high number of neural network parameter vectors to sample for the use case in this thesis. 
 
-Figure \ref{fig:fa_wasserstein} in Appendix \ref{app:online_fa} shows equivalent results for the scaled 2-Wasserstein distance metric (TODO: add citation). Since all algorithms are able to compute the mean of the true Gaussian distribution exactly, the 2-Wasserstein distance is just a different measure of distance between the true and estimated covariance matrices. Therefore, the shape of the plots in Figure \ref{fig:fa_wasserstein} is very similar to those in Figure \ref{fig:fa_covar_distance}, albeit the $y$-axis scales are different. Also in Appendix \ref{app:online_fa}, Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples.
-
-In summary, these results suggest that online EM is in general better at fitting FA models than online SGA, for all combinations of observation dimension, latent dimension, spectrum range and sample size. The SGA algorithm could possibly be improved by tuning its learning rate, or even using a learning rate scheduler. However, tuning hyperparameters is often a hassle and the fact that this is not required for online EM is another distinct advantage. Compared to batch SVD, the results achieved by online EM are almost identical when $T=100,000$, except when the spectrum range is equal to $[1, 1000]$. This case would appear to be more challenging for online EM due to the larger conditioning number of the covariance matrix. It appears to get stuck in a local minimum at around $T=1000$ and the rate of improvement only starts to increase again after $T=20,000$. Perhaps online EM would be able to catch batch SVD if more than $100,000$ samples were used. However, this would be an unreasonably high number of neural network parameter vectors to sample for the use case in this thesis. 
-
-Given the positive results from these synthetic experiments, online EM would appear a good candidate to learn the posterior distribution of a neural network from its SGD iterates. However, the most that can be expected of online EM is that it fits the SGD iterates well. If the iterates are not representative of the true posterior, applying online EM is a futile endeavour. Unfortunately, it was not possible to obtain representative posterior samples using the method employed by SWAG \cite{maddox2019}, even for very simple linear regression models (see Appendix \ref{app:sgd_iterates} for more details). Therefore, the decision was taken to curtail experiments based on SWAG and its variants and focus on a more direct VI approach to posterior estimation, which is described in Chapter \ref{ch:vifa}.
+Given the positive results from these synthetic experiments, online EM would appear a good candidate to learn the posterior distribution of a neural network from its SGD iterates. However, the most that can be expected of online EM is that it fits the SGD iterates well. If the iterates are not representative of the true posterior, applying online EM is a futile endeavour. Unfortunately, it was not possible to obtain representative posterior samples using the method employed by SWAG \cite{maddox2019}, even for very simple linear regression models (see Appendix \ref{app:sgd_iterates} for more details). Therefore, experiments based on SWAG and its variants were curtailed in favour of focusing on a more direct VI approach to posterior estimation, which is described next in Chapter \ref{ch:vifa}.
 
 
 \begin{figure}[!htbp] 
@@ -745,24 +737,17 @@ It is given in \cite{petersen2012} that, for any symmetric matrix $\matr{A}$ and
 \begin{equation}\label{eqn:expectation_xTAx}
 	\E [\matr{x}^\intercal \matr{A} \matr{x}] = \tr(\matr{A}\matr{M}) + \matr{m}^\intercal \matr{A} \matr{m}.
 \end{equation}
-Hence, setting $\matr{S} = \matr{FF}^{\intercal} + \Psi$, it follows that
+Setting $\matr{S} = \matr{FF}^{\intercal} + \Psi$ and noting that $\theta - \matr{c}$ has mean $\matr{0}$ and covariance $\matr{S}$ over $q(\theta)$, it follows that
 \begin{align}
-\begin{split}
-	\E_{q(\theta)} [(\theta - \matr{c})^\intercal \matr{S}^{-1} (\theta - \matr{c}) ] 
-	& = \tr\big(\matr{S}^{-1} \V_{q(\theta)}[(\theta - \matr{c})] \big) 
-	+ \E_{q(\theta)}[(\theta - \matr{c})]^\intercal \matr{S}^{-1} \E_{q(\theta)}[(\theta - \matr{c})] \\
-	& = \tr\big(\matr{S}^{-1} (\matr{FF}^{\intercal} + \Psi)\big)
-	+ \matr{0} \matr{S}^{-1} \matr{0} \\
-	& = \tr(\matr{I}) \\
-	& = D.
+\begin{split}\label{eqn:expectation_of_vi_dist}
+	\E_{q(\theta)}[\log q(\theta)]
+	& = -\frac{1}{2} \tr\big(\matr{S}^{-1} (\matr{FF}^{\intercal} + \Psi)\big) -\frac{1}{2} \matr{0} \matr{S}^{-1} \matr{0} 
+	- \frac{1}{2} \log |\matr{S}| - \frac{D}{2} \log 2\pi \\
+	& = -\frac{1}{2}\tr(\matr{I}) - \frac{1}{2} \log |\matr{S}| - \frac{D}{2} \log 2\pi \\
+	& = -\frac{D}{2}  - \frac{1}{2} \log |\matr{S}| - \frac{D}{2} \log 2\pi.
 \end{split}
 \end{align}
-Therefore,
-\begin{equation}\label{eqn:expectation_of_vi_dist}
-	\E_{q(\theta)}[\log q(\theta)]
-	= -\frac{D}{2} - \frac{1}{2} \log |\matr{S}| - \frac{D}{2} \log 2\pi.
-\end{equation}
-Then 
+Hence, 
 \begin{equation}
 	\nabla_\matr{c} \E_{q(\theta)} [\log q(\theta)] = \matr{0}
 \end{equation}
@@ -770,7 +755,7 @@ and, using the identity $\nabla_\matr{X} \log |\matr{X}| = \matr{X}^{-\intercal}
 \begin{equation}
 	\nabla_\matr{S} \E_{q(\theta)} [\log q(\theta)] = -\frac{1}{2} \matr{S}^{-1}.
 \end{equation}
-Hence, it follows from the chain rule of calculus that
+It then follows from the chain rule of calculus that
 \begin{align}
 \begin{split}\label{eqn:grad_vi_dist_wrt_F}
 	\nabla_\matr{F} \E_{q(\theta)} [\log q(\theta)]
@@ -814,7 +799,7 @@ which follow from the matrix calculus identities in \cite{petersen2012}.
 
 \subsection{Partial Derivatives of the Likelihood}
 
-Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Due to the functional form of a non-linear neural network, $\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]$ cannot be compute in closed-form. Instead, a Monte Carlo estimate can be constructed from mini-batches of training data. Formally, 
+Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a neural network with weights $\theta$. Due to the functional form of a non-linear neural network, $\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]$ cannot be computed in closed-form. Instead, a Monte Carlo estimate can be constructed from mini-batches of training data. Formally, 
 \begin{equation}
 	 \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
 	\approx \frac{1}{L} \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg),
@@ -823,15 +808,17 @@ where $L$ is the Monte Carlo average size, each $\mathcal{B}_l$ is a mini-batch 
 \begin{equation}\label{eqn:fa_reparam_trick}
 	\theta_l = \matr{F}\matr{h}_l + \matr{c} + \Psi^{1/2} \matr{z}_l
 \end{equation}
-from some $\matr{h}_l \sim p(\matr{h}) = \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z}_l \sim p(\matr{z}) = \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied to $\Psi$ element-wise. Then
-\begin{align}
-\begin{split}
-	\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	& = \E_{p(\matr{h})p(\matr{z})} [\log p(\mathcal{D} | \theta)] \\
-	& \approx \frac{1}{L} \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg),
-\end{split}
-\end{align}
-where each $\theta_l$ is sampled according to Equation (\ref{eqn:fa_reparam_trick}). It then follows that
+from some $\matr{h}_l \sim p(\matr{h}) = \mathcal{N}(\matr{0}^K, \matr{I}^{K \times K})$ and $\matr{z}_l \sim p(\matr{z}) = \mathcal{N}(\matr{0}^D, \matr{I}^{D \times D})$, where the exponent is applied to $\Psi$ element-wise. 
+%Then
+%\begin{align}
+%\begin{split}
+%	\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
+%	& = \E_{p(\matr{h})p(\matr{z})} [\log p(\mathcal{D} | \theta)] \\
+%	& \approx \frac{1}{L} \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg),
+%\end{split}
+%\end{align}
+%where each $\theta_l$ is sampled according to Equation (\ref{eqn:fa_reparam_trick}). 
+It then follows that
 \begin{align}
 \begin{split}\label{eqn:expected_grad_log_likelihood}
 	\nabla_{\matr{c}, \matr{F}, \Psi} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
@@ -891,7 +878,7 @@ where $\matr{B} = \matr{F}^\intercal \matr{A}$ and $\matr{C} = \matr{A} (\matr{I
 	& = -\frac{1}{2}\psi^{-1} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big).
 \end{split}
 \end{align}
-Note that these calculations involve no explicit use of $D \times D$ matrices. All other references to $D \times D$ matrices can be removed by writing the partial derivatives in Equations (\ref{eqn:grad_prior_wrt_psi}) and (\ref{eqn:grad_likelihood_wrt_psi}) with respect to $\psi$, as
+Note that these calculations involve no explicit use of $D \times D$ matrices. All other references to $D \times D$ matrices can be removed by writing the partial derivatives in Equations (\ref{eqn:grad_prior_wrt_psi}) and (\ref{eqn:grad_likelihood_wrt_psi}) with respect to $\psi$. Formally,
 \begin{equation}
 	\nabla_\psi \E_{q(\theta)} [\log p(\theta)] = -\frac{\alpha}{2} \matr{1}^D,
 \end{equation}
@@ -910,7 +897,7 @@ Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = 
 	\nabla_\gamma \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
 	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big).
 \end{equation}
-Collecting the partial derivatives of Equation (\ref{eqn:vi_fa_derivatives}), the update rules are
+Collecting the partial derivatives of Equation (\ref{eqn:vi_fa_derivatives}), the final update rules are
  \begin{equation}\label{eqn:vifa_c_update}
 	\matr{c} \leftarrow \matr{c} - \eta_\matr{c}\Bigg(
 	\alpha \matr{c} + \frac{1}{L} \sum_{l=1}^{L} N \matr{g}_{\theta_l}
@@ -963,31 +950,24 @@ for learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$. Pseudo code
 	\end{algorithmic}
 \end{algorithm}
 
-\subsection{Comparison of VIFA and SLANG}
-
-There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an Empirical Fisher matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}. 
-
-Although on first sight the VIFA updates in Algorithm \ref{alg:vi_fa} may look more complicated, they are implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, the SLANG update requires a randomised eigen-decomposition algorithm \cite{mishkin2018}. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:slang}, this is problematic, since an efficient algorithm requires a separate implementation of back-propagation for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the average negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation tools in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. In this regard, VIFA is a much more practical algorithm that SLANG.
-
 
 \section{Experiments}
 
 \subsection{Posterior Estimation with Synthetic Data}\label{sec:vifa_posterior_synthetic}
- 
-\subsubsection{Methodology}
 
-Synthetic data was generated for these experiments as follows. First, 1000 inputs $\matr{x} \in \R^2$ were sampled from a multivariate zero mean Gaussian distribution with covariance matrix
-\begin{equation}
-	\begin{bmatrix}
-		1 & 0.5 \\
-		0.5 & 1
-	\end{bmatrix}.
-\end{equation}
-Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to Equation (\ref{eqn:linear_regression}) with $\beta = 0.1$. Using this data, the true posterior was evaluated according to Equation (\ref{eqn:linear_regression_posterior}) and an approximate posterior was estimated using VIFA. The VIFA training process ran for 5000 epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.0001 and 0.01, respectively. The reason for using a smaller learning rate for $\matr{F}$ is that its contribution to the full covariance matrix is $\matr{F}\matr{F}^\intercal$. The latent dimension of the approximate FA posterior was set to $K=1$. When computing the log-likelihood term involved in the gradient calculations, the variance of the outputs $y$ was set to the true value, $\sigma^2 = \frac{1}{\beta} = 10$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
+Synthetic data was generated for these experiments as follows. First, 1000 inputs $\matr{x} \in \R^2$ were sampled from a multivariate zero mean Gaussian distribution with unit variances and covariances of 0.5.
+%\begin{equation}
+%	\begin{bmatrix}
+%		1 & 0.5 \\
+%		0.5 & 1
+%	\end{bmatrix}.
+%\end{equation}
+Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to Equation (\ref{eqn:linear_regression}) with $\beta = 0.1$. Using this data, the true posterior was evaluated according to Equation (\ref{eqn:linear_regression_posterior}) and an approximate posterior was estimated using VIFA. VIFA ran for 5000 epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\matr{c}$,  $\eta_\matr{F}$ and $\eta_\beta$ were set to 0.01, 0.0001 and 0.01, respectively. The reason for using a smaller learning rate for $\matr{F}$ is that its contribution to the full covariance matrix is $\matr{F}\matr{F}^\intercal$. The latent dimension of the approximate FA posterior was set to $K=1$. When computing the log-likelihood term involved in the gradient calculations, the variance of the outputs $y$ was set to the true value, $\sigma^2 = \frac{1}{\beta} = 10$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
 
 \subsubsection{Results and Discussion}
 
-The results of applying VIFA to the data are shown in Table \ref{table:linear_regression_vi_posterior}. It is interesting to compare these results to those in Appendix \ref{app:sgd_iterates}, in which the covariance matrix was fit to the SGD iterates. The more direct VI approach does a much better job of approximating the true covariance. The average distance of the estimated covariance from the ground truth is 0.0983 in Table \ref{table:linear_regression_vi_posterior}, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VI trials. In this example, both the diagonal and off-diagonal entries of the covariance matrix of the FA model are very similar to the ground truth.
+The results of applying VIFA to the data are shown in Table \ref{table:linear_regression_vi_posterior}. It is interesting to compare these results to those in Appendix \ref{app:sgd_iterates}, in which the covariance matrix was fit to the SGD iterates. The more direct VI approach does a much better job of approximating the true covariance. The average distance of the estimated covariance from the ground truth is 0.0983 in Table \ref{table:linear_regression_vi_posterior}, which is much lower than the best result of 0.6200 from Table \ref{table:linear_regression_samples}. The improved approximation of the covariance can also be observed in Figure \ref{fig:linear_regression_vi_posterior} for one of the ten VIFA trials. 
+%In this example, both the diagonal and off-diagonal entries of the covariance matrix of the FA model are very similar to the ground truth.
 
 \begin{table}[h!]
 	\begin{center}
@@ -1015,59 +995,13 @@ The results of applying VIFA to the data are shown in Table \ref{table:linear_re
 \end{figure}
 
 
-\subsection{Posterior Estimation with UCI Datasets}
+\subsection{Posterior Estimation with UCI Datasets}\label{sec:vifa_posterior_uci}
 
-Given the positive results achieved by VIFA in the experiments using synthetic data, the purpose of these experiments is to test how well VIFA is able to approximate the posterior of linear regression models fit to real datasets with more dimensions. Methods based on stochastic weight averaging are excluded from these experiments, given that they were unable to obtain representative samples from simple synthetic posteriors with only two dimensions. 
-
-\subsubsection{Methodology}
-
-For these experiments, four regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency}, Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets}. Note that the original Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
-
-\begin{table}[h!]
-	\begin{center}
-		\begin{tabular}{||c c c ||} 
-			\hline
- 			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
-			\hline\hline
-			Energy Efficiency 				& 768 	& 8 \\
- 			\hline
- 			Boston Housing 				& 506 	& 13 \\ 
- 			\hline
- 			Concrete Compressive Strength 	& 1030 	& 8 \\
- 			\hline
- 			Yacht Hydrodynamics 			& 308 	& 6 \\ [1ex] 
- 			\hline
-		\end{tabular}
-		\caption{UCI regression datasets used in experiments.}
-		\label{table:uci_datasets}
-	\end{center}
-\end{table}
-
-Each dataset was split into validation and test sets of equal size. The learning rate and number of epochs were tuned on the validation set to minimise the 2-Wasserstein distance between the true and approximate posteriors, and then the algorithm was evaluated once on the test set. To reduce the number of hyperparameters, a single learning rate $\eta$ was used to optimise all parameters of the approximate posterior. That is, $\eta_\matr{c} = \eta_\matr{F} = \eta_\beta = \eta$. The latent dimension was set to $K=3$ for all datasets. Also, the mini-batch size and Monte Carlo average size were set to $M=100$ and $L=10$, respectively, since these values worked well for the experiments with synthetic data in Section \ref{sec:vifa_posterior_synthetic}. The \texttt{BayesianRidge} estimator from the scikit-learn library \cite{pedregosa2012} was used to compute the ground truth posterior. This algorithm automatically selects $\alpha$ and $\beta$ via the Bayesian method described in \cite{mackay1992}. These ground truth values were also used when running VIFA. Note, the reason that $\beta$ is not mentioned explicitly in Algorithm \ref{alg:vi_fa} is that no reference was made to the specific form of the likelihood distribution. However, in these linear regression experiments the likelihood is Gaussian and its precision is set to $\beta$. Formally, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
+Given the positive results achieved by VIFA in the experiments using synthetic data, the purpose of these experiments is to test how well VIFA is able to approximate the posterior of linear regression models fit to real datasets with more dimensions. For these experiments, four regression datasets from the UCI Machine Learning Repository \cite{dua2019} were used. Namely, the Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency}, Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Table \ref{table:uci_datasets} in Appendix \ref{app:uci_posterior}. Each dataset was split into validation and test sets of equal size. The learning rate and number of epochs were tuned on the validation set to minimise the 2-Wasserstein distance between the true and approximate posteriors, and then the algorithm was evaluated once on the test set. To reduce the number of hyperparameters, a single learning rate $\eta$ was used to optimise all parameters of the approximate posterior. That is, $\eta_\matr{c} = \eta_\matr{F} = \eta_\beta = \eta$. The latent dimension was set to $K=3$ for all datasets. Also, the mini-batch size and Monte Carlo average size were set to $M=100$ and $L=10$, respectively, since these values worked well for the experiments with synthetic data in Section \ref{sec:vifa_posterior_synthetic}. The \texttt{BayesianRidge} estimator from the scikit-learn library \cite{pedregosa2012} was used to compute the ground truth posterior. This algorithm automatically selects $\alpha$ and $\beta$ via the Bayesian method described in \cite{mackay1992}. These ground truth values were also used when running VIFA. Note, the reason that $\beta$ is not mentioned explicitly in Algorithm \ref{alg:vi_fa} is that no reference was made to the specific form of the likelihood distribution. However, in these linear regression experiments the likelihood is Gaussian and its precision is set to $\beta$. Formally, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
 \begin{equation}
 	-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big),
 \end{equation}
-where $\mathcal{B}$ is a mini-batch of $M$ training examples and $f(\matr{x}; \theta)$ is the prediction of the linear regression model for input $\matr{x}$ and parameters $\theta$. The selected VIFA hyperparameter values for each dataset are shown in Table \ref{table:vifa_uci_hyperparameters}. Finally, before running the algorithms, each input variable was re-scaled to have zero mean and unit standard deviation.
-
-\begin{table}[h!]
-	\begin{center}
-		\begin{tabular}{||c c c c c c c c||} 
-			\hline
- 			Dataset & $K$ & Epochs & $M$ & $L$ & $\eta$ & $\alpha$ & $\beta$ \\ [0.5ex] 
-			\hline\hline
-			Energy Efficiency 				& 3 & 25,000 & 100 & 10 	& 0.01 	& 0.0608 & 0.1246 \\ 
- 			\hline
-			Boston Housing 				& 3 & 25,000 & 100 & 10 	& 0.001 	& 0.2859 & 0.0429 \\
- 			\hline
- 			Concrete Compressive Strength	& 3 & 20,000 & 100 & 10 	& 0.01 	& 0.0254 & 0.0101 \\
- 			\hline
- 			Yacht Hydrodynamics 			& 3 & 45,000 & 100 & 10 	& 0.01 	& 0.0291 & 0.0114 \\ [1ex] 
- 			\hline
-		\end{tabular}
-		\caption{VIFA hyperparameters for linear regression posterior estimation experiments with UCI datasets.}
-		\label{table:vifa_uci_hyperparameters}
-	\end{center}
-\end{table}
+where $\mathcal{B}$ is a mini-batch of $M$ training examples and $f(\matr{x}; \theta)$ is the prediction of the linear regression model for input $\matr{x}$ and parameters $\theta$. The selected VIFA hyperparameter values for each dataset are given in Table \ref{table:vifa_uci_hyperparameters} in Appendix \ref{app:uci_posterior}. Finally, before running the algorithms, each input variable was re-scaled to have zero mean and unit standard deviation.
 
 
 \subsubsection{Results and Discussion}
@@ -1105,39 +1039,11 @@ In summary,  across the four datasets, VIFA demonstrates good capacity to approx
 \end{figure}
 
 
-\subsection{Neural Network Predictions}
+\subsection{Neural Network Predictions}\label{sec:uci_nn_predictions}
 
 Given the encouraging results achieved by VIFA when applied to linear regression, the purpose of these experiments is to test VIFA on simple neural networks with a single hidden layer. Unlike linear regression, it is not possible to compute the true posterior distribution of the parameter vector of a non-linear neural network in closed form. Therefore, the focus in these experiments is on the quality of predictions made by neural networks trained via VIFA in comparison to SLANG. 
 
-\subsubsection{Methodology}
-
-The setup for the experiments largely followed the methodology adopted by the authors of SLANG \cite{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set. The hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration to estimate the marginal log-likelihood. However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ were sampled log-uniformly from $[0.01, 0.02]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. To improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$ and Monte Carlo average size $L=4$. Although vanilla SGD is employed in Algorithm \ref{alg:vi_fa}, a whole host of gradient optimisers can be used in conjunction with VIFA. In this case, the Adam optimiser \cite{kingma2014} was used to perform the gradient updates. Before each training run, the features and target were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation.
-
-While training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
-\begin{equation}\label{eqn:train_nll}
-	-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big),
-\end{equation}
-where $\mathcal{B}$ is a mini-batch of $M$ training examples and $f(\matr{x}; \theta)$ is the prediction of the neural network for input $\matr{x}$ and parameters $\theta$. Given a test example, $(\matr{x}, y)$, the marginal log-likelihood is
-\begin{align}
-\begin{split}
-	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
-	& = \log \int_\theta p(y | \matr{x}, \theta, \beta) p(\theta | \alpha, \beta, \mathcal{D}) \\
-	& = \log \int_\theta \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big) p(\theta | \alpha, \beta, \mathcal{D}),
-\end{split}
-\end{align}
-where $\mathcal{D}$ is the training data and $p(\theta | \alpha, \beta, \mathcal{D})$ is the FA posterior learned by VIFA for hyperparameters $\alpha$ and $\beta$. This integral cannot be computed exactly. Instead, it was approximated by a sample average. Formally, 
-\begin{align}
-\begin{split}
-	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
-	& \approx \log \Bigg( \frac{1}{L} \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) \\
-	& = \log \Bigg( \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) - \log L,
-\end{split}
-\end{align}
-where $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity was averaged over the full test set to approximate the average marginal log-likelihood. In addition, the test root mean squared error (RMSE) was also computed, where the squared error of a single test example is
-\begin{equation}
-	\Bigg(y - \frac{1}{L} \sum_{l=1}^L f(\matr{x}; \theta_l)\Bigg)^2.
-\end{equation}
-When computing these metrics, the Monte Carlo average size was set to $L=100$. The same experiments were re-run for SLANG\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some minor adjustments to the authors' original setup to allow for a fairer comparison with VIFA. In particular, the Monte Carlo average size when testing and the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to match those of VIFA. Finally, the VIFA experiments were also run for linear regression models. The only difference being that the hyperparameter range for the learning rate $\eta$ was set to $[0.001, 0.01]$, as this appeared to work better that $[0.01, 0.02]$ during some initial cross-validation runs. 
+The setup for the experiments largely followed the methodology adopted by the authors of SLANG \cite{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set. The hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration to estimate the marginal log-likelihood. However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ were sampled log-uniformly from $[0.01, 0.02]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. To improve numerical stability, any gradients with Frobenius norm greater than 10 were rescaled to have norm of exactly 10. The other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$ and Monte Carlo average size $L=4$. Although vanilla SGD is employed in Algorithm \ref{alg:vi_fa}, a whole host of gradient optimisers can be used in conjunction with VIFA. In this case, the Adam optimiser \cite{kingma2014} was used to perform the gradient updates. Before each training run, the features and target were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation. When training, the average negative Gaussian log-likelihood was used on line 12 of Algorithm \ref{alg:vi_fa}. When testing, both the average marginal Gaussian log-likelihood and root mean squared error (RMSE) were computed, using a Monte Carlo average size of 100. Full details of how the training loss and test metrics were computed are given in Appendix \ref{app:uci_nn_predictions}. The same experiments were re-run for SLANG\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some minor adjustments to the authors' original setup to allow for a fairer comparison with VIFA. In particular, the Monte Carlo average size when testing and the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to match those of VIFA. Finally, the VIFA experiments were also run for linear regression models. The only difference being that the hyperparameter range for the learning rate $\eta$ was set to $[0.001, 0.01]$, as this appeared to work better that $[0.01, 0.02]$ during some initial cross-validation runs. 
 
 
 \subsubsection{Results and Discussion} 
@@ -1200,6 +1106,12 @@ resubmit.  You cannot assume we will check your submission before the
 final deadline and if it requires resubmission after the deadline to
 conform to the page and style requirements you will be subject to the
 usual late penalties based on your final submission time.
+
+%\subsection{Comparison of VIFA and SLANG}
+%
+%There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an Empirical Fisher matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}. 
+%
+%Although on first sight the VIFA updates in Algorithm \ref{alg:vi_fa} may look more complicated, they are implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, the SLANG update requires a randomised eigen-decomposition algorithm \cite{mishkin2018}. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:slang}, this is problematic, since an efficient algorithm requires a separate implementation of back-propagation for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the average negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation tools in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. In this regard, VIFA is a much more practical algorithm that SLANG.
 
 \bibliographystyle{plain}
 \bibliography{main}
@@ -1454,6 +1366,50 @@ It was also observed in \cite{mandt2017} that the empirical covariance of the li
 
 \section{UCI Posterior Estimation}\label{app:uci_posterior}
 
+Table \ref{table:uci_datasets} shows the number of instances and and input variables in each UCI regression dataset. Note that the original Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used.
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{||c c c ||} 
+			\hline
+ 			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
+			\hline\hline
+			Energy Efficiency 				& 768 	& 8 \\
+ 			\hline
+ 			Boston Housing 				& 506 	& 13 \\ 
+ 			\hline
+ 			Concrete Compressive Strength 	& 1030 	& 8 \\
+ 			\hline
+ 			Yacht Hydrodynamics 			& 308 	& 6 \\ [1ex] 
+ 			\hline
+		\end{tabular}
+		\caption{UCI regression datasets used in experiments.}
+		\label{table:uci_datasets}
+	\end{center}
+\end{table}
+
+Table \ref{table:vifa_uci_hyperparameters} shows the hyperparameter values for the experiments in Section \ref{sec:vifa_posterior_uci}.
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{||c c c c c c c c||} 
+			\hline
+ 			Dataset & $K$ & Epochs & $M$ & $L$ & $\eta$ & $\alpha$ & $\beta$ \\ [0.5ex] 
+			\hline\hline
+			Energy Efficiency 				& 3 & 25,000 & 100 & 10 	& 0.01 	& 0.0608 & 0.1246 \\ 
+ 			\hline
+			Boston Housing 				& 3 & 25,000 & 100 & 10 	& 0.001 	& 0.2859 & 0.0429 \\
+ 			\hline
+ 			Concrete Compressive Strength	& 3 & 20,000 & 100 & 10 	& 0.01 	& 0.0254 & 0.0101 \\
+ 			\hline
+ 			Yacht Hydrodynamics 			& 3 & 45,000 & 100 & 10 	& 0.01 	& 0.0291 & 0.0114 \\ [1ex] 
+ 			\hline
+		\end{tabular}
+		\caption{VIFA hyperparameters for linear regression posterior estimation experiments with UCI datasets.}
+		\label{table:vifa_uci_hyperparameters}
+	\end{center}
+\end{table}
+
 Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_strength} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative results for all four UCI datasets. 
 
 \begin{figure}[!htbp] 
@@ -1502,7 +1458,33 @@ Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_st
 	\end{center}
 \end{table}
 
+\section{UCI Neural Network Predictions}\label{app:uci_nn_predictions}
 
+In the experiments in Section \ref{sec:uci_nn_predictions}, while training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
+\begin{equation}\label{eqn:train_nll}
+	-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big),
+\end{equation}
+where $\mathcal{B}$ is a mini-batch of $M$ training examples and $f(\matr{x}; \theta)$ is the prediction of the neural network for input $\matr{x}$ and parameters $\theta$. Given a test example, $(\matr{x}, y)$, the marginal log-likelihood is
+\begin{align}
+\begin{split}
+	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
+	& = \log \int_\theta p(y | \matr{x}, \theta, \beta) p(\theta | \alpha, \beta, \mathcal{D}) \\
+	& = \log \int_\theta \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big) p(\theta | \alpha, \beta, \mathcal{D}),
+\end{split}
+\end{align}
+where $\mathcal{D}$ is the training data and $p(\theta | \alpha, \beta, \mathcal{D})$ is the FA posterior learned by VIFA for hyperparameters $\alpha$ and $\beta$. This integral cannot be computed exactly. Instead, it was approximated by a sample average. Formally, 
+\begin{align}
+\begin{split}
+	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
+	& \approx \log \Bigg( \frac{1}{L} \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) \\
+	& = \log \Bigg( \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) - \log L,
+\end{split}
+\end{align}
+where $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity was averaged over the full test set to approximate the average marginal log-likelihood. In addition, the test root mean squared error (RMSE) was also computed, where the squared error of a single test example is
+\begin{equation}
+	\Bigg(y - \frac{1}{L} \sum_{l=1}^L f(\matr{x}; \theta_l)\Bigg)^2.
+\end{equation}
+When computing these metrics, the Monte Carlo average size was set to $L=100$.
 
 %Setting the Monte Carlo average size to $L=1$ for simplicity, the update rules for the posterior mean in VIFA and SLANG are, respectively,
 % \begin{equation}
