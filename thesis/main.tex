@@ -48,7 +48,7 @@
 \begin{document}
 \begin{preliminary}
 
-\title{Scalable Factor Analysis Algorithms for Neural Network Posterior Estimation}
+\title{Fast and Scalable Factor Analysis Algorithms for Bayesian Deep Learning}
 
 \author{Scott Brownlie}
 
@@ -73,42 +73,42 @@ Any acknowledgements go here.
 
 \chapter{Introduction}
 
-The preliminary material of your report should contain:
-\begin{itemize}
-\item
-The title page.
-\item
-An abstract page.
-\item
-Optionally an acknowledgements page.
-\item
-The table of contents.
-\end{itemize}
-
-As in this example \texttt{skeleton.tex}, the above material should be
-included between:
-\begin{verbatim}
-\begin{preliminary}
-    ...
-\end{preliminary}
-\end{verbatim}
-This style file uses roman numeral page numbers for the preliminary material.
-
-The main content of the dissertation, starting with the first chapter,
-starts with page~1. \emph{\textbf{The main content must not go beyond page~40.}}
-
-The report then contains a bibliography and any appendices, which may go beyond
-page~40. The appendices are only for any supporting material that's important to
-go on record. However, you cannot assume markers of dissertations will read them.
-
-You may not change the dissertation format (e.g., reduce the font
-size, change the margins, or reduce the line spacing from the default
-1.5 spacing). Over length or incorrectly-formatted dissertations will
-not be accepted and you would have to modify your dissertation and
-resubmit.  You cannot assume we will check your submission before the
-final deadline and if it requires resubmission after the deadline to
-conform to the page and style requirements you will be subject to the
-usual late penalties based on your final submission time.
+%The preliminary material of your report should contain:
+%\begin{itemize}
+%\item
+%The title page.
+%\item
+%An abstract page.
+%\item
+%Optionally an acknowledgements page.
+%\item
+%The table of contents.
+%\end{itemize}
+%
+%As in this example \texttt{skeleton.tex}, the above material should be
+%included between:
+%\begin{verbatim}
+%\begin{preliminary}
+%    ...
+%\end{preliminary}
+%\end{verbatim}
+%This style file uses roman numeral page numbers for the preliminary material.
+%
+%The main content of the dissertation, starting with the first chapter,
+%starts with page~1. \emph{\textbf{The main content must not go beyond page~40.}}
+%
+%The report then contains a bibliography and any appendices, which may go beyond
+%page~40. The appendices are only for any supporting material that's important to
+%go on record. However, you cannot assume markers of dissertations will read them.
+%
+%You may not change the dissertation format (e.g., reduce the font
+%size, change the margins, or reduce the line spacing from the default
+%1.5 spacing). Over length or incorrectly-formatted dissertations will
+%not be accepted and you would have to modify your dissertation and
+%resubmit.  You cannot assume we will check your submission before the
+%final deadline and if it requires resubmission after the deadline to
+%conform to the page and style requirements you will be subject to the
+%usual late penalties based on your final submission time.
 
 %\section{Using Sections}
 %
@@ -126,6 +126,34 @@ usual late penalties based on your final submission time.
 %\chapter{Your next chapter}
 %
 %A dissertation usually contains several chapters.
+
+In recent years, deep learning \cite{goodfellow2016} has come to dominate many areas of machine learning research. Deep learning models 
+%which are based on multi-layer artificial neural networks \cite{goodfellow2016}, 
+continue to achieve state of the art results in several domains, such as CoAtNet-7 \cite{dai2021} for image classification and Megatron-LM \cite{shoeybi2019} for language modelling. One reason for their success is the availability of huge training sets, such as the 300 millions images in JFT-300M \cite{sun2017} or the 100 million tokens in WikiText-103 \cite{merity2016}. The number of training examples, however, pales in comparison to the number of learnable parameters in some deep models. CoAtNet-7, for example, has 2.4 billion parameters, whereas Megatron-LM has a whopping 8.3 billion. This is a common feature of deep learning: the number of model parameters is often greater than the number of training examples. In this scenario, the model is severely \emph{underspecified} by the data and many different settings of the parameters are able to explain the training set equally well. In some domains, choosing a single setting of the parameters and predicting a point estimate for each test example is satisfactory. However, for other critical applications, some measure of the uncertainty in the prediction is also required. 
+%For example, a doctor is unlikely to trust a prediction related to cancer detection unless it is accompanied by an error estimate. 
+This is where Bayesian deep learning comes in. Instead of choosing a single parameter vector $\theta \in \R^D$ for the neural network, predictions are made using \emph{all} possible parameter vectors weighted by their posterior probabilities, given the training data $\mathcal{D}$. Formally, the probability distribution of the output $y$ given the input $\matr{x}$ is
+\begin{equation}
+	p(y | \matr{x}, \mathcal{D}) = \int_{\theta} p(y | \matr{x}, \theta) p(\bgreek{\theta} | \mathcal{D}).
+\end{equation}
+In practice, computing this integral is intractable due to the dimensionality and non-linearities of a deep neural network. Alternatively, the integral can be approximated by a \emph{Bayesian model average},
+\begin{equation}
+	p(y | \matr{x}, \mathcal{D}) \approx \frac{1}{L} \sum_{l=1}^L p(y | \matr{x}, \theta_l), 
+	\quad \theta_l \sim p(\bgreek{\theta} | \mathcal{D}).
+\end{equation}
+Hence, the focus of Bayesian deep learning is on estimating the \emph{posterior}
+\begin{equation}
+	p(\bgreek{\theta} | \mathcal{D}) = \frac{p(\mathcal{D} | \theta) p(\theta)}{p(\mathcal{D})},
+\end{equation}
+where $p(\mathcal{D} | \theta)$ is the \emph{likelihood} of $\mathcal{D}$ given $\theta$, $p(\theta)$ is the \emph{prior} and $p(\mathcal{D})$ is the \emph{marginal likelihood}. Unfortunately, this calculation is also intractable due to the high-dimensional integral $p(\mathcal{D}) = \int_\theta p(\mathcal{D} | \theta) p(\theta)$. A common alternative is to approximate the posterior with a Gaussian distribution with mean $\mu \in \R^D$ and covariance $\Sigma \in \R^{D\times D}$, denoted by $\mathcal{N}(\mu, \Sigma)$. The key practical challenge is then finding a way to approximate $\Sigma$, since the full $D\times D$ covariance matrix will not fit into memory for large $D$. 
+
+One of the simplest approaches is to use a diagonal - or \emph{mean-field} - approximation \cite{blundell2015, graves2011, hernandez2015, tangkaratt2018, ranganath2014}. This is convenient in the sense that the covariance matrix is completely specified by $D$ parameters, but it does not allow for any posterior correlations between different elements of $\theta$. A more flexible approach is a low-rank plus diagonal approximation, $\matr{F}\matr{F}^\intercal + \Psi$, where $\matr{F} \in \R^{D\times K}$ and $\Psi$ is a $D \times D$ diagonal matrix. This preserves some of the off-diagonal structure of the covariance matrix and is practically feasible for $K \ll D$. Two recent methods which adopt this approach are SWAG \cite{maddox2019} and SLANG \cite{mishkin2018}. While both algorithms have achieved promising results, they also have fundamental limitations. In the case of SWAG, it does not make use of all the available data to fit the low-rank plus diagonal covariance matrix, whereas SLANG can only be applied to standard feed-forward neural networks. 
+
+The work in this thesis is based on the low-rank plus diagonal factor analysis model, which can help to overcome some of the limitations of both SWAG and SLANG. The main contributions are:
+\begin{itemize}
+	\item two novel online algorithms for learning factor analysis models of high-dimensional data, which can be used in conjunction with 	SWAG;
+	\item a novel variational inference algorithm similar to SLANG, but which can be applied to any neural network architecture. 
+\end{itemize} 
+Chapter \ref{ch:background} introduces the background required to follow the rest of the thesis. Chapter \ref{ch:previous_work} describes SWAG and SLANG in more detail and sets out the main goals that the thesis hopes to achieve. Chapter \ref{ch:online_fa} presents the online factor analysis algorithms and the results of applying them to synthetic datasets. Chapter \ref{ch:vifa} introduces VIFA, a novel variational inference algorithm, and demonstrates its effectiveness in estimating the posterior and making predictions. Finally, Chapter \ref{ch:conclusions} brings the thesis to an end with some conclusions and suggestions for future work. 
 
 
 \chapter{Background}\label{ch:background}
@@ -657,9 +685,9 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:onli
 One detail missing from Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} is how $\matr{F}$ is initialised. To encourage diverse factors, it makes sense to initialise $\matr{F}$ with orthogonal columns. In practice, this can be achieved by first generating a matrix $\matr{A}  \in \R^{D \times K}$, whose entries are independently sampled from a standard normal distribution, and then computing its reduced QR decomposition\footnote{https://pytorch.org/docs/1.9.0/generated/torch.linalg.qr.html}. This decomposition is $\matr{A} = \matr{Q}\matr{R}$, where $\matr{Q} \in \R^{D \times K}$ is orthogonal and $\matr{R} \in \R^{K \times K}$ is upper triangular. Then set $\matr{F} = \matr{Q}$.
 
 
-\section{Experiments}
+\section{Experiments}\label{ch:online_fa_experiments}
 
-\subsection{Learning Synthetic Factor Analysis Models}\label{ch:online_fa_experiments}
+%\subsection{Learning Synthetic Factor Analysis Models}\label{ch:online_fa_experiments}
 
 The aim of these experiments is to test how well Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} are able to fit observations sampled from actual FA models. The form of a FA model is given in Equation (\ref{eqn:fa_marginal_dist}). In particular, it has parameters $\matr{c}, \matr{F}$ and $\Psi$. The maximum likelihood estimate of $\matr{c}$, given the data, is just the empirical mean of the sampled observations \cite{barber2007}. This is computed exactly in both algorithms by maintaining a running average of the observations. The other parameters, $\matr{F}$ and $\Psi$, appear in the FA model as part of the full covariance matrix,  $\matr{F}\matr{F}^\intercal + \Psi$. Note that right-multiplying $\matr{F}$ by any orthogonal matrix $\matr{A} \in \R^{K \times K}$ will result in the exact same covariance \cite{barber2007}, since
 \begin{equation}
@@ -674,7 +702,7 @@ Since the covariance matrices have shape $D \times D$, memory requirements dicta
 Having generated a FA model, observations were sampled according to Equation (\ref{eqn:fa_model}). Using the data, the parameters of the model were then estimated by three separate FA algorithms: online SGA, online EM and the scikit-learn \texttt{FactorAnalysis} estimator \cite{pedregosa2012}. The scikit-learn implementation is based on the batch SVD algorithm from \cite{barber2007}. The \emph{randomised} version of SVD was used, which for most applications is  ``sufficiently precise while providing significant speed gains" \cite{pedregosa2012}. Each algorithm was tested on samples of varying size, from 100 up to 100,000 observations. The latent dimension of each approximate model was set to the true latent dimension $K$. All other hyperparameters of the scikit-learn algorithm were set to their default values. For both online algorithms, $\matr{F}$ was initialised as described in Section \ref{sec:F_init}, and online SGA ran with a learning rate of 0.001. Additionally, both online algorithms were allowed a \emph{warm-up} period of 100 iterations during which the running averages, $\overline{\theta}_t, \overline{\matr{A}}_t, \overline{\matr{B}}_t$ and $\overline{\matr{d}^2}_t$, were updated, while $\matr{F}$ and $\Psi$ remained fixed. Each experiment was repeated ten times. In each trial a different random seed was used for generating the true FA model and also initialising the parameters of the online algorithms. 
 
 
-\subsubsection{Results and Discussion}
+\subsection{Results and Discussion}
 
 Figure \ref{fig:fa_covar_distance} shows the relative distance between the true covariance matrix of each FA model and the corresponding estimated covariance matrix of each learning algorithm, as a function of the number of samples used to fit the approximate models. 
 %The distance between two matrices is measured by the Frobenius norm (also sometimes called the Euclidean norm) of the difference between the two matrices. The distance is then divided by the Frobenius norm of the true covariance matrix to get the relative distance. 
@@ -1090,7 +1118,7 @@ In summary, the choice between VIFA and SLANG depends on the dataset and evaluat
 \end{table}
 
 
-\chapter{Conclusions}
+\chapter{Conclusions}\label{ch:conclusions}
 
 \section{Final Reminder}
 
@@ -1302,8 +1330,6 @@ This objective function is analogous to the L2-regularised training loss often u
 	+ \lambda \theta^\intercal \theta 
 \end{equation}
 for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$.
- 
-\subsection{Methodology}
 
 Synthetic data was generated for these experiments in the exact same way as for the experiments in Section \ref{sec:vifa_posterior_synthetic}. For the purpose of obtaining samples from the posterior, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
 
