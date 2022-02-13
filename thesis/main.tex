@@ -280,7 +280,7 @@ where each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from
 
 \section{Related Work}\label{sec:related_work}
 
-TODO: once we've written the introduction, add some texts here which follows on from the big picture introduced there, before diving into more detail about SWA and SLANG. 
+This section presents the SWAG and SLANG methods. Both are promising approaches to Bayesian deep learning, but have fundamental limitations which are described in detail below.
 
 \subsection{Stochastic Weight Averaging}\label{sec:swa}
 
@@ -343,18 +343,18 @@ where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ large
 
 \section{Project Goals}
 
-Although SWAG and SLANG are distinctly different approaches to Bayesian deep learning, they both opt for a low-rank plus diagonal approximation to simplify the estimation of the posterior covariance matrix. The low-rank plus diagonal covariance is also a defining feature of the FA model. However, there is more to the FA than that. In particular, it is a latent variable model which generates observations according to Equation (\ref{eqn:fa_model}). \textbf{The overall objective of this project is to use these specific properties of FA to overcome some of the limitations of SWAG and SLANG.}
+Although SWAG and SLANG are distinctly different approaches to Bayesian deep learning, they both opt for a low-rank plus diagonal approximation to simplify the estimation of the posterior covariance matrix. The low-rank plus diagonal covariance is also a defining feature of the FA model. However, there is more to the FA than that. In particular, it is a latent variable model which generates observations according to Equation (\ref{eqn:fa_model}). \textbf{The overall objective of this project is to use these specific properties of FA to overcome some of the limitations of SWAG and SLANG.}\footnote{Code for all algorithms and experiments available at \texttt{https://github.com/ayeright/swafa}}
 \\ \\
 \textbf{Online Factor Analysis}.
-The first goal of this project is motivated by the fact that SWAG does not make use of all the available data when estimating the low-rank plus diagonal approximation of the posterior covariance. This is unnecessary, since a covariance matrix with the exact same structure can be learned from \emph{all} the SGD iterates via FA. To see this, let $\matr{F} = \frac{1}{\sqrt{2(K-1)}} \hat{\matr{D}}$ and $\Psi = \frac{1}{2} \Sigma_\text{diag}$. Then the SWAG posterior from Equation (\ref{eqn:swag_dist}) becomes $\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big)$,
+The first goal of this project is motivated by the fact that SWAG does not make use of all the available data when estimating the low-rank plus diagonal approximation of the posterior covariance. This is unnecessary, since a covariance matrix with the same structure can be learned from \emph{all} the SGD iterates via FA. To see this, let $\matr{F} = \frac{1}{\sqrt{2(K-1)}} \hat{\matr{D}}$ and $\Psi = \frac{1}{2} \Sigma_\text{diag}$. Then the SWAG posterior from Equation (\ref{eqn:swag_dist}) becomes $\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big)$,
 %\begin{equation}
 	%\mathcal{N}\Big(\theta_\text{SWA}, \frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal + \frac{1}{2}\Sigma_\text{diag}\Big)
 	%\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big),
 %\end{equation}
-which is the same as the FA model from Equation (\ref{eqn:fa_marginal_dist}) with $\matr{c} = \theta_\text{SWA}$ \cite{brownlie2021}. In theory, such a model could be fit to $\theta_1, \theta_2, \dots, \theta_T$ using either the EM or SVD algorithm from \cite{barber2007}. However, given these are both batch algorithms, the SGD iterates would have to be stored in memory, which is not practical for deep neural networks with tens of millions of parameters. Hence, an online, iterative approach is required. To the best of this author's knowledge, no such algorithm exists. \textbf{To fill this gap, this thesis presents two novel online FA algorithms which scale to high-dimensional data, such as the parameter vectors of deep neural networks.}
+which is the same as the FA model from Equation (\ref{eqn:fa_marginal_dist}) with $\matr{c} = \theta_\text{SWA}$ \cite{brownlie2021}. In theory, such a model could be fit to $\theta_1, \theta_2, \dots, \theta_T$ using either the EM or SVD algorithm from \cite{barber2007}. However, given these are both batch algorithms, the SGD iterates would have to be stored in memory, which is impractical for deep neural networks with millions of parameters. Hence, an online, iterative approach is required. To the best of this author's knowledge, no such algorithm exists. \textbf{To fill this gap, this thesis presents two novel online FA algorithms which scale to high-dimensional data, such as the parameter vectors of deep neural networks.}
 \\ \\
 \textbf{Variational Inference with a Factor Analysis Posterior}.
-The second goal of this project is motivated by the fact that SLANG can only be applied to feed-forward neural networks. More complex architectures are extremely common in research and industry, especially convolutional layers \cite{krizhevsky09} in computer vision and recurrent \cite{hochreiter1997} and transformer \cite{vaswani2017} layers in natural language processing. In these domains, the applicability of SLANG is limited. \textbf{With a focus on practicallity, this thesis presents a novel, model-agnostic, VI algorithm which learns a FA posterior of a neural network. This method sacrifices the natural gradient used by SLANG in favour of the standard gradient, such that it can be applied to any neural network architecture with no extra effort.} 
+The second goal of this project is motivated by the fact that SLANG can only be applied to feed-forward neural networks. More complex architectures are extremely common in research and industry, especially convolutional layers \cite{krizhevsky09} in computer vision and recurrent \cite{hochreiter1997} and transformer \cite{vaswani2017} layers in natural language processing. In these domains, the applicability of SLANG is limited. \textbf{With a focus on practicality, this thesis presents a novel, model-agnostic, VI algorithm which learns a FA posterior of a neural network. This method sacrifices the natural gradient used by SLANG in favour of the standard gradient, such that it can be applied to any neural network architecture with no extra effort.} 
 
 
 \chapter{Online Factor Analysis}\label{ch:online_fa}
@@ -1120,26 +1120,29 @@ In summary, the choice between VIFA and SLANG depends on the dataset and evaluat
 
 \chapter{Conclusions}\label{ch:conclusions}
 
-\section{Final Reminder}
+%\section{Final Reminder}
 
-The body of your dissertation, before the references and any appendices,
-\emph{must} finish by page~40. The introduction, after preliminary material,
-should have started on page~1.
-
-You may not change the dissertation format (e.g., reduce the font
-size, change the margins, or reduce the line spacing from the default
-1.5 spacing). Over length or incorrectly-formatted dissertations will
-not be accepted and you would have to modify your dissertation and
-resubmit.  You cannot assume we will check your submission before the
-final deadline and if it requires resubmission after the deadline to
-conform to the page and style requirements you will be subject to the
-usual late penalties based on your final submission time.
-
-%\subsection{Comparison of VIFA and SLANG}
+%The body of your dissertation, before the references and any appendices,
+%\emph{must} finish by page~40. The introduction, after preliminary material,
+%should have started on page~1.
 %
-%There are some notable similarities between VIFA and SLANG. Both learn an approximate posterior of a neural network by minimising the VI objective in Equation (\ref{eqn:vi_objective}). Moreover, both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance, whereas SLANG approximates its inverse. Both are online gradient-based algorithms. However, while VIFA uses vanilla gradients, SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, although the use of an Empirical Fisher matrix to approximate the Fisher information matrix in natural gradient algorithms has been called into question \cite{kunstner2019}. 
-%
-%Although on first sight the VIFA updates in Algorithm \ref{alg:vi_fa} may look more complicated, they are implemented using only simple matrix operations and the standard back-propagation algorithm. In contrast, the SLANG update requires a randomised eigen-decomposition algorithm \cite{mishkin2018}. Moreover, this eigen-decomposition requires the back-propagated gradients of individual training examples. As pointed out in Section \ref{sec:slang}, this is problematic, since an efficient algorithm requires a separate implementation of back-propagation for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the average negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation tools in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. In this regard, VIFA is a much more practical algorithm that SLANG.
+%You may not change the dissertation format (e.g., reduce the font
+%size, change the margins, or reduce the line spacing from the default
+%1.5 spacing). Over length or incorrectly-formatted dissertations will
+%not be accepted and you would have to modify your dissertation and
+%resubmit.  You cannot assume we will check your submission before the
+%final deadline and if it requires resubmission after the deadline to
+%conform to the page and style requirements you will be subject to the
+%usual late penalties based on your final submission time.
+
+The work in this thesis focused on improving posterior estimation of neural networks. In particular, methods which learn a low-rank plus diagonal approximation of the covariance matrix via FA. Three novel algorithms were presented. Two of these - Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} - can be used to approximate the posterior with a FA model, assuming that representative samples of the posterior can be obtained via some separate procedure. The first method is a stochastic gradient algorithm, whereas the other is based on EM. Crucially, both algorithms are executed online in an iterative fashion and avoid any explicit use of $D \times D$ matrices, ensuring their applicability in the case of very high-dimensional deep neural networks. In the synthetic experiments, the online EM algorithm was shown to be as good as the classic batch SVD algorithm when $10^5$ training samples are available and the conditioning number of the true covariance matrix in not too large. Unfortunately, it was not possible to obtain representative samples of the posterior using the approach adopted by SWAG, which curtailed further experiments involving the online FA algorithms. The results in this thesis suggest that SWAG and its variants do not actually do approximate posterior inference and are perhaps better described as ensemble methods. Nevertheless, the online FA algorithms, and in particular online EM, are useful in their own right and could potentially still contribute to Bayesian deep learning if combined with better posterior sampling methods. 
+
+Currently, however, the more direct VIFA algorithm appears a much better approach to posterior estimation. This was demonstrated in the experiments involving linear regressions models, fit to both synthetic and real datasets. In all cases, VIFA was able to learn a good approximation of the true posterior covariance matrix. Moreover, VIFA also achieved encouraging results in the neural network predictions experiments in comparison to SLANG, in terms of RMSE and marginal likelihood. 
+
+There are some notable similarities between VIFA and SLANG. Both are VI-based approaches to neural network posterior estimation and both use a low-rank plus diagonal approximation of a $D \times D$ matrix to make the computation tractable - VIFA approximates the posterior covariance whereas SLANG approximates its inverse. Although they are both online gradient-based algorithms, VIFA uses vanilla gradients whereas SLANG uses natural gradients. The authors of SLANG claim that natural gradient methods are preferable when optimising the parameters of a distribution \cite{mishkin2018}, but this leads to undesirable features in practice. In particular, the SLANG update uses a randomised eigen-decomposition algorithm which requires the back-propagated gradients of individual training examples. This is problematic, since an efficient algorithm requires a separate implementation of back-propagation for each different type of neural network layer. Perhaps the biggest advantage of VIFA is that it only requires the gradient of the average negative log-likelihood of a mini-batch of training examples. This is easy to obtain using standard automatic differentiation tools in deep learning frameworks such as PyTorch \cite{paszke2019}. Hence, VIFA is model-agnostic and can be applied to any neural network architecture with no extra effort. In this regard, VIFA is a much more practical algorithm that SLANG, as well as being twice as fast.
+
+Given the positive results achieved by VIFA in this thesis, a good next step would be to apply the algorithm to very high-dimensional deep neural networks. VIFA was implemented with this in mind. The fact that Algorithm \ref{alg:vi_fa} uses only basic matrix operations and avoids any explicit use of $D \times D$ matrices means that it should be applicable to deep models with millions or even billions of parameters. Running experiments similar to those in Section \ref{sec:uci_nn_predictions} but with bigger datasets and bigger models would be an excellent test of the scalability of VIFA. It would also be interesting to include classification datasets in these experiments, since this thesis only dealt with regression. VIFA can be applied in this scenario by simply changing the likelihood distribution from Gaussian to multinomial. Finally, the claim that VIFA is model-agnostic should be put to the test in practice. All experiments in this thesis involved either linear regression models or standard feed-forward neural networks. Further experiments should be executed to test the predictions made by VIFA when applied to other architectures, such as those containing convolutional, recurrent and transformer layers. All these experiments are feasible and would require no modifications to the current implementation of VIFA. 
+
 
 \bibliographystyle{plain}
 \bibliography{main}
