@@ -1112,11 +1112,11 @@ Given the positive results achieved by VIFA in this thesis, a good next step wou
 % You can include appendices like this:
  \appendix
  
- \chapter{Derivations}
+ \chapter{Supplementary Derivations}
  
  \section{Bayesian Linear Regression Posterior}\label{app:bayesian_linear_regression_posterior}
  
-Applying the logarithm to the prior in Equation (\ref{eqn:linear_regression_prior}), 
+This section completes the derivation of the Bayesian linear regression model from Section \ref{sec:bayesian_lr}. First, applying the logarithm to the prior in Equation (\ref{eqn:linear_regression_prior}),
 \begin{align}\label{eqn:linear_regression_log_prior}
 \begin{split}
 	\log p(\theta) 
@@ -1184,7 +1184,7 @@ Hence, the posterior distribution of $\theta$ is
 
 \section{Partial Derivatives for Online SGA Factor Analysis}\label{app:online_fa_sga_derivatives}
 
-This section presents a full derivation of the partial derivatives in Equations (\ref{eqn:derivatives_wrt_F}) and (\ref{eqn:derivatives_wrt_Psi}).
+This section presents a full derivation of the partial derivatives given in Equations (\ref{eqn:derivatives_wrt_F}) and (\ref{eqn:derivatives_wrt_Psi}) for the online SGA FA algorithm. Recall from Section \ref{sec:gradient_fa} that the goal is to compute the expected value of the partial derivatives of Equation (\ref{eqn:log_fa_cond_dist}) over the distribution $p(\matr{h}_t | \theta_t, \matr{F}, \Psi)$.
 
 \subsection{Partial derivatives with respect to $\matr{F}$}
 
@@ -1290,7 +1290,7 @@ Finally, substituting Equation (\ref{eqn:expected_gradient_d_Fh}) into Equation 
 
 \section{E-step and M-step for Online EM Factor Analysis}\label{app:online_em_steps}
 
-This section gives more details about the E-step and M-step in the batch EM algorithm and how they can be modified for an online algorithm.
+The batch EM algorithm for FA was introduced in Section \ref{sec:online_em}. This section gives more details about the E-step and M-step and explains how these can be modified for an online version of the algorithm.
 
 \subsection{E-step}
 
@@ -1319,9 +1319,8 @@ Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on ea
  
  \section{Online Factor Analysis}\label{app:online_fa}
  
-Algorithm \ref{alg:generate_fa} shows how the synthetic FA models were generated for the experiments in Section \ref{ch:online_fa_experiments}.
- 
- \begin{algorithm}[!htbp] 
+This section provides more details and results for the online FA experiments in Section \ref{ch:online_fa_experiments}. Recall that synthetic FA models were generated for these experiments. The pseudocode in Algorithm \ref{alg:generate_fa} shows exactly how this was done.
+  \begin{algorithm}[!htbp] 
 	\caption{Generate a Factor Analysis Model}
 	\label{alg:generate_fa}
 	\begin{algorithmic}[1]
@@ -1340,8 +1339,8 @@ Algorithm \ref{alg:generate_fa} shows how the synthetic FA models were generated
 		\State \Return $\matr{c}, \matr{F}, \Psi$	
 	\end{algorithmic}
 \end{algorithm}
- 
-Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size as Figure \ref{fig:fa_covar_distance}. The distance is scaled by dividing by observation dimension. Tables \ref{table:fa_covar_distance} and \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in  Figures \ref{fig:fa_covar_distance} and \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples. 
+
+Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size as Figure \ref{fig:fa_covar_distance}. Finally, Table \ref{table:fa_covar_distance} and Table \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in Figure \ref{fig:fa_covar_distance} and Figure \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples. 
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
@@ -1486,11 +1485,11 @@ Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between 
 %	\caption{Samples constructed via finite window iterate averaging for different combinations of batch size and window size. Each red dot is the mean of a set of linear regression parameter vectors sampled during consecutive mini-batch updates of SGD, with a learning rate of 0.1 and the regularisation strength set to 0.001. The contours show the pdf of the true posterior distribution. The white dot denotes the pre-trained parameter vector and the black star is the empirical mean of the red dots.}
 %	\label{fig:linear_regression_average_iterates}
 %\end{figure}
+ \newpage
 
+\section{UCI Posterior Estimation with VIFA}\label{app:uci_posterior}
 
-\section{UCI Posterior Estimation}\label{app:uci_posterior}
-
-Table \ref{table:uci_datasets} shows the number of instances and and input variables in each UCI regression dataset. Note that the original Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used.
+This section provides more details and results for the linear regression posterior estimation experiments using VIFA in Section \ref{sec:vifa_posterior_uci}. Table \ref{table:uci_datasets} shows the number of instances and input variables in each UCI regression dataset. Note that the original Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. Table \ref{table:vifa_uci_hyperparameters} shows the hyperparameter values used in the experiments.
 
 \begin{table}[h!]
 	\begin{center}
@@ -1512,8 +1511,6 @@ Table \ref{table:uci_datasets} shows the number of instances and and input varia
 	\end{center}
 \end{table}
 
-Table \ref{table:vifa_uci_hyperparameters} shows the hyperparameter values for the experiments in Section \ref{sec:vifa_posterior_uci}.
-
 \begin{table}[h!]
 	\begin{center}
 		\begin{tabular}{||c c c c c c c c||} 
@@ -1534,7 +1531,9 @@ Table \ref{table:vifa_uci_hyperparameters} shows the hyperparameter values for t
 	\end{center}
 \end{table}
 
-Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_strength} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative results for all four UCI datasets. 
+\newpage
+
+Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_strength} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Recall that the same comparison was given for the Boston Housing and Yacht Hydrodynamics datasets in Section \ref{sec:vifa_posterior_uci}. Finally, Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative results for all four UCI datasets. 
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{c}
@@ -1584,7 +1583,7 @@ Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_st
 
 \section{UCI Neural Network Predictions}\label{app:uci_nn_predictions}
 
-In the experiments in Section \ref{sec:uci_nn_predictions}, while training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
+This section provides more details about the loss functions used in the neural network prediction experiments in Section \ref{sec:uci_nn_predictions}. While training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
 \begin{equation}\label{eqn:train_nll}
 	-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big),
 \end{equation}
