@@ -53,13 +53,21 @@
 \author{Scott Brownlie}
 
 \abstract{
-  This skeleton demonstrates how to use the \texttt{infthesis} style
-  for MSc dissertations in Artificial Intelligence, Cognitive Science,
-  Computer Science, Data Science, and Informatics. It also emphasises
-  the page limit, and that you must not deviate from the required
-  style.  The file \texttt{skeleton.tex} generates this document and
-  can be used as a starting point for your thesis. The abstract should
-  summarise your report and fit in the space on the first page.
+%  This skeleton demonstrates how to use the \texttt{infthesis} style
+%  for MSc dissertations in Artificial Intelligence, Cognitive Science,
+%  Computer Science, Data Science, and Informatics. It also emphasises
+%  the page limit, and that you must not deviate from the required
+%  style.  The file \texttt{skeleton.tex} generates this document and
+%  can be used as a starting point for your thesis. The abstract should
+%  summarise your report and fit in the space on the first page.
+
+Learning the posterior distribution of a deep neural network is a difficult task. Even when opting for a Gaussian approximation, one faces the daunting challenge of estimating the $D \times D$ posterior covariance matrix, where $D$, the number of model parameters, can reach billions by today's standards. Some simplification has to be made, and one option is to use a low-rank plus diagonal approximation. This approach is more flexible than a solely diagonal approximation, since it preserves some of the off-diagonal structure of the covariance matrix. 
+
+One particular Gaussian distribution with a low-rank plus diagonal covariance matrix is the factor analysis model. In its essence, factor analysis is a latent variable model which generates observations via an affine transformation of the latents plus the addition of some Gaussian noise. This project makes use of these properties to derive novel methods for posterior estimation of deep neural networks. 
+
+Two distinctly different approaches are considered. The first of these is inspired by a recent Bayesian deep learning method called SWA-Gaussian. It assumes that samples representative of the true posterior can be sampled while training the neural network via stochastic gradient descent. Two algorithms are presented which learn factor analysis models from such samples in an online, iterative fashion, making them suitable for high-dimensional data, such as the parameters vector of a deep neural network. Experiments demonstrate that the algorithms are often as effective at learning factor analysis models as the classic batch algorithm based on singular value decomposition.
+
+The second approach is based on variational inference and does not require a separate posterior sampling procedure. The algorithm - aptly named VIFA due to its use of variational inference and factor analysis - is model-agnostic and can be readily applied to any type of neural network architecture with no extra effort. Crucially, the implementation scales to very high-dimensional deep neural networks. Experiments demonstrate its effectiveness in learning the posterior and making predictions with uncertainty estimates, as well as its impressive speed compared to a recent method called SLANG with adopts a similar approach. 
 }
 
 \maketitle
