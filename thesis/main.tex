@@ -61,11 +61,11 @@
 %  can be used as a starting point for your thesis. The abstract should
 %  summarise your report and fit in the space on the first page.
 
-Learning the posterior distribution of a deep neural network is a difficult task. Even when opting for a Gaussian approximation, one faces the daunting challenge of estimating the $D \times D$ posterior covariance matrix, where $D$, the number of model parameters, can reach billions by today's standards. Some simplification has to be made, and one option is to use a low-rank plus diagonal approximation. This approach is more flexible than a solely diagonal approximation, since it preserves some of the off-diagonal structure of the covariance matrix. 
+Learning the posterior distribution of a deep neural network is a difficult task. Even when using a Gaussian approximation, one faces the daunting challenge of estimating the $D \times D$ posterior covariance matrix, where $D$, the number of model parameters, can reach billions by today's standards. Some simplification has to be made, and one option is to use a low-rank plus diagonal approximation. This approach is more flexible than a solely diagonal approximation, since it preserves some of the off-diagonal structure of the covariance matrix. 
 
-One particular Gaussian distribution with a low-rank plus diagonal covariance matrix is the factor analysis model. In its essence, factor analysis is a latent variable model which generates observations via an affine transformation of the latents plus the addition of some Gaussian noise. This project makes use of these properties to derive novel methods for posterior estimation of deep neural networks. 
+One particular Gaussian distribution with a low-rank plus diagonal covariance matrix is the factor analysis model. In its essence, factor analysis is a latent variable model which generates observations via an affine transformation of the latents plus the addition of some Gaussian noise. This project makes use of these properties to derive novel algorithms for posterior estimation of deep neural networks. 
 
-Two distinctly different approaches are considered. The first of these is inspired by a recent Bayesian deep learning method called SWA-Gaussian. It assumes that samples representative of the true posterior can be sampled while training the neural network via stochastic gradient descent. Two algorithms are presented which learn factor analysis models from such samples in an online, iterative fashion, making them suitable for high-dimensional data, such as the parameters vector of a deep neural network. Experiments demonstrate that the algorithms are often as effective at learning factor analysis models as the classic batch algorithm based on singular value decomposition.
+Two distinctly different approaches are considered. The first of these is inspired by a recent Bayesian deep learning method called SWAG.  It is based on the assumption that samples representative of the true posterior are encountered while training the neural network via stochastic gradient descent. Two algorithms are presented which learn factor analysis models from such samples in an online, iterative fashion, making them suitable for high-dimensional data, such as the parameters vector of a deep neural network. Experiments demonstrate that the algorithms are often as effective at learning factor analysis models as the classic batch algorithm based on singular value decomposition.
 
 The second approach is based on variational inference and does not require a separate posterior sampling procedure. The algorithm - aptly named VIFA due to its use of variational inference and factor analysis - is model-agnostic and can be readily applied to any type of neural network architecture with no extra effort. Crucially, the implementation scales to very high-dimensional deep neural networks. Experiments demonstrate its effectiveness in learning the posterior and making predictions with uncertainty estimates, as well as its impressive speed compared to a recent method called SLANG with adopts a similar approach. 
 }
@@ -168,13 +168,13 @@ This chapter presents the background necessary to understand the rest of the the
 
 A linear regression model is a mapping from vector inputs $\matr{x} \in \R^D$ to scalar outputs $y \in \R$ via an affine transformation. Given a set of observed input-output pairs, $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, it is assumed that each output is generated according to 
 \begin{equation}\label{eqn:linear_regression}
-	y_n = \theta^\intercal \matr{x}_n + \epsilon
+	y_n = \theta^\intercal \matr{x}_n + \epsilon_n
 \end{equation}
 for some unknown $\theta \in \R^D$. The underlying signal, $\theta^\intercal \matr{x}_n$, is corrupted by additive noise, 
 \begin{equation}
-	\epsilon \sim \mathcal{N}(0, \sigma^2), 
+	\epsilon_n \sim \mathcal{N}(0, \sigma^2), 
 \end{equation}
-for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}). Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon$ is Gaussian distributed, the conditional pdf of $y_n$ is 
+for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}). Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon_n$ is Gaussian distributed, the conditional pdf of $y_n$ is 
 \begin{equation}\label{eqn:linear_regression_pdf}
 	p(y_n | \theta, \matr{x}_n) 
 	= \mathcal{N}\big(\theta^\intercal \matr{x}_n, \sigma^2\big)
@@ -221,7 +221,7 @@ Let $f(\matr{x}): \R^J \mapsto \R$ be a neural network with a single \emph{hidde
 \begin{equation}
 	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x} + b_h),
 \end{equation} 
-where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Notice that this is similar to the functional form of linear regression. The difference is that, instead of the output being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
+where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Notice that this is similar to the functional form of linear regression. The difference is that, instead of the output being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, $h=1,\dots,H$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
 \begin{equation}\label{eqn:multi_layer_nn}
 	f(\matr{x}) = \matr{w}_2^T \Big(g_2\big(\matr{W}_1 g_1(\matr{W}_0 \matr{x} + \matr{b}_0) + \matr{b}_1 \big) \Big) + b_2,
 \end{equation} 
@@ -243,7 +243,9 @@ Factor analysis (FA) is a latent variable model which generates observations $\t
 \begin{equation}\label{eqn:fa_model}
 	\theta = \matr{Fh} + \matr{c} + \epsilon.
 \end{equation}
-In the context of this thesis, an observation $\theta$ is the parameter vector of a neural network. It follows from Equation (\ref{eqn:fa_model}) that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$ \cite{barber2007}. Formally,
+In the context of this thesis, an observation $\theta$ is the parameter vector of a neural network. 
+
+It follows from Equation (\ref{eqn:fa_model}) that, given $\matr{h}$, the observations $\theta$ are Gaussian distributed with mean $\matr{Fh} + \matr{c}$ and covariance $\Psi$ \cite{barber2007}. Formally,
 \begin{equation}\label{eqn:fa_cond_dist}
 	p(\theta | \matr{h}) 
 	= \mathcal{N}\big( \matr{Fh} + \matr{c}, \Psi \big)
@@ -259,7 +261,7 @@ Given only observations $\theta_1, \theta_2, \dots, \theta_T$, a model of this f
 
 \section{Variational Inference}\label{sec:vi}
 
-For linear regression, computing the posterior in Equation (\ref{eqn:linear_regression_posterior}) is possible because the log-likelihood, $p(\mathcal{D} | \theta)$, is a quadratic expression of $\theta$. However, when $\theta$ is the parameter vector of a neural network with even a single non-linear hidden layer, the log-likelihood is not so simple and the posterior cannot be written in closed-form. Instead, the marginal likelihood, $p(\mathcal{D}) = \int_\theta p(\mathcal{D} | \theta) p(\theta)$, must be evaluated, which is intractable for high-dimensional $\theta$. An alternative strategy is to approximate the posterior with a Gaussian distribution $q(\theta) = \mathcal{N}(\mu, \Sigma)$, where the parameters $\mu$ and $\Sigma$ are chosen to minimise some measure of dissimilarity between $q(\theta)$ and $p(\theta | \mathcal{D})$. Because $q(\theta)$ is essentially a variable in an optimisation procedure, this approach is known as \emph{variational inference} (VI) \cite{barber2007}. A common measure of dissimilarity between two distributions is the Kullback-Leibler (KL) divergence \cite{barber2007}, which in this case is
+For linear regression, computing the posterior in Equation (\ref{eqn:linear_regression_posterior}) is possible because the log-likelihood, $p(\mathcal{D} | \theta)$, is a quadratic expression of $\theta$. However, when $\theta$ is the parameter vector of a neural network with even a single non-linear hidden layer, the log-likelihood is not so simple and the posterior cannot be written in closed-form. Moreover, numerical methods which evaluate the marginal likelihood, $p(\mathcal{D}) = \int p(\mathcal{D} | \theta) p(\theta) d\theta$, are intractable for high-dimensional $\theta$. An alternative strategy is to approximate the posterior with a Gaussian distribution, $q(\theta) = \mathcal{N}(\mu, \Sigma)$, where the parameters $\mu$ and $\Sigma$ are chosen to minimise some measure of dissimilarity between $q(\theta)$ and $p(\theta | \mathcal{D})$. Because $q(\theta)$ is essentially a variable in an optimisation procedure, this approach is known as \emph{variational inference} (VI) \cite{barber2007}. A common measure of dissimilarity between two distributions is the Kullback-Leibler (KL) divergence \cite{barber2007}, which in this case is
 \begin{align}
 \begin{split}
 	\D_{KL}[q(\theta) \Vert p(\theta | \mathcal{D})] 
@@ -296,7 +298,7 @@ If a high constant learning rate is used instead, SGD first approaches a local m
 %\begin{equation}\label{eqn:swa_solution}
 %	\theta_{\text{SWA}} = \frac{1}{T}\sum_{t=1}^T \theta_t.
 %\end{equation}
-There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error. 
+There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error \cite{izmailov2018}. 
 
 One limitation of the SWA solution is that it does not convey the uncertainty in the model parameters. The method was later extended to also include a low-rank plus diagonal approximation of the covariance matrix of the SGD iterates \cite{maddox2019}. The diagonal part is
 \begin{equation}
@@ -306,7 +308,7 @@ where the squares are applied element-wise. For rank $K \in \N^+$, the low-rank 
 \begin{equation}
 	\frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal,
 \end{equation}
-where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating $K$ vectors $(\theta_{t_1} - \overline{\theta}_{t_1}), \dots, (\theta_{t_K} - \overline{\theta}_{t_K})$ for some $t_1, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. The reason for subsampling the $\theta_1, \theta_2, \dots, \theta_T$ is to limit the rank of the matrix product to $K$. Also, note that 
+where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating $K$ vectors $(\theta_{t_1} - \overline{\theta}_{t_1}), \dots, (\theta_{t_K} - \overline{\theta}_{t_K})$ for some $t_1, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. The reason for subsampling the $\theta_1, \theta_2, \dots, \theta_T$ is to limit the rank of $\hat{\matr{D}}\hat{\matr{D}}^\intercal$ to $K$. Also, note that 
 \begin{equation}
 	\frac{1}{K-1} \hat{\matr{D}}\hat{\matr{D}}^\intercal
 	= \frac{1}{K-1} \sum_{i=1}^K (\theta_{t_i} - \overline{\theta}_{t_i}) (\theta_{t_i} - \overline{\theta}_{t_i})^\intercal,
@@ -321,7 +323,7 @@ This method is known as SWA-Gaussian, or SWAG \cite{maddox2019}. One undesirable
 
 \subsection{Stochastic, Low-rank Approximate Natural Gradient}\label{sec:slang}
 
-The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one approach to optimising the variational objective in Equation (\ref{eqn:vi_objective}). It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. Theoretically, natural gradient descent is preferable to standard gradient descent when optimising a distribution. Whereas standard gradient descent moves in the direction of steepest descent with respect to the Euclidean parameter space, natural gradient descent exploits the geometry of the \emph{distribution space} in which the distance between two distributions is measured by the KL-divergence \cite{pascanu2013}. This is preferable, since the aim of VI is to minimise the KL-divergence between the true and variational distributions. Formally, the VOGN update rule is 
+The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one approach to optimising the variational objective in Equation (\ref{eqn:vi_objective}). It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. Theoretically, natural gradient descent is preferable to standard gradient descent when optimising a distribution. Whereas standard gradient descent moves in the direction of steepest descent with respect to the Euclidean parameter space, natural gradient descent exploits the geometry of the \emph{distribution space}, in which the distance between two distributions is measured by the KL-divergence \cite{pascanu2013}. This is preferable, since the aim of VI is to minimise the KL-divergence between the true and variational distributions. Formally, the VOGN update rule is 
 \begin{equation}\label{eqn:vogn_update}
 	\mu \leftarrow \mu - \eta_\mu \Sigma (\hat{\matr{g}}_\theta + \alpha \mu), \quad 
 	\Sigma^{-1} \leftarrow (1 - \eta_\Sigma) \Sigma^{-1} + \eta_\Sigma(\hat{\matr{G}}_\theta + \alpha \matr{I}),
@@ -334,7 +336,7 @@ where $\eta_\mu, \eta_\Sigma > 0$ are learning rates, $\alpha$ is the precision 
 where $\matr{g}_\theta^i = \nabla_\theta \log p(y_i | \matr{x}_i, \theta)$ and $\mathcal{B}$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. A full derivation of this rule is given in \cite{tangkaratt2018}. Conceptually, the update for $\mu$ is obtained by correcting the standard gradient according to the local curvature of the distribution space. That is, by scaling the gradient by the inverse of the Hessian of the KL-divergence, which in this case is equivalent to the negative covariance matrix \cite{pascanu2013, opper2009}. Hence the reason why $\Sigma$ appears in Equation (\ref{eqn:vogn_update}).
 
 %Since $\theta$ is the parameter vector of a neural network, 
-In practice, the gradients $\matr{g}_\theta^i$ in Equation (\ref{eqn:slang_g_and_G}) can be computed via back-propagation \cite{rumelhart1986}. However, for deep neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is generally infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$. A computationally tractable version of VOGN can be obtained by using a low-rank plus diagonal approximation of the inverse of the covariance matrix. This is the approach taken by SLANG \cite{mishkin2018}, which stands for stochastic, low-rank, approximate natural gradient. This algorithm sets $\Sigma^{-1} = \matr{U} \matr{U}^\intercal + \matr{D}$ for some $\matr{U} \in \R^{D \times K}$ and a $D \times D$ diagonal matrix $\matr{D}$. Substituting this definition into Equation (\ref{eqn:vogn_update}), the update can be written as
+In practice, the gradients $\matr{g}_\theta^i$ in Equation (\ref{eqn:slang_g_and_G}) can be computed via back-propagation \cite{rumelhart1986}. However, for deep neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is generally infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$. A computationally tractable version of VOGN can be obtained by using a low-rank plus diagonal approximation of the inverse of the covariance matrix. This is the approach taken by SLANG \cite{mishkin2018}, which stands for stochastic, low-rank, approximate natural gradient. This algorithm sets $\Sigma^{-1} = \matr{U} \matr{U}^\intercal + \matr{D}$ for some $\matr{U} \in \R^{D \times K}$ and a $D \times D$ diagonal matrix $\matr{D}$. Substituting this definition into Equation (\ref{eqn:vogn_update}), the update for $\Sigma$ can be written as
 \begin{equation}\label{eqn:slang_infeasible_sigma_update}
 	\Sigma^{-1} \leftarrow 
 	\big[(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta \big] 
@@ -351,7 +353,7 @@ where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ large
 
 \section{Project Goals}
 
-Although SWAG and SLANG are distinctly different approaches to Bayesian deep learning, they both opt for a low-rank plus diagonal approximation to simplify the estimation of the posterior covariance matrix. The low-rank plus diagonal covariance is also a defining feature of the FA model. However, there is more to the FA than that. In particular, it is a latent variable model which generates observations according to Equation (\ref{eqn:fa_model}). \textbf{The overall objective of this project is to use these specific properties of FA to overcome some of the limitations of SWAG and SLANG.}\footnote{Code for all algorithms and experiments is available at \texttt{https://github.com/ayeright/swafa}}
+Although SWAG and SLANG are distinctly different approaches to Bayesian deep learning, they both opt for a low-rank plus diagonal approximation to simplify the estimation of the posterior covariance matrix. The low-rank plus diagonal covariance is also a defining feature of the FA model. However, there is more to FA than that. In particular, it is a latent variable model which generates observations according to Equation (\ref{eqn:fa_model}). \textbf{The overall objective of this project is to use these specific properties of FA to overcome some of the limitations of SWAG and SLANG.}\footnote{Code for all algorithms and experiments is available at \texttt{https://github.com/ayeright/swafa}}
 \\ \\
 \textbf{Online Factor Analysis}.
 The first goal of this project is motivated by the fact that SWAG does not make use of all the available data when estimating the low-rank plus diagonal approximation of the posterior covariance. This is unnecessary, since a covariance matrix with the same structure can be learned from \emph{all} the SGD iterates via FA. To see this, let $\matr{F} = \frac{1}{\sqrt{2(K-1)}} \hat{\matr{D}}$ and $\Psi = \frac{1}{2} \Sigma_\text{diag}$. Then the SWAG posterior from Equation (\ref{eqn:swag_dist}) becomes $\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big)$,
