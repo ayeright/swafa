@@ -533,7 +533,7 @@ where $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$,
 In an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$, these updates cannot be performed exactly. In particular, $\matr{m}_t$ depends on $\theta_t$ and thus cannot be re-computed after iteration $t$. As a compromise, the sums in Equation (\ref{eqn:em_A_and_H_update}) can be updated incrementally on iteration $t$ using the values derived from $\theta_t$, while the contribution from earlier iterations is held fixed. This practical approach is described next. 
 
 
-\subsection{Practical implementation}
+\subsection{Practical implementation}\label{sec:online_em_practical}
 
 Let $\overline{\matr{A}}_t$ and $\overline{\matr{H}}_t$ be the estimates of $\matr{A}$ and $\matr{H}$ from Equation (\ref{eqn:em_A_and_H_update}), respectively, after iteration $t$ of online EM. Formally,
 \begin{equation}\label{eqn:em_A_and_H_incremental_update}
@@ -1119,17 +1119,26 @@ Given the positive results achieved by VIFA in this thesis, a good next step wou
  
  \chapter{Supplementary Derivations}
  
- \section{Bayesian Linear Regression Posterior}\label{app:bayesian_linear_regression_posterior}
+ \section{Linear Regression Posterior}\label{app:bayesian_linear_regression_posterior}
  
-This section completes the derivation of the Bayesian linear regression model from Section \ref{sec:bayesian_lr}. First, applying the logarithm to the prior in Equation (\ref{eqn:linear_regression_prior}),
-\begin{align}\label{eqn:linear_regression_log_prior}
+This section completes the derivation of the linear regression posterior from Section \ref{sec:bayesian_lr}. Recall from Equation (\ref{eqn:linear_regression_log_likelihood}) that
+\begin{align}
+\begin{split}
+	\log p(\mathcal{D} | \theta) 
+	& = - \frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
+	+ \frac{N}{2} \log \beta
+	+ \text{constant}.
+\end{split}
+\end{align}
+Also, applying the logarithm to the prior in Equation (\ref{eqn:linear_regression_prior}),
+\begin{align}
 \begin{split}
 	\log p(\theta) 
 	& = \frac{D}{2} \log \frac{\alpha}{2\pi} - \frac{\alpha}{2} \theta^\intercal \theta \\
 	& = -\frac{\alpha}{2} \theta^\intercal \theta + \frac{D}{2} \log \alpha + \text{constant}.
 \end{split}
 \end{align}
-Now, using Bayes' rule and Equations (\ref{eqn:linear_regression_log_likelihood}) and (\ref{eqn:linear_regression_log_prior}), it follows that the log-posterior distribution of $\theta$ for fixed prior precision $\alpha$ and noise precision $\beta$ is 
+Suppose that the prior precision $\alpha$ and the noise precision $\beta$ are fixed. Then it follows from Bayes' rule that
 \begin{align}\label{eqn:linear_regression_log_posterior}
 \begin{split}
 	\log p(\theta | \mathcal{D}) 
@@ -1164,6 +1173,9 @@ Now, using a result from \cite{barber2007} to complete the square of Equation (\
 \begin{align}
 \begin{split}
 	\log p(\theta | \mathcal{D}) 
+	& = \matr{b}^\intercal \theta 
+	- \frac{1}{2} \theta^\intercal \matr{A} \theta 
+	+ \text{constant} \\
 	& = -\frac{1}{2} \big(\theta - \matr{A}^{-1} \matr{b} \big)^\intercal \matr{A} \big(\theta - \matr{A}^{-1} \matr{b} \big)
 	+ \frac{1}{2} \matr{b}^\intercal \matr{A}^{-1} \matr{b}
 	+ \text{constant} \\
@@ -1190,7 +1202,14 @@ Hence, the posterior distribution of $\theta$ is
 
 \section{Partial Derivatives for Online SGA Factor Analysis}\label{app:online_fa_sga_derivatives}
 
-This section presents a full derivation of the partial derivatives given in Equations (\ref{eqn:derivatives_wrt_F}) and (\ref{eqn:derivatives_wrt_Psi}) for the online SGA FA algorithm. Recall from Section \ref{sec:gradient_fa} that the goal is to compute the expected value of the partial derivatives of Equation (\ref{eqn:log_fa_cond_dist}) over the distribution $p(\matr{h}_t | \theta_t, \matr{F}, \Psi)$.
+This section presents a full derivation of the partial derivatives, $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$, given in Equations (\ref{eqn:derivatives_wrt_F}) and (\ref{eqn:derivatives_wrt_Psi}) for the online SGA FA algorithm. Recall from Section \ref{sec:gradient_fa} that the goal is to compute the expected value of 
+\begin{align}\label{eqn:log_fa_cond_dist_app}
+\begin{split}
+	\log p(\theta_t | \matr{h}_t, \matr{F}, \Psi)
+	& = -\frac{1}{2} (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) - \frac{1}{2} \log |\Psi| - \frac{D}{2} \log 2\pi
+\end{split}
+\end{align}
+over the distribution $p(\matr{h}_t | \theta_t, \matr{F}, \Psi)$, where $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$.
 
 \subsection{Partial derivatives with respect to $\matr{F}$}
 
@@ -1198,12 +1217,12 @@ From \cite{petersen2012}, for any symmetric matrix $\matr{W}$,
 \begin{equation}
 	\nabla_{\matr{A}} (\matr{x} - \matr{As})^\intercal \matr{W} (\matr{x} - \matr{As}) = -2 \matr{W} (\matr{x} - \matr{As}) \matr{s}^\intercal.
 \end{equation}
-Hence, differentiating Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\matr{F}$ gives
+Hence, differentiating Equation (\ref{eqn:log_fa_cond_dist_app}) with respect to $\matr{F}$ gives
 \begin{equation}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{h}_t, \matr{F}, \Psi)
 	= \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal.
 \end{equation}
-It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ is the expected value of $\Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal$ over the distribution $p(\matr{h}_t | \theta_t, \matr{F}, \Psi)$. Letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}[\cdot]$ to simplify the notation, 
+It then follows that $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ is the expected value of $\Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal$ over the distribution $p(\matr{h}_t | \theta_t, \matr{F}, \Psi)$. Letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}[\cdot]$ to simplify the notation, 
 \begin{align}\label{eqn:expected_derivatives_wrt_F}
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
@@ -1215,7 +1234,7 @@ It then follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that $\
 \end{split}
 \end{align} 
 From the E-step of the EM algorithm for FA in \cite{barber2007}, $p(\matr{h}_t | \theta_t, \matr{F}, \Psi) \propto \mathcal{N}(\matr{m}_t, \Sigma)$, where
-\begin{equation}%\label{eqn:variational_params}
+\begin{equation}
 	\Sigma = (\matr{I} + \matr{F}^\intercal \Psi^{-1} \matr{F})^{-1}
 	\quad \text{and} \quad \matr{m}_t = \Sigma \matr{F}^\intercal \Psi^{-1} \matr{d}_t.
 \end{equation}
@@ -1223,8 +1242,8 @@ Hence, using the identities for vector and matrix expectations from \cite{peters
 \begin{equation}\label{eqn:expected_value_h_hh}
 	\E \big[ \matr{h}_t^\intercal \big] = \matr{m}_t^\intercal \quad \text{and} \quad \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] = \Sigma + \matr{m}_t \matr{m}_t^\intercal.
 \end{equation}
-Finally, substituting Equation (\ref{eqn:expected_value_h_hh}) into Equation (\ref{eqn:expected_derivatives_wrt_F}), 
-\begin{align}%\label{eqn:derivatives_wrt_F}
+Finally, substituting the expectations in Equation (\ref{eqn:expected_value_h_hh}) into Equation (\ref{eqn:expected_derivatives_wrt_F}), 
+\begin{align}
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \Psi^{-1} \big(\matr{d}_t \matr{m}_t^\intercal - \matr{F}  (\Sigma + \matr{m}_t \matr{m}_t^\intercal)\big).
@@ -1233,7 +1252,7 @@ Finally, substituting Equation (\ref{eqn:expected_value_h_hh}) into Equation (\r
 
 \subsection{Partial derivatives with respect to $\Psi$}
 
-In order to differentiate Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$, it helps to use the fact that $\Psi$ is diagonal. First consider $\matr{X}^{-1} = \diag(\frac{1}{x_1}, \dots, \frac{1}{x_D})$ and $\matr{a} = (a_1, \dots, a_D)^\intercal$. Then 
+In order to differentiate Equation (\ref{eqn:log_fa_cond_dist_app}) with respect to $\Psi$, it helps to use the fact that $\Psi$ is diagonal. First consider $\matr{X}^{-1} = \diag\big(\frac{1}{x_1}, \dots, \frac{1}{x_D}\big)$ and $\matr{a} = (a_1, \dots, a_D)^\intercal$. Then 
 \begin{equation}\label{eqn:aXa}
 	\matr{a}^\intercal \matr{X}^{-1} \matr{a} = \sum_{d=1}^D \frac{a_d^2}{x_d},
 \end{equation}
@@ -1249,7 +1268,7 @@ for $d=1, \dots, D$. Since the partial derivatives of Equation (\ref{eqn:aXa}) w
 	& = -\diag\big(\diag(\matr{X}^{-2}) \odot \matr{a}^2\big),
 \end{split}
 \end{align}  
-where $\odot$ denotes the element-wise matrix product (with broadcasting, if applicable) and the square of the vector is applied element-wise. Also, when applied to a $D$-length vector, $\diag(\cdot)$ represents the $D \times D$ diagonal matrix with the vector on its diagonal, and when applied to a $D \times D$ matrix, $\diag(\cdot)$ represents the $D$-length vector consisting of the diagonal entries of the matrix. Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$, into Equation (\ref{eqn:derivatives_diag_qaud_form}),
+where $\odot$ denotes the element-wise matrix product (with broadcasting, if applicable) and the square of the vector is applied element-wise. Also, when applied to a $D$-length vector, $\diag(\cdot)$ represents the $D \times D$ diagonal matrix with the vector on its diagonal, and when applied to a $D \times D$ matrix, $\diag(\cdot)$ represents the $D$-length vector consisting of the diagonal entries of the matrix. Substituting $\matr{X} = \Psi$ and $\matr{a} = \matr{d}_t - \matr{Fh}_t$ into Equation (\ref{eqn:derivatives_diag_qaud_form}),
 \begin{equation}\label{eqn:derivatives_wrt_Psi_1}
 	\nabla_\Psi (\matr{d}_t - \matr{Fh}_t)^\intercal \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) 
 	= -\diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big).
@@ -1259,12 +1278,12 @@ Also, using the identity $\nabla_\matr{X} \log |\matr{X}| = \matr{X}^{-\intercal
 	\nabla_\Psi \log |\Psi|
 	= \Psi^{-1}.
 \end{equation}
-Hence, the partial derivatives of Equation (\ref{eqn:log_fa_cond_dist}) with respect to $\Psi$ are
+Hence, the partial derivatives of Equation (\ref{eqn:log_fa_cond_dist_app}) with respect to $\Psi$ are
 \begin{equation}
 	\nabla_{\Psi} \log p(\theta_t | \matr{h}_t, \matr{F}, \Psi)
 	= \frac{1}{2} \diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big) - \frac{1}{2}\Psi^{-1}.
 \end{equation}
-Again, letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}[\cdot]$, it follows from Equation (\ref{eqn:simplified_grad_log_likelihood}) that
+Again, letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}[\cdot]$, it follows that
 \begin{align}\label{eqn:expected_gradient}
 \begin{split}
 	2 \cdot \nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi) 
@@ -1300,28 +1319,37 @@ The batch EM algorithm for FA was introduced in Section \ref{sec:online_em}. Thi
 
 \subsection{E-step}
 
-In the batch E-step, $\matr{F}$ and $\Psi$ are fixed and Equation (\ref{eqn:EM_bound}) is maximised with respect to $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$. From \cite{barber2007}, the optimal variational distributions are 
+In the batch E-step, $\matr{F}$ and $\Psi$ are held fixed and the expression
+\begin{equation}\label{eqn:EM_objective}
+	- \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log q(\matr{h}_t | \theta_t)\big]
+	+ \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log p(\matr{h}_t, \theta_t | \matr{F}, \Psi)\big]
+\end{equation}
+from Equation (\ref{eqn:EM_bound}) is maximised with respect to the variational distributions $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$. From \cite{barber2007}, the optimal variational distributions are 
 \begin{equation}
 	q(\matr{h}_t | \theta_t) = p(\matr{h}_t | \theta_t, \matr{F}, \Psi)  \propto \mathcal{N}(\matr{m}_t, \Sigma), 
 \end{equation}
-where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM all $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ will be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it will be replaced by the running average of the neural network's parameter vectors, as in Algorithm \ref{alg:gradient_fa}.
+where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM \emph{all} $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ can be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it can be replaced by the running average of the neural network's parameter vectors, as in Algorithm \ref{alg:gradient_fa}.
 
 
 \subsection{M-step}
 
-In the batch M-step, $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$, are fixed and Equation (\ref{eqn:EM_bound}) is maximised with respect to $\matr{F}$ and $\Psi$. From \cite{barber2007}, the optimal values are $\matr{F} = \matr{A}\matr{H}^{-1}$, where
-\begin{equation}%\label{eqn:em_A_and_H_update}
+In the batch M-step, the variational distributions $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$, are fixed and the expression in Equation (\ref{eqn:EM_objective}) is maximised with respect to $\matr{F}$ and $\Psi$. From \cite{barber2007}, the optimal values are 
+\begin{equation}
+	\matr{F} = \matr{A}\matr{H}^{-1}, 
+\end{equation}
+where $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$,
+\begin{equation}
 	\matr{A} = \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{m}_t^\intercal \quad \text{and} \quad 
 	\matr{H} = \Sigma + \frac{1}{T} \sum_{t=1}^T \matr{m}_t \matr{m}_t^\intercal,
 \end{equation}
 and
-\begin{equation}%\label{eqn:em_Psi_update}
+\begin{equation}
 	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{d}_t^\intercal - 2\matr{FA}^\intercal + \matr{FHF}^\intercal \Bigg)\Bigg).
 \end{equation}
-Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on each iteration all components of the sums are updated. As in the E-step, updating all components is not possible in an online algorithm. Therefore, in the online version these sums will be updated incrementally on each iteration. 
+Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on each iteration all components of the sums are updated using the latest values of $\matr{m}_t$, $t=1,\dots,T$. As in the E-step, updating all components is not possible in an online algorithm. Therefore, in the online version these sums must instead be updated incrementally. This incremental approach was described in Section \ref{sec:online_em_practical}.
 
 
- \chapter{Supplementary Experiment Details and Results}
+ \chapter{Supplementary Experiment Details}
  
  \section{Online Factor Analysis}\label{app:online_fa}
  
@@ -1337,8 +1365,7 @@ This section provides more details and results for the online FA experiments in 
 		\State Compute the $K$ eigenvectors, $\matr{v}_1, \dots, \matr{v}_K \in \R^D$, corresponding to the $K$ largest eigenvalues of $\matr{M}$
 		\State Construct the matrix $\matr{V}_K \in \R^{D \times K}$ with columns $\matr{v}_1, \dots, \matr{v}_K$
 		\State Generate $\matr{s}^2 \in \R^D$ by sampling entries independently from $\mathcal{U}(a, b)$
-		\State $\matr{s} \leftarrow \sqrt{\matr{s}^2}$ (square root is applied element-wise) 
-		\State $\matr{F} \leftarrow \matr{V}_K \odot \matr{s}$ (with broadcasting)
+		\State $\matr{F} \leftarrow \matr{V}_K \odot \sqrt{\matr{s}^2}$ (with broadcasting and square root applied element-wise)
 		\State $s_{max} \leftarrow \max({\matr{s}^2})$ (largest element of ${\matr{s}^2}$)
 		\State Generate $\psi \in \R^D$ by sampling entries independently from $\mathcal{U}(0, s_{max}) $
 		\State $\Psi \leftarrow \text{diag}(\psi)$
@@ -1346,8 +1373,29 @@ This section provides more details and results for the online FA experiments in 
 	\end{algorithmic}
 \end{algorithm}
 
-Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size as Figure \ref{fig:fa_covar_distance}. Finally, Table \ref{table:fa_covar_distance} and Table \ref{table:fa_wasserstein} contain the numerical results corresponding to the data plotted in Figure \ref{fig:fa_covar_distance} and Figure \ref{fig:fa_wasserstein}, respectively, for the case of 100,000 training samples. 
+Recall that Figure \ref{fig:fa_covar_distance} shows the relative distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. Table \ref{table:fa_covar_distance} contains the numerical results for 100,000 training samples. That is, the results corresponding to the right-most points in each plot.
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{|| p{0.12\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} ||} 
+ 			\hline
+ 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
+ 			\hline\hline
+			100 	& $[1, 10]$ 	& $0.0454 \pm 0.0077$ 	& $0.0399 \pm 0.0058$	& $0.0426 \pm 0.0005$ \\ 
+				& $[1, 100]$ 	& $0.0631 \pm 0.0073$ 	& $0.0613 \pm 0.0057$ 	& $0.1309 \pm 0.0038$ \\ 
+				& $[1, 1000]$	& $0.0608 \pm 0.0087$ 	& $0.1767 \pm 0.0037$ 	& $0.2350 \pm 0.0046$ \\ 
+			\hline
+			1000	& $[1, 10]$ 	& $0.0204 \pm 0.0010$ 	& $0.0207 \pm 0.0003$ 	& $0.0546 \pm 0.0009$ \\ 
+				& $[1, 100]$ 	& $0.0217 \pm 0.0011$ 	& $0.0238 \pm 0.0013$ 	& $0.0472 \pm 0.0008$ \\ 
+				& $[1, 1000]$ 	& $0.0218 \pm 0.0011$ 	& $0.0501 \pm 0.0016$ 	& $0.0945 \pm 0.0024$ \\ [1ex] 
+			\hline
+		\end{tabular}
+		\caption{The relative distance of the estimated FA covariance matrix from the true covariance matrix when 
+		the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the right-most points in the plots in Figure \ref{fig:fa_covar_distance}.}
+		\label{table:fa_covar_distance}
+	\end{center}
+\end{table}
 
+Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, for the same combinations of observation dimension, latent dimension, spectrum range and sample size as Figure \ref{fig:fa_covar_distance}. The numerical results for the case of 100,000 training samples are given in table \ref{table:fa_wasserstein}.
 \begin{figure}[!htbp] 
 	\begin{tabular}{cc}
 		\includegraphics[width=70mm]{plots/online_fa_wasserstein__observation_dim=100__latent_dim=10__spectrum_min=1__spectrum_max=10.png}
@@ -1366,26 +1414,6 @@ Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between 
 	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension. The blue, orange and green lines show the scaled 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_wasserstein}
 \end{figure}
- 
-\begin{table}[h!]
-	\begin{center}
-		\begin{tabular}{|| p{0.12\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} ||} 
- 			\hline
- 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
- 			\hline\hline
-			100 	& $[1, 10]$ 	& $0.0454 \pm 0.0077$ 	& $0.0399 \pm 0.0058$	& $0.0426 \pm 0.0005$ \\ 
-				& $[1, 100]$ 	& $0.0631 \pm 0.0073$ 	& $0.0613 \pm 0.0057$ 	& $0.1309 \pm 0.0038$ \\ 
-				& $[1, 1000]$	& $0.0608 \pm 0.0087$ 	& $0.1767 \pm 0.0037$ 	& $0.2350 \pm 0.0046$ \\ 
-			\hline
-			1000	& $[1, 10]$ 	& $0.0204 \pm 0.0010$ 	& $0.0207 \pm 0.0003$ 	& $0.0546 \pm 0.0009$ \\ 
-				& $[1, 100]$ 	& $0.0217 \pm 0.0011$ 	& $0.0238 \pm 0.0013$ 	& $0.0472 \pm 0.0008$ \\ 
-				& $[1, 1000]$ 	& $0.0218 \pm 0.0011$ 	& $0.0501 \pm 0.0016$ 	& $0.0945 \pm 0.0024$ \\ [1ex] 
-			\hline
-		\end{tabular}
-		\caption{The relative distance of the estimated FA covariance matrix from the true covariance matrix when the latent dimension of the FA model is 10 and the number of training samples is 100,000. The relative distance is the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the rightmost points in the plots in Figure \ref{fig:fa_covar_distance}.}
-		\label{table:fa_covar_distance}
-	\end{center}
-\end{table}
 
 \begin{table}[h!]
 	\begin{center}
@@ -1402,101 +1430,14 @@ Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between 
 				& $[1, 1000]$ 	& $0.0152 \pm 0.0005$ 	& $0.0217 \pm 0.0003$ 	& $0.0349 \pm 0.0006$ \\ [1ex] 
 			\hline
 		\end{tabular}
-		\caption{The 2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension, when the latent dimension of the FA model is 10 and the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the rightmost points in the plots in Figure \ref{fig:fa_wasserstein}.}
+		\caption{The 2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension, when the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the right-most points in the plots in Figure \ref{fig:fa_wasserstein}.}
 		\label{table:fa_wasserstein}
 	\end{center}
 \end{table}
 
+\section{UCI Linear Regression Posterior Estimation}\label{app:uci_posterior}
 
-% \section{SGD as a Posterior Sampler}\label{app:sgd_iterates}
-
-%The ability of Algorithms \ref{alg:gradient_fa} and \ref{alg:online_em} to learn the posterior of a neural network's parameter vector hinges on obtaining samples of the parameter vector which are representative of the true posterior. In SWAG, such samples are thought to be obtained from the iterates of the parameter vector which are encountered along the SGD trajectory while training the neural network with a high constant learning rate, following an initial pre-training phase \cite{maddox2019}. In the case of linear regression - which is a neural network with no hidden layers - this assumption can be tested directly, since the true posterior of its parameter vector can be computed in closed form. Recall, however, that the posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. The parameter $\beta$ is $\frac{1}{\sigma^2}$, where $\sigma$ is the standard deviation of the outputs $y_n$ in Equation (\ref{eqn:linear_regression_pdf}). The precision $\alpha$ is a hyperparameter which controls the width of the prior $p(\theta)$. In Equation (\ref{eqn:linear_regression_log_posterior}), the log-posterior of $\theta$ was written as 
-%\begin{equation}
-%	\log p(\theta | \mathcal{D}) 
-%	= -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-%	-\frac{\alpha}{2} \theta^\intercal \theta 
-%	+ \text{constant}.
-%\end{equation}
-%Hence, the maximum \emph{a posteriori} (MAP) estimate of $\theta$ is that which maximises
-%\begin{equation}
-%	-\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-%	-\frac{\alpha}{2} \theta^\intercal \theta.
-%\end{equation}
-%Since $\beta > 0$, it is equivalent to minimise this expression scaled by $-\frac{2}{\beta}$, that is,
-%\begin{equation}
-%	\sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-%	+ \frac{\alpha}{\beta} \theta^\intercal \theta.
-%\end{equation}
-%This objective function is analogous to the L2-regularised training loss often used in non-Bayesian linear regression \cite{barber2007}, which is 
-%\begin{equation}\label{eqn:regularised_linear_regression}
-%	\sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
-%	+ \lambda \theta^\intercal \theta 
-%\end{equation}
-%for some $\lambda > 0$. Setting $\lambda = \frac{\alpha}{\beta}$, the optimal $\theta$ found by L2-regularised linear regression is the same as the MAP estimate of $\theta$ in Bayesian linear regression with prior $p(\theta) = \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$. This means that, given data $\mathcal{D}$ and a particular value of $\alpha$, the SGD iterates sampled while minimising Equation (\ref{eqn:regularised_linear_regression}) with $\lambda = \frac{\alpha}{\beta}$ should in theory by representative of the true posterior $p(\theta | \mathcal{D})$.
-%
-%Synthetic data was generated for these experiments in the exact same way as for the experiments in Section \ref{sec:vifa_posterior_synthetic}. For the purpose of obtaining samples from the posterior, the linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed, during which the parameter vector sampled after each mini-batch gradient update was collected. During the collection period, the batch size was again set to 100 but different values of the learning rate were tested, namely 0.1 and 0.01. As for regularisation, as well as the theoretically motivated value of $\lambda = \frac{\alpha}{\beta} = 0.1$, a value of $\lambda = 0.001$ was also tested. Since there were $\frac{1000}{100} = 10$ batch updates per epoch, a total of 1000 parameter vectors were collected over the final 100 epochs. The empirical mean and covariance of these samples was then computed and compared to the ground truth. All experiments were repeated ten times. In each trial a different random seed was used for generating the data, the true parameter vector and the initial parameters of the linear regression model. 
-%
-%\subsection{Results and Discussion}
-%
-%The results of the posterior sampling experiments are shown in Table \ref{table:linear_regression_samples}. It is apparent from the third column that the empirical mean of the sampled parameter vectors does not match the true posterior mean when the theoretically motivated value of $\lambda = 0.1$ is used. However, if the regularisation strength is reduced to $\lambda = 0.001$, the distance between the means is much smaller. Unfortunately, the distance between the covariance matrices of the two distributions is relatively large for all combinations of the hyperparameters, as can be seen in the fourth column. The best result is achieved when using a learning rate of 0.1 with $\lambda = 0.1$, but even then the average relative distance is 0.62. 
-%
-%\begin{table}[h!]
-%	\begin{center}
-%		\begin{tabular}{|| p{0.12\linewidth} p{0.1\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
-% 			\hline
-% 			Learning Rate & $\lambda$ & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
-% 			\hline\hline
-% 			0.1 	&  0.1 	& $0.0666 \pm 0.0078$	& $0.6200 \pm 0.0750$	& $0.4946 \pm 0.1013$ \\ 
-%			\hline
-% 			0.1 	& 0.001	& $0.0006 \pm 0.0001$	& $0.8065 \pm 0.0101$ 	& $0.0439 \pm 0.0012$  \\
-%			\hline
-%			0.01	& 0.1 	& $0.0620 \pm 0.0070$	& $1.7110 \pm 0.6187$ 	& $0.4641 \pm 0.0937$ \\ 
-%			\hline
-% 			0.01	& 0.001 	& $0.0010 \pm 0.0002$ 	& $0.9870 \pm 0.0042$ 	& $0.0739 \pm 0.0010$  \\ [1ex] 
-%			\hline
-%		\end{tabular}
-%		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the empirical distribution of the parameter vectors sampled along the SGD trajectory while training the model. Relative distances between the true and empirical means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the empirical parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the empirical Gaussian distribution, divided by the dimension of the distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
-%		\label{table:linear_regression_samples}
-%	\end{center}
-%\end{table}
-%
-%Figure \ref{fig:linear_regression_pdfs} shows, for each combination of the hyperparameters, the sampled parameter vectors for one of the ten trials in each posterior sampling experiment. These are plotted on top of the contours of the pdf of the true posterior distribution. Note that in each case the pre-trained parameter vector is very close to the true posterior mean. When $\lambda = 0.1$, SGD moves away from the pre-trained solution to a different region of the parameter space (subplots (a) and (c)). When $\lambda = 0.001$, SGD bounces around the pre-trained solution and the empirical mean of the parameter vectors, $\theta_{\text{SWA}}$, is right on the true posterior mean. However, when the learning rate is 0.1 the empirical covariance is in the wrong direction (subplot (b)), and when the learning rate is 0.01 the empirical covariance is far too narrow (subplot (d)).
-%
-%\begin{figure}[!htbp] 
-%	\begin{tabular}{cc}
-%		\includegraphics[width=70mm]{plots/linear_model_weight_iterates__lr=0.1__lambda=0.1.png}
-%		& \includegraphics[width=70mm]{plots/linear_model_weight_iterates__lr=0.1__lambda=0.001.png} \\
-%		(a) Learning rate of 0.1 and $\lambda = 0.1$
-%		 & (b) Learning rate of 0.1 and $\lambda = 0.001$ \\[6pt] 
-%		 \includegraphics[width=70mm]{plots/linear_model_weight_iterates__lr=0.01__lambda=0.1.png}
-%		 & \includegraphics[width=70mm]{plots/linear_model_weight_iterates__lr=0.01__lambda=0.001.png} \\
-%		 (c) Learning rate of 0.01 and $\lambda = 0.1$
-%		 & (d) Learning rate of 0.01 and $\lambda = 0.001$ \\[6pt]
-%	\end{tabular}
-%	\caption{Parameter vectors sampled while training a linear regression model via SGD, for different combinations of learning rate and regularisation strength. These are shown as red dots, plotted on top of the contours of the pdf of the true posterior distribution. In each plot, the white dot denotes the pre-trained parameter vector and the black star is the empirical mean of the red dots.}
-%	\label{fig:linear_regression_pdfs}
-%\end{figure}
-%
-%These results suggest that, in general, SGD does not sample parameter vectors from the true posterior distribution, and hence, SWAG does not actually do approximate Bayesian inference. This is a very simple example of a linear model in two dimensions. Even when tuning the learning rate and regularisation strength, it is not possible to obtain samples which are representative of the true posterior. For certain values of $\lambda$ (but not the theoretically motivated one), the mean solution $\theta_{\text{SWA}}$ is a good approximation of the true posterior mean, but the same cannot be said for the empirical covariance. The most that can be expected of the online FA algorithms is that they fit the sampled parameter vectors well. Therefore, given the data observed in Figure \ref{fig:linear_regression_pdfs}, it would be unreasonable to expect them to learn the true posterior distribution. In the case of a high-dimensional multi-layer neural network, approximating the true posterior would be even more unlikely. Since the ground truth cannot be compute in closed form, hyperparameter tuning would be far more difficult.
-% 
-%It was also observed in \cite{mandt2017} that the empirical covariance of the linear regression SGD iterates does not match the true posterior covariance. As such, the authors proposed a different technique for posterior sampling called \emph{finite window iterate averaging}. Instead of using the individual parameter vectors sampled after each mini-batch update of SGD, this algorithm averages the parameter vectors in fixed-length disjoint windows. These average parameter vectors are then considered samples from the posterior. Figure \ref{fig:linear_regression_average_iterates} shows examples of such samples for the same learning rate and regularisation strength as that in Figure \ref{fig:linear_regression_pdfs} (b). The theoretical work in \cite{mandt2017} suggests that the window size should be set to the number of training examples divided by the batch size, so that all training examples are use to generate a single posterior sample. In these experiments this value is $1000 / 100 = 10$. However, this setting does not produce samples which are representative of the true posterior, as observed in Figure \ref{fig:linear_regression_average_iterates} (a). Better samples can be obtained by setting the batch size to 10 and the window size to 50, as shown in Figure \ref{fig:linear_regression_average_iterates} (b). Unfortunately, this result is not theoretically motivated and was only obtained after significant tuning of both the batch size and window size. In the case of non-linear neural networks for which the true posterior is not known, this would not be possible. Therefore, this algorithm does not seem to be a viable option in practice. 
-%
-%\begin{figure}[!htbp] 
-%	\begin{tabular}{cc}
-%		 \includegraphics[width=70mm]{plots/linear_model_average_weight_iterates__lr=0.1__lambda=0.001__batch_size=100__window_size=10.png}
-%		 & \includegraphics[width=70mm]{plots/linear_model_average_weight_iterates__lr=0.1__lambda=0.001__batch_size=10__window_size=50.png} \\
-%		 (a) Batch size of 100, window size of 10
-%		 & (b) Batch size of 10, window size of 50 \\[6pt]
-%	\end{tabular}
-%	\caption{Samples constructed via finite window iterate averaging for different combinations of batch size and window size. Each red dot is the mean of a set of linear regression parameter vectors sampled during consecutive mini-batch updates of SGD, with a learning rate of 0.1 and the regularisation strength set to 0.001. The contours show the pdf of the true posterior distribution. The white dot denotes the pre-trained parameter vector and the black star is the empirical mean of the red dots.}
-%	\label{fig:linear_regression_average_iterates}
-%\end{figure}
- \newpage
-
-\section{UCI Posterior Estimation with VIFA}\label{app:uci_posterior}
-
-This section provides more details and results for the linear regression posterior estimation experiments using VIFA in Section \ref{sec:vifa_posterior_uci}. Table \ref{table:uci_datasets} shows the number of instances and input variables in each UCI regression dataset. Note that the original Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. Table \ref{table:vifa_uci_hyperparameters} shows the hyperparameter values used in the experiments.
-
+This section provides more details and results for the linear regression posterior estimation experiments using VIFA in Section \ref{sec:vifa_posterior_uci}. Recall that four UCI regression datasets were used in these experiments. Table \ref{table:uci_datasets} shows the number of instances and input variables in each UCI regression dataset. Note that the original Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
 \begin{table}[h!]
 	\begin{center}
 		\begin{tabular}{||c c c ||} 
@@ -1517,6 +1458,7 @@ This section provides more details and results for the linear regression posteri
 	\end{center}
 \end{table}
 
+Table \ref{table:vifa_uci_hyperparameters} shows the hyperparameter values used in the experiments.
 \begin{table}[h!]
 	\begin{center}
 		\begin{tabular}{||c c c c c c c c||} 
@@ -1532,14 +1474,12 @@ This section provides more details and results for the linear regression posteri
  			Yacht Hydrodynamics 			& 3 & 45,000 & 100 & 10 	& 0.01 	& 0.0291 & 0.0114 \\ [1ex] 
  			\hline
 		\end{tabular}
-		\caption{VIFA hyperparameters for linear regression posterior estimation experiments with UCI datasets.}
+		\caption{VIFA hyperparameters for UCI linear regression experiments.}
 		\label{table:vifa_uci_hyperparameters}
 	\end{center}
 \end{table}
 
-\newpage
-
-Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_strength} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Recall that the same comparison was given for the Boston Housing and Yacht Hydrodynamics datasets in Section \ref{sec:vifa_posterior_uci}. Finally, Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative results for all four UCI datasets. 
+Recall that Section \ref{sec:vifa_posterior_uci} presented qualitative comparisons of the true posterior of a linear regression model and the approximate posterior learned by VIFA for the Boston Housing and Yacht Hydrodynamics datasets. Figure \ref{fig:posterior_energy_efficiency} and Figure \ref{fig:posterior_concrete_strength} show the same comparisons for the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Finally, Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four UCI datasets. 
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{c}
@@ -1589,11 +1529,13 @@ Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_st
 
 \section{UCI Neural Network Predictions}\label{app:uci_nn_predictions}
 
-This section provides more details about the loss functions used in the neural network prediction experiments in Section \ref{sec:uci_nn_predictions}. While training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
+This section provides more details about the loss functions used in the neural network prediction experiments in Section \ref{sec:uci_nn_predictions}. When training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
 \begin{equation}\label{eqn:train_nll}
 	-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big),
 \end{equation}
-where $\mathcal{B}$ is a mini-batch of $M$ training examples, $f(\matr{x}; \theta)$ is the prediction of the neural network for input $\matr{x}$ and parameters $\theta$ and $\beta$ is a hyperparameter. Given a test example, $(\matr{x}, y)$, the marginal log-likelihood is
+where $\mathcal{B}$ is a mini-batch of $M$ training examples, $f(\matr{x}; \theta)$ is the prediction of the neural network for input $\matr{x}$ and parameters $\theta$ and $\beta$ is a hyperparameter. 
+
+When testing, the marginal log-likelihood of a test example $(\matr{x}, y)$ is
 \begin{align}
 \begin{split}
 	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
@@ -1601,7 +1543,7 @@ where $\mathcal{B}$ is a mini-batch of $M$ training examples, $f(\matr{x}; \thet
 	& = \log \int \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big) p(\theta | \alpha, \beta, \mathcal{D}) d\theta,
 \end{split}
 \end{align}
-where $\mathcal{D}$ is the training data and $p(\theta | \alpha, \beta, \mathcal{D})$ is the FA posterior learned by VIFA for hyperparameters $\alpha$ and $\beta$. This integral cannot be computed exactly. Instead, it was approximated by a sample average. Formally, 
+where $\mathcal{D}$ is the training data and $p(\theta | \alpha, \beta, \mathcal{D})$ is the approximate posterior learned by VIFA or SLANG for hyperparameters $\alpha$ and $\beta$. This integral cannot be computed exactly. Instead, it was approximated by a sample average. Formally, 
 \begin{align}
 \begin{split}
 	\log p(y | \matr{x}, \alpha, \beta, \mathcal{D}) 
@@ -1609,96 +1551,10 @@ where $\mathcal{D}$ is the training data and $p(\theta | \alpha, \beta, \mathcal
 	& = \log \Bigg( \sum_{l=1}^L \mathcal{N}\big(y; f(\matr{x}; \theta_l), \beta^{-1}\big) \Bigg) - \log L,
 \end{split}
 \end{align}
-where $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity was averaged over the full test set to approximate the average marginal log-likelihood. In addition, the test root mean squared error (RMSE) was also computed, where the squared error of a single test example is
+where each $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity was averaged over the full test set to approximate the average marginal log-likelihood. In addition, the test root mean squared error (RMSE) was also computed, where the squared error of a single test example is
 \begin{equation}
 	\Bigg(y - \frac{1}{L} \sum_{l=1}^L f(\matr{x}; \theta_l)\Bigg)^2.
 \end{equation}
 When computing these metrics, the Monte Carlo average size was set to $L=100$.
-
-%Setting the Monte Carlo average size to $L=1$ for simplicity, the update rules for the posterior mean in VIFA and SLANG are, respectively,
-% \begin{equation}
-% 	\matr{c} \leftarrow \matr{c} - \eta_\matr{c} (\alpha \matr{c} + N \matr{g}_\theta) \quad \text{and} \quad 
-% 	\mu \leftarrow \mu - \eta_\mu \Sigma (\alpha \mu + N \matr{g}_\theta),
-%\end{equation}
-%where
-%\begin{equation}
-%	\matr{g}_\theta = \nabla_\theta \Big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\Big)
-%\end{equation}
-%is the mini-batch gradient of the average negative log-likelihood with respect to $\theta$. The only difference between the two rules is that, in SLANG, the gradient vector is multiplied by the posterior covariance matrix. As for the update rules for the covariance itself, the similarities are less clear. In the case of VIFA, the update rule for $\matr{F}$ can be written as
-%\begin{equation}
-%	\matr{F} \leftarrow \matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big).
-%\end{equation}
-%Hence,
-%\begin{align}
-%\begin{split}
-%	\matr{F}\matr{F}^\intercal
-%	& \leftarrow \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big) \Big(\matr{F} - \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)\Big)^\intercal \\
-%	& = \matr{F}\matr{F}^\intercal 
-%	- \eta \matr{F} \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal
-%	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
-%	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big)^\intercal \\
-%	& = \matr{F}\matr{F}^\intercal 
-%	- \eta \matr{F} \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big)
-%	- \eta \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \matr{F}^\intercal \\
-%	& \quad + \eta^2 \big(-\matr{S}^{-1} \matr{F} + \alpha \matr{F} + N \matr{g}_\theta \matr{h}^\intercal \big) \big(-\matr{F}^\intercal \matr{S}^{-1} + \alpha \matr{F}^\intercal + N \matr{h} \matr{g}_\theta^\intercal \big) \\
-%	& = \matr{F}\matr{F}^\intercal  
-%	+ \eta \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{F} \matr{h} \matr{g}_\theta^\intercal
-%	+ \eta \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta \alpha \matr{F} \matr{F}^\intercal - \eta N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \\
-%	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1} - \eta^2 \alpha \matr{S}^{-1} \matr{F} \matr{F}^\intercal - \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
-%	& \quad - \eta^2 \alpha \matr{F} \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha^2 \matr{F} \matr{F}^\intercal + \eta^2 \alpha N \matr{F} \matr{h} \matr{g}_\theta^\intercal \\
-%	& \quad - \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} + \eta^2 \alpha N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal + \eta^2 N^2 \matr{g}_\theta \matr{h}^\intercal \matr{h} \matr{g}_\theta^\intercal \\
-%	& = (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
-%	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-%	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
-%	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-%	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
-%	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
-%	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
-%	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
-%	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal.
-%\end{split}
-%\end{align}
-%Also, the update rule for $\Psi$ in VIFA can be written as
-%\begin{align}
-%\begin{split}
-%	\Psi & \leftarrow \Psi - \eta\Big(
-%		-\frac{1}{2} \diag\big(\diag\big(\matr{S}^{-1}\big)\big) 
-%		+\frac{\alpha}{2} \matr{I} 
-%		+\frac{N}{2} \diag\big(\diag\big( \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\big) 
-%	\Big) \\
-%	& = \Psi +
-%		\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
-%		- \frac{\eta \alpha}{2} \matr{I}.
-%\end{split}
-%\end{align}
-%Therefore, the update rule for the covariance matrix in VIFA is
-%\begin{align}
-%\begin{split}
-%	\matr{F}\matr{F}^\intercal + \Psi
-%	& \leftarrow (1 - 2\eta \alpha + \eta^2 \alpha^2) \matr{F}\matr{F}^\intercal
-%	+ (\eta - \eta^2 \alpha) \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-%	+ (\eta - \eta^2 \alpha) \matr{S}^{-1} \matr{F} \matr{F}^\intercal \\
-%	& \quad + \eta^2 \matr{S}^{-1} \matr{F} \matr{F}^\intercal \matr{S}^{-1}
-%	- \eta^2 N \matr{S}^{-1} \matr{F} \matr{h} \matr{g}_\theta^\intercal
-%	- \eta^2 N \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal \matr{S}^{-1} \\
-%	& \quad + N (\eta^2 \alpha - \eta) \matr{F} \matr{h} \matr{g}_\theta^\intercal
-%	+ N (\eta^2 \alpha - \eta) \matr{g}_\theta \matr{h}^\intercal \matr{F}^\intercal 
-%	+ \eta^2 N^2 \matr{h}^\intercal \matr{h} \matr{g}_\theta \matr{g}_\theta^\intercal \\
-%	& \quad + \Psi +
-%	\frac{\eta}{2} \diag\Big(\diag\big(\matr{S}^{-1} - N \matr{g}_\theta \matr{z}^\intercal \Psi^{-1/2} \big)\Big) 
-%	- \frac{\eta \alpha}{2} \matr{I}.
-%\end{split}
-%\end{align}
-%In comparison, the update rule for the inverse covariance matrix in SLANG is 
-%\begin{align}
-%\begin{split}
-%	\big(\matr{U}\matr{U}^\intercal + \matr{D}\big)^{-1}
-%	& \leftarrow  \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal
-%	+ (1 - \eta) \matr{D} + \eta \alpha \matr{I},
-%\end{split}
-%\end{align}
-%where $\matr{Q}_{1:K}$ and $\Lambda_{1:K}$ are obtained by computing the top-$K$ eigen-decomposition of $(1 - \eta) \matr{U} \matr{U}^\intercal + \eta \hat{\matr{G}}_\theta$ (recall that $\hat{\matr{G}}_\theta$ is the Empirical Fisher matrix). 
-
-
 
 \end{document}
