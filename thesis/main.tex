@@ -65,7 +65,7 @@ Learning the posterior distribution of a deep neural network is a difficult task
 
 One particular Gaussian distribution with a low-rank plus diagonal covariance matrix is the factor analysis model. In its essence, factor analysis is a latent variable model which generates observations via an affine transformation of the latents plus the addition of some Gaussian noise. This project makes use of these properties to derive novel algorithms for posterior estimation of deep neural networks. 
 
-Two distinctly different approaches are considered. The first of these is inspired by a recent Bayesian deep learning method called SWAG.  It is based on the assumption that samples representative of the true posterior are encountered while training the neural network via stochastic gradient descent. Two algorithms are presented which learn factor analysis models from such samples in an online, iterative fashion, making them suitable for high-dimensional data, such as the parameters vector of a deep neural network. Experiments demonstrate that the algorithms are often as effective at learning factor analysis models as the classic batch algorithm based on singular value decomposition.
+Two distinctly different approaches are considered. The first of these is inspired by a recent Bayesian deep learning method called SWAG.  It is based on the assumption that samples representative of the true posterior are encountered while training the neural network via stochastic gradient descent. Two algorithms are presented which learn factor analysis models from such samples in an online, iterative fashion, making them suitable for high-dimensional data, such as the parameter vector of a deep neural network. Experiments demonstrate that the algorithms are often as effective at learning factor analysis models as the classic batch algorithm based on singular value decomposition.
 
 The second approach is based on variational inference and does not require a separate posterior sampling procedure. The algorithm - aptly named VIFA due to its use of variational inference and factor analysis - is model-agnostic and can be readily applied to any type of neural network architecture with no extra effort. Crucially, the implementation scales to very high-dimensional deep neural networks. Experiments demonstrate its effectiveness in learning the posterior and making predictions with uncertainty estimates, as well as its impressive speed compared to a recent method called SLANG with adopts a similar approach. 
 }
@@ -155,7 +155,7 @@ One of the simplest approaches is to use a diagonal - or \emph{mean-field} - app
 The work in this thesis is based on the low-rank plus diagonal factor analysis model, which can help to overcome these limitations. The main contributions are:
 \begin{itemize}
 	\item \textbf{two novel online algorithms for learning factor analysis models of high-dimensional data, which can be used in conjunction with SWAG};
-	\item \textbf{a novel variational inference algorithm similar to SLANG, but which can be applied to any neural network architecture with no extra effort}. 
+	\item \textbf{a novel variational inference algorithm which, unlike SLANG, can be applied to any neural network architecture with no extra effort}. 
 \end{itemize} 
 Chapter \ref{ch:background} introduces the background required to follow the rest of the thesis. Chapter \ref{ch:previous_work} describes SWAG and SLANG in more detail and sets out the main goals that the thesis hopes to achieve. Chapter \ref{ch:online_fa} presents the online factor analysis algorithms and the results of applying them to synthetic datasets. Chapter \ref{ch:vifa} introduces VIFA, a novel variational inference algorithm, and demonstrates its effectiveness in estimating the posterior and making predictions. Finally, Chapter \ref{ch:conclusions} brings the thesis to an end with some conclusions and suggestions for future work. 
 
@@ -170,11 +170,7 @@ A linear regression model is a mapping from vector inputs $\matr{x} \in \R^D$ to
 \begin{equation}\label{eqn:linear_regression}
 	y_n = \theta^\intercal \matr{x}_n + \epsilon_n
 \end{equation}
-for some unknown $\theta \in \R^D$. The underlying signal, $\theta^\intercal \matr{x}_n$, is corrupted by additive noise, 
-\begin{equation}
-	\epsilon_n \sim \mathcal{N}(0, \sigma^2), 
-\end{equation}
-for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}). Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon_n$ is Gaussian distributed, the conditional pdf of $y_n$ is 
+for some unknown $\theta \in \R^D$. The underlying signal, $f(\matr{x}_n) = \theta^\intercal \matr{x}_n$, is corrupted by additive noise, $\epsilon_n \sim \mathcal{N}(0, \sigma^2)$, for some $\sigma > 0$ \cite{barber2007}. The model is often written with an explicit bias term, but this can be absorbed into $\theta$ by adding a constant of one to the input, leading to the expression in Equation (\ref{eqn:linear_regression}). Due to the additive noise, each $y_n$ is a random variable, conditioned on $\matr{x}_n$ and $\theta$. Since $\epsilon_n$ is Gaussian distributed, the conditional pdf of $y_n$ is 
 \begin{equation}\label{eqn:linear_regression_pdf}
 	p(y_n | \theta, \matr{x}_n) 
 	= \mathcal{N}\big(\theta^\intercal \matr{x}_n, \sigma^2\big)
@@ -221,7 +217,7 @@ Let $f(\matr{x}): \R^J \mapsto \R$ be a neural network with a single \emph{hidde
 \begin{equation}
 	f(\matr{x}) = b + \sum_{h=1}^H v_h \cdot g(\matr{w}_h^\intercal \matr{x} + b_h),
 \end{equation} 
-where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Notice that this is similar to the functional form of linear regression. The difference is that, instead of the output being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, $h=1,\dots,H$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
+where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{w}_h \in \R^J$, $v_h \in \R$ and biases $b_h, b \in \R$ are learnable parameters and $g(x):\R \mapsto \R$ is a non-linear \emph{activation} function \cite{goodfellow2016}. Then given $\mathcal{D} = \{(\matr{x}_n, y_n)\}_{n=1}^{N}$, it is assumed that each output is generated according to $y_n = f(\matr{x}_n) + \epsilon_n$ for some unknown setting of the weights and biases. The underlying signal $f(\matr{x}_n)$ is corrupted by additive noise, $\epsilon_n \sim \mathcal{N}(0, \sigma^2)$, for some $\sigma > 0$. Notice that this is similar to the functional form of linear regression. The difference is that, instead of the underlying signal being a linear combination of the elements of $\matr{x}$, it is a linear combination of the $g(\matr{w}_h^\intercal \matr{x} + b_h)$, $h=1,\dots,H$, which can be viewed as higher-order features of the input.  Even higher-order features can be used by adding more layers. For example, the functional form of a neural network with two hidden layers can be written in matrix form as
 \begin{equation}\label{eqn:multi_layer_nn}
 	f(\matr{x}) = \matr{w}_2^T \Big(g_2\big(\matr{W}_1 g_1(\matr{W}_0 \matr{x} + \matr{b}_0) + \matr{b}_1 \big) \Big) + b_2,
 \end{equation} 
@@ -266,20 +262,19 @@ For linear regression, computing the posterior in Equation (\ref{eqn:linear_regr
 \begin{split}
 	\D_{KL}[q(\theta) \Vert p(\theta | \mathcal{D})] 
 	& = \E_{q(\theta)} \Big[\log \frac{q(\theta)}{p(\theta | \mathcal{D})}\Big] \\
-	%& = \E_{q(\theta)} \Big[\log \frac{q(\theta) p(\mathcal{D})}{p(\mathcal{D} | \theta) p(\theta)}\Big] \\
 	& = \E_{q(\theta)} [\log q(\theta) - \log p(\theta) - \log p(\mathcal{D} | \theta) + \log p(\mathcal{D})].
 \end{split}
 \end{align}
-Since $p(\mathcal{D})$ is a constant, it can be ignored and the optimal distribution can be obtained by solving 
+Since $p(\mathcal{D})$ is constant, it can be ignored and the solution can be obtained by solving 
 \begin{equation}\label{eqn:vi_objective}
 	\min_{\mu, \Sigma} \big[ \E_{q(\theta)} [\log q(\theta)] - \E_{q(\theta)} [\log p(\theta) ] - \E_{q(\theta)} [\log p(\mathcal{D} | \theta)] \big].
 \end{equation}
-One way to tackle this is via an iterative gradient algorithm. Depending on the structure of $\Sigma$ and the form of the prior $p(\theta)$, it may be possible to compute the partial derivatives $\nabla_{\mu, \Sigma} \E_{q(\theta)} [\log q(\theta)]$ and $\nabla_{\mu, \Sigma} \E_{q(\theta)} [\log p(\theta) ]$ exactly \cite{kingma2013}. However, when the likelihood is parameterised by a neural network, is not possible to obtain $ \nabla_{\mu, \Sigma}\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]$ analytically. Alternatively, the true gradient can be approximated by Monte Carlo estimates of the form 
+One way to tackle this is via an iterative gradient algorithm. Depending on the structure of $\Sigma$ and the form of the prior $p(\theta)$, it may be possible to compute the partial derivatives $\nabla_{\mu, \Sigma} \E_{q(\theta)} [\log q(\theta)]$ and $\nabla_{\mu, \Sigma} \E_{q(\theta)} [\log p(\theta) ]$ exactly \cite{kingma2013}. However, when the likelihood is parameterised by a neural network, is not possible to obtain $ \nabla_{\mu, \Sigma}\E_{q(\theta)} [\log p(\mathcal{D} | \theta)]$ analytically. Alternatively, the gradient can be approximated by Monte Carlo estimates of the form 
 \begin{equation}\label{eqn:vi_derivatives}
 	 \nabla_{\mu, \Sigma} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
 	\approx \nabla_{\mu, \Sigma} \Bigg(\frac{1}{L}  \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg)\Bigg),
 \end{equation}
-where $\theta_l \sim \mathcal{N}(\mu, \Sigma)$ and each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. Normally it would not be possible to compute these partial derivatives with respect to $\mu$ and $\Sigma$, given that they only take part via the sampling operation. However, this can in fact be done by using the \emph{re-parameterisation trick} \cite{goodfellow2016}. Instead of sampling $\theta_l$ from $\mathcal{N}(\mu, \Sigma)$ directly, a random variable $\matr{z}_l$ is sampled from $\mathcal{N}(\matr{0}, \matr{I})$ and then transformed to $\theta_l$ via a deterministic operation involving $\mu$ and $\Sigma$. This simple trick means that Equation (\ref{eqn:vi_derivatives}) can be evaluated and used in conjunction with SGD or any of its variants to optimise the objective in Equation (\ref{eqn:vi_objective}).
+where $L$ is the Monte Carlo average size, $\theta_l \sim \mathcal{N}(\mu, \Sigma)$ and each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. Normally it would not be possible to compute these partial derivatives with respect to $\mu$ and $\Sigma$, given that they only take part via the sampling operation. However, this can in fact be done by using the \emph{re-parameterisation trick} \cite{goodfellow2016}. Instead of sampling $\theta_l$ from $\mathcal{N}(\mu, \Sigma)$ directly, a random variable $\matr{z}_l$ is sampled from $\mathcal{N}(\matr{0}, \matr{I})$ and then transformed to $\theta_l$ via a deterministic operation involving $\mu$ and $\Sigma$. This simple trick means that Equation (\ref{eqn:vi_derivatives}) can be evaluated and used in conjunction with SGD or any of its variants to optimise the objective in Equation (\ref{eqn:vi_objective}).
 
 
 \chapter{Related Work and Project Goals}\label{ch:previous_work}
