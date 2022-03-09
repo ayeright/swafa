@@ -279,21 +279,15 @@ where $L$ is the Monte Carlo average size, $\theta_l \sim \mathcal{N}(\mu, \Sigm
 
 \chapter{Related Work and Project Goals}\label{ch:previous_work}
 
-%This chapter presents the SWAG and SLANG methods. Both are promising approaches to Bayesian deep learning, but have fundamental limitations which are described in detail. The project goals, which focus on overcoming these limitations via FA, are then clearly set out. 
+This chapter presents the Bayesian deep learning methods SWAG and SLANG, highlights some of their limitations and sets out the project goals for overcoming these. 
 
 \section{Related Work}\label{sec:related_work}
 
+SWAG and SLANG are promising approaches to Bayesian deep learning. However, both have fundamental limitations which are described in detail in this section.
+
 \subsection{Stochastic Weight Averaging}\label{sec:swa}
 
-Under certain assumptions on the learning rate, SGD is guaranteed to converge to a local minimum of the (regularised) training loss \cite{ruder2016}. While this is a nice property, the training loss is only a proxy for finding solutions with low test error. 
-%Recent work suggests that good regions of the loss surface with respect to train and test error are rarely perfectly aligned \cite{izmailov2018}. 
-Recent work suggests that SGD with a decaying learning rate actually converges to solutions on the \emph{periphery} of a set of parameters with low test error \cite{izmailov2018}. 
-%It is thought that such solutions lie in sharp regions of the training loss surface, where even a small shift can result in poor generalisation \cite{izmailov2018}. Therefore, solutions in flatter regions of the training loss surface, which are more likely to remain good even are being shifted, are desirable. 
-If a high constant learning rate is used instead, SGD first approaches a local minimum and then proceeds to bounce around in its vicinity \cite{mandt2017}. In doing so, it is thought that SGD visits those points which are on the periphery of regions corresponding to low test error, while hopping back and forth over a flat region of the training loss surface \cite{izmailov2018}. By averaging the SGD iterates, a solution closer to the centre of this flat region can be obtained. This is the idea behind the SWA solution, $\theta_{\text{SWA}}$, from \cite{izmailov2018}. Formally, given parameter vectors $\theta_1, \theta_2, \dots, \theta_T \in \R^D$ encountered along the SGD trajectory, $\theta_{\text{SWA}} = \frac{1}{T}\sum_{t=1}^T \theta_t$.
-%\begin{equation}\label{eqn:swa_solution}
-%	\theta_{\text{SWA}} = \frac{1}{T}\sum_{t=1}^T \theta_t.
-%\end{equation}
-There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error \cite{izmailov2018}. 
+Under certain assumptions on the learning rate, SGD is guaranteed to converge to a local minimum of the (regularised) training loss \cite{ruder2016}. While this is a nice property, the training loss is only a proxy for finding solutions with low test error. Recent work suggests that SGD with a decaying learning rate actually converges to solutions on the \emph{periphery} of a set of parameters with low test error \cite{izmailov2018}. If a high constant learning rate is used instead, SGD first approaches a local minimum and then proceeds to bounce around in its vicinity \cite{mandt2017}. In doing so, it is thought that SGD visits those points which are on the periphery of regions corresponding to low test error, while hopping back and forth over a flat region of the training loss surface \cite{izmailov2018}. By averaging the SGD iterates, a solution closer to the centre of this flat region can be obtained. This is the idea behind the SWA solution, $\theta_{\text{SWA}}$, from \cite{izmailov2018}. Formally, given parameter vectors $\theta_1, \theta_2, \dots, \theta_T \in \R^D$ encountered along the SGD trajectory, $\theta_{\text{SWA}} = \frac{1}{T}\sum_{t=1}^T \theta_t$.There is compelling evidence that the SWA solution leads to better generalisation than the SGD solution, even though the SGD solution often achieves lower training error \cite{izmailov2018}. 
 
 One limitation of the SWA solution is that it does not convey the uncertainty in the model parameters. The method was later extended to also include a low-rank plus diagonal approximation of the covariance matrix of the SGD iterates \cite{maddox2019}. The diagonal part is
 \begin{equation}
@@ -303,12 +297,14 @@ where the squares are applied element-wise. For rank $K \in \N^+$, the low-rank 
 \begin{equation}
 	\frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal,
 \end{equation}
-where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating $K$ vectors $(\theta_{t_1} - \overline{\theta}_{t_1}), \dots, (\theta_{t_K} - \overline{\theta}_{t_K})$ for some $t_1, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. The reason for subsampling the $\theta_1, \theta_2, \dots, \theta_T$ is to limit the rank of $\hat{\matr{D}}\hat{\matr{D}}^\intercal$ to $K$. Also, note that 
-\begin{equation}
-	\frac{1}{K-1} \hat{\matr{D}}\hat{\matr{D}}^\intercal
-	= \frac{1}{K-1} \sum_{i=1}^K (\theta_{t_i} - \overline{\theta}_{t_i}) (\theta_{t_i} - \overline{\theta}_{t_i})^\intercal,
-\end{equation}
-which is similar to the empirical covariance of $\theta_{t_1}, \theta_{t_2}, \dots, \theta_{t_K}$, except that the running averages $\overline{\theta}_{t_i}$ are used instead of the true mean, which is not know during training. Together, the mean and the approximate covariance give rise to an approximate posterior distribution, 
+where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating $K$ vectors $(\theta_{t_1} - \overline{\theta}_{t_1}), \dots, (\theta_{t_K} - \overline{\theta}_{t_K})$ for some $t_1, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. The reason for subsampling the $\theta_1, \theta_2, \dots, \theta_T$ is to limit the rank of $\hat{\matr{D}}\hat{\matr{D}}^\intercal$ to $K$. 
+%Also, note that 
+%\begin{equation}
+%	\frac{1}{K-1} \hat{\matr{D}}\hat{\matr{D}}^\intercal
+%	= \frac{1}{K-1} \sum_{i=1}^K (\theta_{t_i} - \overline{\theta}_{t_i}) (\theta_{t_i} - \overline{\theta}_{t_i})^\intercal,
+%\end{equation}
+%which is similar to the empirical covariance of $\theta_{t_1}, \theta_{t_2}, \dots, \theta_{t_K}$, except that the running averages $\overline{\theta}_{t_i}$ are used instead of the true mean, which is not know during training. 
+Together, the mean and the approximate covariance give rise to an approximate posterior distribution, 
 \begin{equation}\label{eqn:swag_dist}
 	p(\theta | \mathcal{D}) \approx 
 	\mathcal{N}\Big(\theta_\text{SWA}, \frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal + \frac{1}{2}\Sigma_\text{diag}\Big).
@@ -318,7 +314,7 @@ This method is known as SWA-Gaussian, or SWAG \cite{maddox2019}. One undesirable
 
 \subsection{Stochastic, Low-rank Approximate Natural Gradient}\label{sec:slang}
 
-The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one approach to optimising the variational objective in Equation (\ref{eqn:vi_objective}). It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. Theoretically, natural gradient descent is preferable to standard gradient descent when optimising a distribution. Whereas standard gradient descent moves in the direction of steepest descent with respect to the Euclidean parameter space, natural gradient descent exploits the geometry of the \emph{distribution space}, in which the distance between two distributions is measured by the KL-divergence \cite{pascanu2013}. This is preferable, since the aim of VI is to minimise the KL-divergence between the true and variational distributions. Formally, the VOGN update rule is 
+The Variational Online Gauss-Newton (VOGN) method \cite{tangkaratt2018} is one approach to optimising the variational objective in Equation (\ref{eqn:vi_objective}). It learns the parameters of the variational distribution, $\mu$ and $\Sigma$, via an approximate natural gradient algorithm. Theoretically, natural gradient descent is preferable to standard gradient descent when optimising the parameters of a distribution. Whereas standard gradient descent moves in the direction of steepest descent with respect to the Euclidean parameter space, natural gradient descent exploits the geometry of the \emph{distribution space}, in which the distance between two distributions is measured by the KL-divergence \cite{pascanu2013}. This is preferable, since the aim of VI is to minimise the KL-divergence between the true and variational distributions. Formally, the VOGN update rule is 
 \begin{equation}\label{eqn:vogn_update}
 	\mu \leftarrow \mu - \eta_\mu \Sigma (\hat{\matr{g}}_\theta + \alpha \mu), \quad 
 	\Sigma^{-1} \leftarrow (1 - \eta_\Sigma) \Sigma^{-1} + \eta_\Sigma(\hat{\matr{G}}_\theta + \alpha \matr{I}),
@@ -337,7 +333,7 @@ In practice, the gradients $\matr{g}_\theta^i$ in Equation (\ref{eqn:slang_g_and
 	\big[(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta \big] 
 	+ \big[(1 - \eta_\Sigma) \matr{D} + \eta_\Sigma \alpha \matr{I}\big].
 \end{equation}
-Note that $\hat{\matr{G}}_\theta \in \R^{D\times D}$, and hence, cannot be computed exactly. To make the update feasible, 
+Note that $\hat{\matr{G}}_\theta \in \R^{D\times D}$, which is too big to work with in practice for large $D$. To make the update feasible, 
 the non-diagonal component of the right-hand side of Equation (\ref{eqn:slang_infeasible_sigma_update}) is approximated as $\matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal$,
 %\begin{equation}
 %	(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta 
