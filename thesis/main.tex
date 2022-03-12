@@ -364,22 +364,21 @@ This chapter presents two algorithms which can be used to approximate the poster
 
 \section{Online Stochastic Gradient Ascent}\label{sec:gradient_fa}
 
-Suppose that samples from the posterior, $\theta_1, \theta_2, \dots,\theta_T$, are readily available. In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here. In this case, the average log-likelihood that the FA parameters $\matr{F}$ and $\Psi$ generated the observed data is 
+Suppose that samples from the posterior, $\theta_1, \theta_2, \dots,\theta_T$, are readily available. In situations where learning latent variable models with the classic EM algorithm is slow, \cite{barber2007} suggests optimising the log-likelihood of the model parameters via gradient methods. Since FA is a latent variable model, this approach can be applied here.
+
+\subsection{Partial Derivatives of the Log-Likelihood}
+
+The average log-likelihood that the FA parameters $\matr{F}$ and $\Psi$ generated $\theta_1, \theta_2, \dots,\theta_T$ is
 \begin{equation}
 	L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \log p(\theta_t | \matr{F}, \Psi).
 \end{equation}
-The partial derivatives of the log-likelihood with respect to $\matr{F}$ and $\Psi$ are therefore
-\begin{equation}
-	\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi).
-\end{equation}
-Computing $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$ in full would require a pass over all observations, $\theta_1, \theta_2, \dots, \theta_T$. However, a stochastic gradient algorithm can be used instead, as long as the expectation of the sample derivatives is proportional to $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$. By using the $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ as the sample derivatives, this condition clearly holds. Hence, as long as the partial derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ can be computed efficiently, they can be used in conjunction with SGD or any of its variants to optimise $\matr{F}$ and $\Psi$ online \cite{brownlie2021}. 
+Computing the partial derivatives $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$ in full would require a pass over all observations. However, a stochastic gradient algorithm can be used instead, as long as the expectation of the sample derivatives is proportional to $\nabla_{\matr{F}, \Psi} L(\matr{F}, \Psi)$. By using $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ as the sample derivatives, this condition clearly holds. Hence, as long as the partial derivatives $\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi)$ can be computed efficiently, they can be used in conjunction with SGD or any of its variants to optimise $\matr{F}$ and $\Psi$ online \cite{brownlie2021}. 
 
 By adapting an argument for general latent variable models from \cite{barber2007} to FA, the required sample derivatives can be written as
 \begin{align}\label{eqn:grad_log_likelihood}
 \begin{split}
 	\nabla_{\matr{F}, \Psi} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} p(\theta_t | \matr{F}, \Psi) \\
-	%& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} \int_{\matr{h}_t} p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \\
 	& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \int \nabla_{\matr{F}, \Psi} p(\theta_t, \matr{h}_t | \matr{F}, \Psi) d\matr{h}_t \\
 	& = \frac{1}{p(\theta_t | \matr{F}, \Psi)} \int p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \nabla_{\matr{F}, \Psi} \log p(\theta_t, \matr{h}_t | \matr{F}, \Psi) d\matr{h}_t \\
 	& = \int \frac{p(\theta_t, \matr{h}_t | \matr{F}, \Psi)}{p(\theta_t | \matr{F}, \Psi)} \nabla_{\matr{F}, \Psi} \log p(\theta_t, \matr{h}_t | \matr{F}, \Psi)  d\matr{h}_t \\
@@ -387,7 +386,6 @@ By adapting an argument for general latent variable models from \cite{barber2007
 	& = \E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)} \big[ \nabla_{\matr{F}, \Psi} \log p(\theta_t, \matr{h}_t | \matr{F}, \Psi) \big].
 \end{split}
 \end{align}
-%This is as far as the derivation in \cite{barber2007} goes. However, given the form of the FA model, it is possible to manipulate the sample derivatives further. In particular, 
 Recall that $\matr{h}_t \sim \mathcal{N}(\matr{0}, \matr{I})$ is independent from $\matr{F}$ and $\Psi$ in the FA model. Hence,
 \begin{align}\label{eqn:grad_log_complete_likelihood}
 \begin{split}
@@ -504,15 +502,17 @@ Pseudo code for the practical implementation is given in Algorithm \ref{alg:grad
 
 \section{Online Expectation-Maximisation}\label{sec:online_em}
 
-Again, suppose that samples from the posterior, $\theta_1, \theta_2, \dots,\theta_T$, are available. The classic EM algorithm for FA iteratively optimises the log-likelihood of $\matr{F}$ and $\Psi$ by alternating ``E'' and ``M'' steps until convergence. Using properties of the Kullback-Leibler divergence, it can be shown that 
-\begin{equation}\label{eqn:EM_bound}
-	L(\matr{F}, \Psi) \geq 
-	- \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log q(\matr{h}_t | \theta_t)\big]
-	+ \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log p(\matr{h}_t, \theta_t | \matr{F}, \Psi)\big],
-\end{equation}
-where the first and second terms on the right-hand side are called the \emph{entropy} and \emph{energy}, respectively, and $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$, are known as the \emph{variational} distributions \cite{barber2007}. The EM algorithm optimises this lower bound on the log-likelihood with respect to $\matr{F}$, $\Psi$ and also $q(\matr{h}_t | \theta_t)$, hence the name ``variational distributions''. The idea is that, by pushing up the lower bound, the log-likelihood $L(\matr{F}, \Psi)$ will hopefully increase as well. In fact, it is guaranteed that each iteration of EM does not decrease $L(\matr{F}, \Psi)$, which again follows from the properties of the Kullback-Leibler divergence \cite{barber2007}.
+The EM algorithm for FA iteratively optimises $L(\matr{F}, \Psi)$ by alternating ``E'' and ``M'' steps until convergence. This section briefly introduces the classic batch algorithm and describes an alternative online version. 
 
-More details about the E-step and M-step are given in Appendix \ref{app:online_em_steps}. In summary, the E-step updates $\Sigma$ and $\matr{m}_t$, $t=1,\dots,T$, according to Equation (\ref{eqn:efficient_m_and_sigma}), while the M-step sets $\matr{F} = \matr{A}\matr{H}^{-1}$ and
+\subsection{Classic EM}
+
+Using properties of the Kullback-Leibler divergence, it can be shown that 
+\begin{equation}\label{eqn:EM_bound}
+	L(\matr{F}, \Psi) = \frac{1}{T} \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log p(\matr{h}_t, \theta_t | \matr{F}, \Psi)\big],
+\end{equation}
+where $q(\matr{h}_t | \theta_t) = p(\matr{h}_t | \theta_t, \matr{F}, \Psi)$, $t=1, \dots, T$, are the optimal variational distributions \cite{barber2007}. In fact, it is shown in \cite{barber2007} that $q(\matr{h}_t | \theta_t) \propto \mathcal{N}(\matr{m}_t, \Sigma)$, where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). If $q(\matr{h}_t | \theta_t)$, $t=1, \dots, T$, are held fixed, Equation (\ref{eqn:EM_bound}) can be maximised with respect to $\matr{F}$ and $\Psi$ (M-step). Since $\matr{m}_t$ and $\Sigma$ depend on $\matr{F}$ and $\Psi$, the optimal variational distributions themselves then change (E-step). These two steps repeat until $\matr{F}$ and $\Psi$ converge. 
+
+Full details about the E-step and M-step are given in \cite{barber2007}. In summary, the E-step updates $\Sigma$ and $\matr{m}_t$, $t=1,\dots,T$, according to Equation (\ref{eqn:efficient_m_and_sigma}), while the M-step sets $\matr{F} = \matr{A}\matr{H}^{-1}$ and
 \begin{equation}\label{eqn:em_Psi_update}
 	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{d}_t^\intercal - 2\matr{FA}^\intercal + \matr{FHF}^\intercal \Bigg)\Bigg),
 \end{equation}
@@ -1303,41 +1303,6 @@ Finally, substituting Equation (\ref{eqn:expected_gradient_d_Fh}) into Equation 
 	 - \frac{1}{2} \Psi^{-1}.
 \end{split}
 \end{align} 
-
-\section{E-step and M-step for Online EM Factor Analysis}\label{app:online_em_steps}
-
-The batch EM algorithm for FA was introduced in Section \ref{sec:online_em}. This section gives more details about the E-step and M-step and explains how these can be modified for an online version of the algorithm.
-
-\subsection{E-step}
-
-In the batch E-step, $\matr{F}$ and $\Psi$ are held fixed and the expression
-\begin{equation}\label{eqn:EM_objective}
-	- \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log q(\matr{h}_t | \theta_t)\big]
-	+ \sum_{t=1}^T \E_{q(\matr{h}_t | \theta_t)} \big[\log p(\matr{h}_t, \theta_t | \matr{F}, \Psi)\big]
-\end{equation}
-from Equation (\ref{eqn:EM_bound}) is maximised with respect to the variational distributions $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$. From \cite{barber2007}, the optimal variational distributions are 
-\begin{equation}
-	q(\matr{h}_t | \theta_t) = p(\matr{h}_t | \theta_t, \matr{F}, \Psi)  \propto \mathcal{N}(\matr{m}_t, \Sigma), 
-\end{equation}
-where $\matr{m}_t$ and $\Sigma$ are given in Equation (\ref{eqn:efficient_m_and_sigma}). Note that this optimisation can be performed separately for each $\theta_t$ as it is sampled, using the estimates of $\matr{F}$ and $\Psi$ on iteration $t$. However, in batch EM \emph{all} $q(\matr{h}_t | \theta_t)$ are updated on every iteration. This is clearly not possible in an online algorithm which discards $\theta_t$ before sampling $\theta_{t + 1}$. Therefore, as a compromise, in the online version each $q(\matr{h}_t | \theta_t)$ can be computed once only, on iteration $t$, and held fixed thereafter. The only other detail is that the batch algorithm uses $\theta_{\text{SWA}}$ to compute $\matr{m}_t$. As $\theta_{\text{SWA}}$ is not available during training, it can be replaced by the running average of the neural network's parameter vectors, as in Algorithm \ref{alg:gradient_fa}.
-
-
-\subsection{M-step}
-
-In the batch M-step, the variational distributions $q(\matr{h}_t | \theta_t)$, $t=1,\dots,T$, are fixed and the expression in Equation (\ref{eqn:EM_objective}) is maximised with respect to $\matr{F}$ and $\Psi$. From \cite{barber2007}, the optimal values are 
-\begin{equation}
-	\matr{F} = \matr{A}\matr{H}^{-1}, 
-\end{equation}
-where $\matr{d}_t = \theta_t - \theta_{\text{SWA}}$,
-\begin{equation}
-	\matr{A} = \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{m}_t^\intercal \quad \text{and} \quad 
-	\matr{H} = \Sigma + \frac{1}{T} \sum_{t=1}^T \matr{m}_t \matr{m}_t^\intercal,
-\end{equation}
-and
-\begin{equation}
-	\Psi = \text{diag}\Bigg(\text{diag}\Bigg( \frac{1}{T} \sum_{t=1}^T \matr{d}_t \matr{d}_t^\intercal - 2\matr{FA}^\intercal + \matr{FHF}^\intercal \Bigg)\Bigg).
-\end{equation}
-Note that this optimisation involves summing over $t=1,\dots,T$. Moreover, on each iteration all components of the sums are updated using the latest values of $\matr{m}_t$, $t=1,\dots,T$. As in the E-step, updating all components is not possible in an online algorithm. Therefore, in the online version these sums must instead be updated incrementally. This incremental approach was described in Section \ref{sec:online_em_practical}.
 
 
  \chapter{Supplementary Experiment Details}
