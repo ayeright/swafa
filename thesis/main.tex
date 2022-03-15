@@ -45,6 +45,7 @@
 % graphics
 \usepackage{graphicx}
 \usepackage{subfig}
+\usepackage{booktabs}
 
 
 \begin{document}
@@ -932,12 +933,12 @@ The aggregated results of applying VIFA to the data are shown in Table \ref{tabl
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.3\linewidth} p{0.3\linewidth} p{0.3\linewidth} ||} 
- 			\hline
- 			Relative Distance from Mean & Relative Distance from Covariance & Scaled 2-Wasserstein Distance \\ [0.5ex] 
- 			\hline\hline
-			$0.0031 \pm 0.0005$ 	& $0.0983 \pm 0.0129$ 	& $0.0194 \pm 0.0023$ \\ [1ex] 
-			\hline
+		\begin{tabular}{@{} lll @{}} 
+ 			\toprule
+ 			Rel. Dist. from Mean & Rel. Dist. from Covariance & Scaled 2-Wasserstein Dist. \\ [0.5ex] 
+ 			\midrule
+			$0.0031 \pm 0.0005$ 	& $0.0983 \pm 0.0129$ 	& $0.0194 \pm 0.0023$ \\
+			\bottomrule
 		\end{tabular}
 		\caption{Distances between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated using VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the dimension of the distribution. Each distance is the mean value over ten trials with different random seeds, and standard errors are also given.}
 		\label{table:linear_regression_vi_posterior}
@@ -1005,46 +1006,44 @@ The setup for the experiments largely followed the methodology adopted by the au
 
 \subsubsection{Results and Discussion} 
 
-Test metrics for VIFA and SLANG, which were aggregated over the 20 train-test splits, are given in Table \ref{table:neural_nets_uci}. In terms of negative marginal log-likelihood (NMLL), neither algorithm is better than the other on all datasets. For Boston Housing and Concrete Compressive Strength, the mean results for neural networks are essentially the same when standard errors are taken into account. SLANG achieves lower mean NMLL on Yacht Hydrodynamics, but performs extremely poorly on Energy Efficiency with respect to the same metric. It is worth noting that this was caused by a single trial which returned NMLL of $4.04 \times 10^{8}$. This outlier does not affect the median NMLL, which is actually lower than the equivalent value for VIFA. As for mean RMSE, VIFA is the best algorithm on all datasets by some distance. However, SLANG is better on Energy Efficiency and Yacht Hydrodynamics with respect to the median RMSE. The standard errors on the RMSE show that VIFA is very consistent on different train-test splits, whereas the performance of SLANG varies substantially, especially in the case of Energy Efficiency which returned a value of $2.84 \times 10^{4}$ in one trial.  One clear advantage that VIFA has over SLANG is speed. In all experiments involving neural networks, the average runtime of VIFA is roughly half that of SLANG. VIFA generally runs slightly faster when learning a linear regression posterior (although, surprisingly, not in the case of Yacht Hydrodynamics). However, the NMLL and RMSE results indicate that there are non-linear relationships in the datasets which are better captured by the neural network. 
+Test metrics for VIFA and SLANG, which were averaged over the 20 train-test splits, are given in Table \ref{table:neural_nets_uci_mean}. In terms of negative marginal log-likelihood (NMLL), neither algorithm is better than the other on all datasets. For Boston Housing and Concrete Compressive Strength, the mean results for neural networks are essentially the same when standard errors are taken into account. SLANG achieves lower mean NMLL on Yacht Hydrodynamics, but performs extremely poorly on Energy Efficiency with respect to the same metric. It is worth noting that this was caused by a single trial which returned NMLL of $4.04 \times 10^{8}$. 
 
-In summary, the choice between VIFA and SLANG depends on the dataset and evaluation metric. However, VIFA certainly has the advantage of being more efficient and appears less sensitive to variations in the training and test data. 
+As for mean RMSE, VIFA is the best algorithm on all datasets by some distance.  Moreover, the standard errors on the RMSE show that VIFA is very consistent on different train-test splits, whereas the performance of SLANG varies substantially. This is especially true in the case of Energy Efficiency, which returned RMSE of $2.84 \times 10^{4}$ in one trial.
+
+If the outliers for NMLL and RMSE are removed, the SLANG results are much better. Table \ref{table:neural_nets_uci_median} in Appendix \ref{app:uci_nn_predictions} provides the median results over the 20 train-test splits. From this perspective, SLANG is far more competitive with VIFA. However, the fact that SLANG occasionally fails to generalise to the test data is worrying. In a real prediction scenario where the true targets of the data are not known, such poor performance could have serious consequences. In contrast, VIFA was able to generalise to all 20 test sets with similar performance across the board.
+
+Another clear advantage that VIFA has over SLANG is speed. In all experiments involving neural networks, the average runtime of VIFA is roughly half that of SLANG. VIFA generally runs slightly faster when learning a linear regression posterior (although, surprisingly, not in the case of Yacht Hydrodynamics). However, the NMLL and RMSE results indicate that there are non-linear relationships in the datasets which are better captured by the neural network. 
+
+In summary, the choice between VIFA and SLANG depends on the dataset and evaluation metric. However, VIFA certainly has the advantage of being more efficient and appears far less sensitive to variations in the training and test data. 
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.10\linewidth} p{0.10\linewidth} p{0.10\linewidth}  p{0.15\linewidth} p{0.15\linewidth} p{0.27\linewidth} ||} 
- 			\hline
- 			Metric & Statistic & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\ [0.5ex] 
- 			\hline\hline
-			NMLL 	& Mean 	& Energy 		& $\mathbf{2.57 \pm 0.02}$ 	& $\mathbf{2.53 \pm 0.02}$ 	& $2.13 \times 10^{7} \pm 2.01 \times 10^{7}$ \\ 	
-					&   		& Boston   	& $3.07 \pm 0.12$			& $\mathbf{2.66 \pm 0.06}$ 	& $\mathbf{2.73 \pm 0.06}$ \\ 			
-					&   		& Concrete	& $3.77 \pm 0.02$ 			& $\mathbf{3.34 \pm 0.01}$ 	& $\mathbf{3.32 \pm 0.03}$ \\ 			
- 					&  		& Yacht    		& $3.65 \pm 0.04$ 			& $2.36 \pm 0.06$ 			& $\mathbf{1.63 \pm 0.04}$ \\
-					
-					
-					& Median	& Energy 		& $2.57$ 					& $2.54$ 					& $\mathbf{1.19}$ \\ 
-					& 		& Boston 		& $2.88$	 				& $\mathbf{2.65}$ 			& $2.68$ \\
-					& 		& Concrete 	& $3.76$ 					& $3.33$ 					& $\mathbf{3.32}$ \\ 
-					& 		& Yacht 		& $3.62$ 					& $2.38$ 					& $\mathbf{1.59}$ \\
- 			\hline
-			RMSE 	& Mean	& Energy 	 	& $3.07 \pm 0.06$  			& $\mathbf{2.90 \pm 0.06}$ 	& $1.50 \times 10^{3} \pm 1.42 \times 10^{3}$ \\ 
-					& 		& Boston 	 	& $4.64 \pm 0.23$ 			& $\mathbf{3.64 \pm 0.23}$ 	& $15.87 \pm 4.36$ \\ 
-					& 		& Concrete  	& $10.34 \pm 0.15$ 			& $\mathbf{6.77 \pm 0.09}$ 	& $22.27 \pm 6.64$ \\ 
- 					& 		& Yacht 		& $8.96 \pm 0.29$ 			& $\mathbf{2.51 \pm 0.09}$ 	& $8.03 \pm 4.58$ \\ 
-				 	& Median	& Energy  		& $3.04$ 					& $2.93$ 					& $\mathbf{1.19}$ \\ 
-					& 		& Boston  		& $4.31$ 					& $\mathbf{3.51}$ 			& $6.47$ \\ 
-					& 		& Concrete  	& $10.27$ 				& $\mathbf{6.77}$ 			& $9.03$ \\ 
- 					& 		& Yacht  		& $9.07$ 					& $2.59$ 					& $\mathbf{1.21}$ \\ 
-			\hline			
-			Runtime 	& Mean	& Energy 	 	& $\mathbf{22.10}$   		& $22.59$  				& $40.38$  \\ 
-			(minutes)	&		& Boston 	 	& $\mathbf{14.78}$			& $16.18$					& $32.97$ \\ 
-					&		& Concrete 	& $\mathbf{25.23}$			& $28.41$					& $52.31$ \\ 
- 					&		& Yacht 		& $11.78$					& $\mathbf{11.58}$			& $20.61$\\ [1ex] 
-			\hline
+		\begin{tabular}{@{} lllll @{}} 
+ 			\toprule
+ 			Metric & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\
+ 			\midrule
+			NMLL 	& Energy 		& $\mathbf{2.57 \pm 0.02}$ 	& $\mathbf{2.53 \pm 0.02}$ 	& $2.13 \times 10^{7} \pm 2.01 \times 10^{7}$ \\ 	
+			   		& Boston   	& $3.07 \pm 0.12$			& $\mathbf{2.66 \pm 0.06}$ 	& $\mathbf{2.73 \pm 0.06}$ \\ 			
+			  		& Concrete	& $3.77 \pm 0.02$ 			& $\mathbf{3.34 \pm 0.01}$ 	& $\mathbf{3.32 \pm 0.03}$ \\ 			
+ 					& Yacht    		& $3.65 \pm 0.04$ 			& $2.36 \pm 0.06$ 			& $\mathbf{1.63 \pm 0.04}$ \\
+ 			\midrule
+			RMSE 	& Energy 	 	& $3.07 \pm 0.06$  			& $\mathbf{2.90 \pm 0.06}$ 	& $1.50 \times 10^{3} \pm 1.42 \times 10^{3}$ \\ 
+					& Boston 	 	& $4.64 \pm 0.23$ 			& $\mathbf{3.64 \pm 0.23}$ 	& $15.87 \pm 4.36$ \\ 
+					& Concrete  	& $10.34 \pm 0.15$ 			& $\mathbf{6.77 \pm 0.09}$ 	& $22.27 \pm 6.64$ \\ 
+ 					& Yacht 		& $8.96 \pm 0.29$ 			& $\mathbf{2.51 \pm 0.09}$ 	& $8.03 \pm 4.58$ \\ 
+			\midrule			
+			Runtime 	& Energy 	 	& $\mathbf{22.10}$   		& $22.59$  				& $40.38$  \\ 
+			(minutes)	& Boston 	 	& $\mathbf{14.78}$			& $16.18$					& $32.97$ \\ 
+					& Concrete 	& $\mathbf{25.23}$			& $28.41$					& $52.31$ \\ 
+ 					& Yacht 		& $11.78$					& $\mathbf{11.58}$			& $20.61$\\
+			\bottomrule
 		\end{tabular}
-		\caption{Test results for prediction experiments with UCI regression datasets. Metrics are the average negative marginal log-likelihood (NMLL) and root mean squared error (RMSE). LR and NN refer to linear regression and neural network, respectively. The  results were aggregated over 20 different train-test splits. The mean results for NMLL and RMSE include standard errors. The runtime refers to the total runtime for a single train-test split. That is, 30 rounds of 5-fold cross-validation on the training set followed by fitting the best model to the full training set and evaluating on the test set. All experiments were executed on an Apple M1 chip (2020) with an 8-core CPU and 16GB of RAM. The best results on each row are highlighted in bold.}
-		\label{table:neural_nets_uci}
+		\caption{Mean test results for prediction experiments with UCI regression datasets. Metrics are the average negative marginal log-likelihood (NMLL) and root mean squared error (RMSE). LR and NN refer to linear regression and neural network, respectively. The  mean results over 20 different train-test splits are shown. The results for NMLL and RMSE include standard errors. The runtime refers to the total runtime for a single train-test split. That is, 30 rounds of 5-fold cross-validation on the training set followed by fitting the best model to the full training set and evaluating on the test set. All experiments were executed on an Apple M1 chip (2020) with an 8-core CPU and 16GB of RAM. The best results on each row are highlighted in bold.}
+		\label{table:neural_nets_uci_mean}
 	\end{center}
 \end{table}
+
+
 
 
 \chapter{Conclusions}\label{ch:conclusions}
@@ -1443,7 +1442,7 @@ Recall that Section \ref{sec:vifa_posterior_uci} presented qualitative compariso
 
 \section{UCI Neural Network Predictions}\label{app:uci_nn_predictions}
 
-This section provides more details about the loss functions used in the neural network prediction experiments in Section \ref{sec:uci_nn_predictions}. When training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
+This section provides more details and results for the neural network prediction experiments in Section \ref{sec:uci_nn_predictions}. Firstly, important details which are worth making explicit are the loss functions used in the experiments. When training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
 \begin{equation}\label{eqn:train_nll}
 	-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log \mathcal{N}\big(y; f(\matr{x}; \theta), \beta^{-1}\big),
 \end{equation}
@@ -1470,5 +1469,29 @@ where each $\theta_l \sim p(\theta | \alpha, \beta, \mathcal{D})$. This quantity
 	\Bigg(y - \frac{1}{L} \sum_{l=1}^L f(\matr{x}; \theta_l)\Bigg)^2.
 \end{equation}
 When computing these metrics, the Monte Carlo average size was set to $L=100$.
+
+Recall that Table \ref{table:neural_nets_uci_mean} provides the tests metrics for the experiments averaged over 20 different train-test splits. The corresponding median results are given in Table \ref{table:neural_nets_uci_median}.
+
+\begin{table}[h!]
+	\begin{center}
+		\begin{tabular}{@{} lllll @{}} 
+ 			\toprule
+ 			Metric & Dataset & VIFA-LR & VIFA-NN & SLANG-NN \\
+ 			\midrule
+			NMLL 	& Energy 		& $2.57$ 					& $2.54$ 					& $\mathbf{1.19}$ \\ 	
+			   		& Boston   	& $2.88$	 				& $\mathbf{2.65}$ 			& $2.68$ \\ 			
+			  		& Concrete	& $3.76$ 					& $3.33$ 					& $\mathbf{3.32}$ \\ 			
+ 					& Yacht    		& $3.62$ 					& $2.38$ 					& $\mathbf{1.59}$ \\
+ 			\midrule
+			RMSE 	& Energy 	 	& $3.04$ 					& $2.93$ 					& $\mathbf{1.19}$ \\ 
+					& Boston 	 	& $4.31$ 					& $\mathbf{3.51}$ 			& $6.47$ \\ 
+					& Concrete  	& $10.27$ 				& $\mathbf{6.77}$ 			& $9.03$ \\ 
+ 					& Yacht 		& $9.07$ 					& $2.59$ 					& $\mathbf{1.21}$ \\ 
+			\bottomrule
+		\end{tabular}
+		\caption{Median test results for prediction experiments with UCI regression datasets. Metrics are the average negative marginal log-likelihood (NMLL) and root mean squared error (RMSE). LR and NN refer to linear regression and neural network, respectively. The  median results over 20 different train-test splits are shown. The best results on each row are highlighted in bold.}
+		\label{table:neural_nets_uci_median}
+	\end{center}
+\end{table}
 
 \end{document}
