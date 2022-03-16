@@ -1289,18 +1289,18 @@ This section provides more details and results for the online FA experiments in 
 Recall that Figure \ref{fig:fa_covar_distance} shows the relative distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. Table \ref{table:fa_covar_distance} contains the numerical results for 100,000 training samples. That is, the results corresponding to the right-most points in each plot.
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.12\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} ||} 
- 			\hline
- 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
- 			\hline\hline
+		\begin{tabular}{@{} lllll @{}} 
+ 			\toprule
+ 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ 
+ 			\midrule
 			100 	& $[1, 10]$ 	& $0.0454 \pm 0.0077$ 	& $0.0399 \pm 0.0058$	& $0.0426 \pm 0.0005$ \\ 
 				& $[1, 100]$ 	& $0.0631 \pm 0.0073$ 	& $0.0613 \pm 0.0057$ 	& $0.1309 \pm 0.0038$ \\ 
 				& $[1, 1000]$	& $0.0608 \pm 0.0087$ 	& $0.1767 \pm 0.0037$ 	& $0.2350 \pm 0.0046$ \\ 
-			\hline
+			\midrule
 			1000	& $[1, 10]$ 	& $0.0204 \pm 0.0010$ 	& $0.0207 \pm 0.0003$ 	& $0.0546 \pm 0.0009$ \\ 
 				& $[1, 100]$ 	& $0.0217 \pm 0.0011$ 	& $0.0238 \pm 0.0013$ 	& $0.0472 \pm 0.0008$ \\ 
-				& $[1, 1000]$ 	& $0.0218 \pm 0.0011$ 	& $0.0501 \pm 0.0016$ 	& $0.0945 \pm 0.0024$ \\ [1ex] 
-			\hline
+				& $[1, 1000]$ 	& $0.0218 \pm 0.0011$ 	& $0.0501 \pm 0.0016$ 	& $0.0945 \pm 0.0024$ \\
+			\bottomrule
 		\end{tabular}
 		\caption{The relative distance of the estimated FA covariance matrix from the true covariance matrix when 
 		the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the right-most points in the plots in Figure \ref{fig:fa_covar_distance}.}
@@ -1330,20 +1330,20 @@ Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between 
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.12\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} p{0.20\linewidth} ||} 
- 			\hline
- 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ [0.5ex] 
- 			\hline\hline
+		\begin{tabular}{@{} lllll @{}} 
+ 			\toprule
+ 			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ 
+ 			\midrule
 			100 	& $[1, 10]$ 	& $0.0061 \pm 0.0009$ 	& $0.0058 \pm 0.0006$ 	& $0.0062 \pm 0.0004$ \\ 
 				& $[1, 100]$ 	& $0.0256 \pm 0.0022$ 	& $0.0246 \pm 0.0021$ 	& $0.0446 \pm 0.0018$ \\ 
 				& $[1, 1000]$	& $0.0780 \pm 0.0089$ 	& $0.2137 \pm 0.0054$ 	& $0.2855 \pm 0.0040$ \\ 
-			\hline
+			\midrule
 			1000	& $[1, 10]$ 	& $0.0015 \pm 0.0001$ 	& $0.0016 \pm 0.0001$ 	& $0.0023 \pm 0.0001$ \\ 
 				& $[1, 100]$ 	& $0.0048 \pm 0.0002$ 	& $0.0049 \pm 0.0002$ 	& $0.0062 \pm 0.0001$ \\ 
-				& $[1, 1000]$ 	& $0.0152 \pm 0.0005$ 	& $0.0217 \pm 0.0003$ 	& $0.0349 \pm 0.0006$ \\ [1ex] 
-			\hline
+				& $[1, 1000]$ 	& $0.0152 \pm 0.0005$ 	& $0.0217 \pm 0.0003$ 	& $0.0349 \pm 0.0006$ \\ 
+			\bottomrule
 		\end{tabular}
-		\caption{The 2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension, when the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the right-most points in the plots in Figure \ref{fig:fa_wasserstein}.}
+		\caption{2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension, when the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the right-most points in the plots in Figure \ref{fig:fa_wasserstein}.}
 		\label{table:fa_wasserstein}
 	\end{center}
 \end{table}
@@ -1353,18 +1353,15 @@ Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between 
 This section provides more details and results for the linear regression posterior estimation experiments using VIFA in Section \ref{sec:vifa_posterior_uci}. Recall that four UCI regression datasets were used in these experiments. Table \ref{table:uci_datasets} shows the number of instances and input variables in each UCI regression dataset. Note that the original Energy Efficiency dataset has two target variables, heating load and cooling load, but in these experiments only the heating load was used. 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{||c c c ||} 
-			\hline
- 			Dataset & No. of Instances & No. of Input Variables \\ [0.5ex] 
-			\hline\hline
+		\begin{tabular}{@{} lll @{}} 
+			\toprule
+ 			Dataset & No. of Instances & No. of Input Variables \\
+			\midrule
 			Energy Efficiency 				& 768 	& 8 \\
- 			\hline
  			Boston Housing 				& 506 	& 13 \\ 
- 			\hline
  			Concrete Compressive Strength 	& 1030 	& 8 \\
- 			\hline
- 			Yacht Hydrodynamics 			& 308 	& 6 \\ [1ex] 
- 			\hline
+ 			Yacht Hydrodynamics 			& 308 	& 6 \\ 
+ 			\bottomrule
 		\end{tabular}
 		\caption{UCI regression datasets used in experiments.}
 		\label{table:uci_datasets}
@@ -1374,18 +1371,15 @@ This section provides more details and results for the linear regression posteri
 Table \ref{table:vifa_uci_hyperparameters} shows the hyperparameter values used in the experiments.
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{||c c c c c c c c||} 
-			\hline
- 			Dataset & $K$ & Epochs & $M$ & $L$ & $\eta$ & $\alpha$ & $\beta$ \\ [0.5ex] 
-			\hline\hline
+		\begin{tabular}{@{} llllllll @{}} 
+			\toprule
+ 			Dataset & $K$ & Epochs & $M$ & $L$ & $\eta$ & $\alpha$ & $\beta$ \\
+			\midrule
 			Energy Efficiency 				& 3 & 25,000 & 100 & 10 	& 0.01 	& 0.0608 & 0.1246 \\ 
- 			\hline
 			Boston Housing 				& 3 & 25,000 & 100 & 10 	& 0.001 	& 0.2859 & 0.0429 \\
- 			\hline
  			Concrete Compressive Strength	& 3 & 20,000 & 100 & 10 	& 0.01 	& 0.0254 & 0.0101 \\
- 			\hline
- 			Yacht Hydrodynamics 			& 3 & 45,000 & 100 & 10 	& 0.01 	& 0.0291 & 0.0114 \\ [1ex] 
- 			\hline
+ 			Yacht Hydrodynamics 			& 3 & 45,000 & 100 & 10 	& 0.01 	& 0.0291 & 0.0114 \\
+ 			\bottomrule
 		\end{tabular}
 		\caption{VIFA hyperparameters for UCI linear regression experiments.}
 		\label{table:vifa_uci_hyperparameters}
@@ -1422,18 +1416,15 @@ Recall that Section \ref{sec:vifa_posterior_uci} presented qualitative compariso
 
 \begin{table}[h!]
 	\begin{center}
-		\begin{tabular}{|| p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} p{0.21\linewidth} ||} 
- 			\hline
- 			Dataset & Relative Distance from Mean & Relative Distance from Covariance & Scaled Wasserstein Distance \\ [0.5ex] 
- 			\hline\hline
-			Energy Efficiency 	& 0.0051 	& 0.0421 & 0.0564 \\ 
-			\hline
-			Boston Housing 	& 0.0262 	& 0.3185 & 0.0468 \\ 
-			\hline
-			Concrete Strength 	& 0.0047 	& 0.0840 & 0.0278 \\ 
-			\hline
- 			Yacht Hydro. 		& 0.0435 	& 0.0391 & 0.1210 \\ [1ex] 
-			\hline
+		\begin{tabular}{@{} llll @{}} 
+ 			\toprule
+ 			Dataset & Rel. Dist. from Mean & Rel. Dist. from Covar. & Scaled Wasserstein Dist. \\ 
+ 			\midrule
+			Energy 	& 0.0051 	& 0.0421 & 0.0564 \\ 
+			Boston  	& 0.0262 	& 0.3185 & 0.0468 \\ 
+			Concrete  	& 0.0047 	& 0.0840 & 0.0278 \\ 
+ 			Yacht 	& 0.0435 	& 0.0391 & 0.1210 \\ 
+			\bottomrule
 		\end{tabular}
 		\caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a linear regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the number of dimensions in the dataset.}
 		\label{table:linear_regression_vi_posterior_uci}
