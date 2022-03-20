@@ -5,7 +5,7 @@ Informatics at the University of Edinburgh. My supervisor was Dr. Michael Gutman
 
 # Thesis
 
-The title of my thesis is **Fast and Scalable Factor Analysis Algorithms for Bayesain Deep 
+The title of my thesis is **Fast and Scalable Factor Analysis Algorithms for Bayesian Deep 
 Learning**. 
 
 It can be found [here](https://github.com/ayeright/swafa/blob/master/thesis/main.pdf).
