@@ -56,87 +56,25 @@
 \author{Scott Brownlie}
 
 \abstract{
-%  This skeleton demonstrates how to use the \texttt{infthesis} style
-%  for MSc dissertations in Artificial Intelligence, Cognitive Science,
-%  Computer Science, Data Science, and Informatics. It also emphasises
-%  the page limit, and that you must not deviate from the required
-%  style.  The file \texttt{skeleton.tex} generates this document and
-%  can be used as a starting point for your thesis. The abstract should
-%  summarise your report and fit in the space on the first page.
-
 Learning the posterior distribution of a deep neural network is a difficult task. Even when using a Gaussian approximation, one faces the daunting challenge of estimating the $D \times D$ posterior covariance matrix, where $D$, the number of model parameters, can reach billions by today's standards. Some simplification has to be made, and one option is to use a low-rank plus diagonal approximation. This approach is more flexible than a solely diagonal approximation, since it preserves some of the off-diagonal structure of the covariance matrix. 
 
 One particular Gaussian distribution with a low-rank plus diagonal covariance matrix is the factor analysis model. In its essence, factor analysis is a latent variable model which generates observations via an affine transformation of the latents plus the addition of some Gaussian noise. This project makes use of these properties to derive novel algorithms for posterior estimation of deep neural networks. 
 
 Two distinctly different approaches are considered. The first of these is inspired by a recent Bayesian deep learning method called SWAG.  It is based on the assumption that samples representative of the true posterior are encountered while training the neural network via stochastic gradient descent. Two algorithms are presented which learn factor analysis models from such samples in an online, iterative fashion, making them suitable for high-dimensional data, such as the parameter vector of a deep neural network. Experiments demonstrate that the algorithms are often as effective at learning factor analysis models as the classic batch algorithm based on singular value decomposition.
 
-The second approach is based on variational inference and does not require a separate posterior sampling procedure. The algorithm - aptly named VIFA due to its use of variational inference and factor analysis - is model-agnostic and can be readily applied to any type of neural network architecture with no extra effort. Crucially, the implementation scales to very high-dimensional deep neural networks. Experiments demonstrate its effectiveness in learning the posterior and making predictions with uncertainty estimates, as well as its impressive speed compared to a recent method called SLANG with adopts a similar approach. 
+The second approach is based on variational inference and does not require a separate posterior sampling procedure. The novel algorithm - aptly named VIFA due to its use of variational inference and factor analysis - is model-agnostic and can be readily applied to any type of neural network architecture with no extra effort. Crucially, the implementation scales to very high-dimensional deep neural networks. Experiments demonstrate its effectiveness in learning the posterior and making predictions with uncertainty estimates, as well as its impressive speed compared to a recent method called SLANG with adopts a similar approach. 
 }
 
 \maketitle
 
 \section*{Acknowledgements}
-Any acknowledgements go here.
+I would like to thank my supervisor, Dr. Michael Gutmann. First of all, for proposing such an interesting topic to study. I have thoroughly enjoyed our regular discussions over the past few months and Michael's insight, advice and feedback have been essential for shaping the thesis. It has been a pleasure working with Michael and a real privilege to benefit from his exceptional knowledge of this area of study. I am very grateful for his enthusiasm and the time he has dedicated to this project. 
 
 \tableofcontents
 \end{preliminary}
 
 
 \chapter{Introduction}
-
-%The preliminary material of your report should contain:
-%\begin{itemize}
-%\item
-%The title page.
-%\item
-%An abstract page.
-%\item
-%Optionally an acknowledgements page.
-%\item
-%The table of contents.
-%\end{itemize}
-%
-%As in this example \texttt{skeleton.tex}, the above material should be
-%included between:
-%\begin{verbatim}
-%\begin{preliminary}
-%    ...
-%\end{preliminary}
-%\end{verbatim}
-%This style file uses roman numeral page numbers for the preliminary material.
-%
-%The main content of the dissertation, starting with the first chapter,
-%starts with page~1. \emph{\textbf{The main content must not go beyond page~40.}}
-%
-%The report then contains a bibliography and any appendices, which may go beyond
-%page~40. The appendices are only for any supporting material that's important to
-%go on record. However, you cannot assume markers of dissertations will read them.
-%
-%You may not change the dissertation format (e.g., reduce the font
-%size, change the margins, or reduce the line spacing from the default
-%1.5 spacing). Over length or incorrectly-formatted dissertations will
-%not be accepted and you would have to modify your dissertation and
-%resubmit.  You cannot assume we will check your submission before the
-%final deadline and if it requires resubmission after the deadline to
-%conform to the page and style requirements you will be subject to the
-%usual late penalties based on your final submission time.
-
-%\section{Using Sections}
-%
-%Divide your chapters into sub-parts as appropriate.
-%
-%\section{Citations}
-%
-%Citations (such as \cite{P1} or \cite{P2}) can be generated using
-%\texttt{BibTeX}. For more advanced usage, the \texttt{natbib} package is
-%recommended. You could also consider the newer \texttt{biblatex} system.
-%
-%These examples use a numerical citation style. You may also use
-%(Author, Date) format if you prefer.
-%
-%\chapter{Your next chapter}
-%
-%A dissertation usually contains several chapters.
 
 In recent years, deep learning \cite{goodfellow2016} has come to dominate many areas of machine learning. Deep learning models continue to achieve state of the art results in several domains, such as CoAtNet-7 \cite{dai2021} for image classification and Megatron-LM \cite{shoeybi2019} for language modelling. One reason for their success is the availability of huge training sets, such as the 300 millions images in JFT-300M \cite{sun2017} or the 100 million tokens in WikiText-103 \cite{merity2016}. The number of training examples, however, pales in comparison to the number of learnable parameters in some deep models. CoAtNet-7, for example, has 2.4 billion parameters, whereas Megatron-LM has a whopping 8.3 billion. This is a common feature of deep learning: the number of model parameters is often greater than the number of training examples. In this scenario, the model is severely \emph{underspecified} by the data and many different settings of the parameters are able to explain the training set equally well. In some domains, choosing a single setting of the parameters and predicting a point estimate for each test example is satisfactory. However, for other critical applications, some measure of the uncertainty in the prediction is also required. This is where Bayesian deep learning comes in. Instead of choosing a single parameter vector $\theta \in \R^D$ for the neural network, predictions are made using \emph{all} possible parameter vectors weighted by their posterior probabilities, given the training data $\mathcal{D}$. Formally, the posterior predictive distribution of the output $y$ given the input $\matr{x}$ is
 \begin{equation}
@@ -155,17 +93,18 @@ where $p(\mathcal{D} | \theta)$ is the \emph{likelihood} that $\theta$ generated
 
 One of the simplest approaches is to use a diagonal - or \emph{mean-field} - approximation \cite{blundell2015, graves2011, hernandez2015, tangkaratt2018, ranganath2014}. This is convenient in the sense that the covariance matrix is completely specified by $D$ parameters, but it does not allow for any posterior correlations between different elements of $\theta$. A more flexible approach is a low-rank plus diagonal approximation, $\matr{F}\matr{F}^\intercal + \Psi$, where $\matr{F} \in \R^{D\times K}$ and $\Psi$ is a $D \times D$ diagonal matrix. This preserves some of the off-diagonal structure of the covariance matrix and is practically feasible for $K \ll D$. Two recent methods which adopt this approach are SWAG \cite{maddox2019} and SLANG \cite{mishkin2018}. While both algorithms have achieved promising results, they also have fundamental limitations. In the case of SWAG, it does not make use of all the available data to fit the low-rank plus diagonal covariance matrix, whereas the current implementation of SLANG only supports fully-connected neural networks and would require non-trivial modifications for other types of architectures.
 
-The work in this thesis is based on the low-rank plus diagonal factor analysis model, which can help to overcome these limitations. The main contributions are:
+The work in this thesis is based on the low-rank plus diagonal factor analysis model \cite{barber2007}, which can help to overcome these limitations. The main contributions are:
 \begin{itemize}
 	\item \textbf{two novel online algorithms for learning factor analysis models of high-dimensional data, which can be used in conjunction with SWAG};
 	\item \textbf{a novel variational inference algorithm which, unlike SLANG, can be applied to any neural network architecture with no extra effort}. 
 \end{itemize} 
+
 Chapter \ref{ch:background} introduces the background required to follow the rest of the thesis. Chapter \ref{ch:previous_work} describes SWAG and SLANG in more detail and sets out the main goals that the thesis hopes to achieve. Chapter \ref{ch:online_fa} presents the online factor analysis algorithms and the results of applying them to synthetic datasets. Chapter \ref{ch:vifa} introduces VIFA, a novel variational inference algorithm, and demonstrates its effectiveness in estimating the posterior and making predictions. Finally, Chapter \ref{ch:conclusions} brings the thesis to an end with some conclusions and suggestions for future work. 
 
 
 \chapter{Background}\label{ch:background}
 
-This chapter presents the background necessary to understand the rest of the thesis. Bayesian linear regression, whose posterior can be computed in closed for, provides a nice testbed for the algorithms. Moreover, it can be viewed as a simple neural network with a single affine layer from input to output. Therefore, it is introduced first, followed by the general case of a neural network with multiple layers. The most common training algorithm for neural networks, stochastic gradient descent, is described next. Factor analysis is then introduced, as this is the basis of the main contributions in this thesis. Finally, variational inference is described as a pre-requisite for algorithms which use this approach to learn the posterior distribution of a neural network. 
+This chapter presents the background necessary to understand the rest of the thesis. Bayesian linear regression, whose posterior can be computed in closed-form, provides a nice testbed for the algorithms. Moreover, it can be viewed as a simple neural network with a single affine layer from input to output. Therefore, it is introduced first, followed by the general case of a neural network with multiple layers. The most common training algorithm for neural networks, stochastic gradient descent, is described next. Factor analysis is then introduced, as this is the basis of the main contributions in this thesis. Finally, variational inference is described as a pre-requisite for algorithms which use this approach to learn the posterior distribution of a neural network. 
 
 \section{Bayesian Linear Regression}\label{sec:bayesian_lr}
 
@@ -201,7 +140,7 @@ where $\beta = \frac{1}{\sigma^2}$ is the \emph{noise precision} \cite{barber200
 	= \mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)
 	= \Big(\frac{\alpha}{2\pi}\Big)^{\frac{D}{2}} \exp\Big(-\frac{\alpha}{2} \theta^\intercal \theta \Big)
 \end{equation}
-for some $\alpha > 0$, which is a hyperparameter known as the \emph{prior precision} \cite{barber2007}. Given the log-likelihood and the prior, it turns out that the posterior distribution of $\theta$ is Gaussian and can be computed in closed form. Formally, 
+for some $\alpha > 0$, which is a hyperparameter known as the \emph{prior precision} \cite{barber2007}. Given the log-likelihood and the prior, it turns out that the posterior distribution of $\theta$ is Gaussian and can be computed in closed-form. Formally, 
 \begin{equation}\label{eqn:linear_regression_posterior}
 	p(\theta | \mathcal{D}) = \mathcal{N}(\matr{A}^{-1} \matr{b}, \matr{A}^{-1}),
 \end{equation}
@@ -224,7 +163,7 @@ where $H$ is the number of \emph{units} in the hidden layer, the weights $\matr{
 \begin{equation}\label{eqn:multi_layer_nn}
 	f(\matr{x}) = \matr{w}_2^T \Big(g_2\big(\matr{W}_1 g_1(\matr{W}_0 \matr{x} + \matr{b}_0) + \matr{b}_1 \big) \Big) + b_2,
 \end{equation} 
-where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \times H_0}$, $\matr{w}_2 \in \R^{H_1}$ and biases $\matr{b}_0 \in \R^{H_0}$, $\matr{b}_1 \in \R^{H_1}$, $b_2 \in \R$ are learnable parameters and $g_1(x):\R \mapsto \R$, $g_2(x):\R \mapsto \R$ are non-linear activation functions, applied element-wise to the vectors. The total number of learnable parameters in this model is $D=H_0(J + 1) + H_1(H_0 + 1) + (H_1 + 1)$, and they are collectively denoted by $\theta \in \R^D$. This network is already considered \emph{deep}, as it has multiple hidden layers. However, it is not uncommon for neural networks to have tens or even hundreds of hidden layers and millions of learnable parameters \cite{dai2021, shoeybi2019}. Unlike in linear regression, it is not possible to compute the posterior of $\theta$ in closed due to the non-linear activation function(s). Instead, numerical methods are required. Moreover, due to the large dimensionality of $\theta$, it is usually impractical to estimate the full $D \times D$ posterior covariance matrix and some simplification must be made.  
+where the weights $\matr{W}_0 \in \R^{H_0 \times J}$, $\matr{W}_1 \in \R^{H_1 \times H_0}$, $\matr{w}_2 \in \R^{H_1}$ and biases $\matr{b}_0 \in \R^{H_0}$, $\matr{b}_1 \in \R^{H_1}$, $b_2 \in \R$ are learnable parameters and $g_1(x):\R \mapsto \R$, $g_2(x):\R \mapsto \R$ are non-linear activation functions, applied element-wise to the vectors. The total number of learnable parameters in this model is $D=H_0(J + 1) + H_1(H_0 + 1) + (H_1 + 1)$, and they are collectively denoted by $\theta \in \R^D$. This network is already considered \emph{deep}, as it has multiple hidden layers. However, it is not uncommon for neural networks to have tens or even hundreds of hidden layers and millions of learnable parameters \cite{dai2021, shoeybi2019}. Unlike in linear regression, it is not possible to compute the posterior of $\theta$ in closed-form due to the non-linear activation function(s). Instead, numerical methods are required. Moreover, due to the large dimensionality of $\theta$, it is usually impractical to estimate the full $D \times D$ posterior covariance matrix and some simplification must be made.  
 
 
 \section{Stochastic Gradient Descent}
@@ -277,7 +216,7 @@ One way to tackle this is via an iterative gradient algorithm. Depending on the 
 	 \nabla_{\mu, \Sigma} \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
 	\approx \nabla_{\mu, \Sigma} \Bigg(\frac{1}{L}  \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg)\Bigg),
 \end{equation}
-where $L$ is the Monte Carlo average size, $\theta_l \sim \mathcal{N}(\mu, \Sigma)$ and each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. Normally it would not be possible to compute these partial derivatives with respect to $\mu$ and $\Sigma$, given that they only take part via the sampling operation. However, this can in fact be done by using the \emph{re-parameterisation trick} \cite{goodfellow2016}. Instead of sampling $\theta_l$ from $\mathcal{N}(\mu, \Sigma)$ directly, a random variable $\matr{z}_l$ is sampled from $\mathcal{N}(\matr{0}, \matr{I})$ and then transformed to $\theta_l$ via a deterministic operation involving $\mu$ and $\Sigma$. This simple trick means that Equation (\ref{eqn:vi_derivatives}) can be evaluated and used in conjunction with SGD or any of its variants to optimise the objective in Equation (\ref{eqn:vi_objective}).
+where $L$ is the Monte Carlo average size, each $\theta_l \sim \mathcal{N}(\mu, \Sigma)$ and each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. Normally it would not be possible to compute these partial derivatives with respect to $\mu$ and $\Sigma$, given that they only take part via the sampling operation. However, this can in fact be done by using the \emph{re-parameterisation trick} \cite{goodfellow2016}. Instead of sampling $\theta_l$ from $\mathcal{N}(\mu, \Sigma)$ directly, a random variable $\matr{z}_l$ is sampled from $\mathcal{N}(\matr{0}, \matr{I})$ and then transformed to $\theta_l$ via a deterministic operation involving $\mu$ and $\Sigma$. This simple trick means that Equation (\ref{eqn:vi_derivatives}) can be evaluated and used in conjunction with SGD or any of its variants to optimise the objective in Equation (\ref{eqn:vi_objective}).
 
 
 \chapter{Related Work and Project Goals}\label{ch:previous_work}
@@ -301,12 +240,6 @@ where the squares are applied element-wise. For rank $K \in \N^+$, the low-rank 
 	\frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal,
 \end{equation}
 where $\hat{\matr{D}} \in \R^{D \times K}$ is formed by concatenating $K$ vectors $(\theta_{t_1} - \overline{\theta}_{t_1}), \dots, (\theta_{t_K} - \overline{\theta}_{t_K})$ for some $t_1, \dots, t_K \in \{1,2, \dots, T\}$, where $\overline{\theta}_{t_i}$ is the running average of the parameter vector after iteration $t_i$. The reason for subsampling the $\theta_1, \theta_2, \dots, \theta_T$ is to limit the rank of $\hat{\matr{D}}\hat{\matr{D}}^\intercal$ to $K$. 
-%Also, note that 
-%\begin{equation}
-%	\frac{1}{K-1} \hat{\matr{D}}\hat{\matr{D}}^\intercal
-%	= \frac{1}{K-1} \sum_{i=1}^K (\theta_{t_i} - \overline{\theta}_{t_i}) (\theta_{t_i} - \overline{\theta}_{t_i})^\intercal,
-%\end{equation}
-%which is similar to the empirical covariance of $\theta_{t_1}, \theta_{t_2}, \dots, \theta_{t_K}$, except that the running averages $\overline{\theta}_{t_i}$ are used instead of the true mean, which is not know during training. 
 Together, the mean and the approximate covariance give rise to an approximate posterior distribution, 
 \begin{equation}\label{eqn:swag_dist}
 	p(\theta | \mathcal{D}) \approx 
@@ -329,7 +262,6 @@ where $\eta_\mu, \eta_\Sigma > 0$ are learning rates, $\alpha$ is the precision 
 \end{equation}
 where $\matr{g}_\theta^i = \nabla_\theta \log p(y_i | \matr{x}_i, \theta)$ and $\mathcal{B}$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$. A full derivation of this rule is given in \cite{tangkaratt2018}. Conceptually, the update for $\mu$ is obtained by correcting the standard gradient according to the local curvature of the distribution space. That is, by scaling the gradient by the inverse of the Hessian of the KL-divergence, which in this case is equivalent to the negative covariance matrix \cite{pascanu2013, opper2009}. Hence the reason why $\Sigma$ appears in Equation (\ref{eqn:vogn_update}).
 
-%Since $\theta$ is the parameter vector of a neural network, 
 In practice, the gradients $\matr{g}_\theta^i$ in Equation (\ref{eqn:slang_g_and_G}) can be computed via back-propagation \cite{rumelhart1986}. However, for deep neural networks with $D$ parameters, the update in Equation (\ref{eqn:vogn_update}) is generally infeasible, as it involves inverting the $D \times D$ covariance matrix $\Sigma$. A computationally tractable version of VOGN can be obtained by using a low-rank plus diagonal approximation of the inverse of the covariance matrix. This is the approach taken by SLANG \cite{mishkin2018}, which stands for stochastic, low-rank, approximate natural gradient. This algorithm sets $\Sigma^{-1} = \matr{U} \matr{U}^\intercal + \matr{D}$ for some $\matr{U} \in \R^{D \times K}$ and a $D \times D$ diagonal matrix $\matr{D}$. Substituting this definition into Equation (\ref{eqn:vogn_update}), the update for $\Sigma$ can be written as
 \begin{equation}\label{eqn:slang_infeasible_sigma_update}
 	\Sigma^{-1} \leftarrow 
@@ -337,12 +269,7 @@ In practice, the gradients $\matr{g}_\theta^i$ in Equation (\ref{eqn:slang_g_and
 	+ \big[(1 - \eta_\Sigma) \matr{D} + \eta_\Sigma \alpha \matr{I}\big].
 \end{equation}
 Note that $\hat{\matr{G}}_\theta \in \R^{D\times D}$, which is too big to work with in practice for large $D$. To make the update feasible, 
-the non-diagonal component of the right-hand side of Equation (\ref{eqn:slang_infeasible_sigma_update}) is approximated as $\matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal$,
-%\begin{equation}
-%	(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta 
-%	\approx \matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal,
-%\end{equation}
-where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ largest eigenvalues of $(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta$, and the columns of $\matr{Q}_{1:K} \in \R^{D \times K}$ are the corresponding eigenvectors. This eigen-decomposition is obtained via a randomised SVD algorithm which avoids evaluating $\hat{\matr{G}}_\theta$ explicitly \cite{mishkin2018}. However, it requires individual gradients $\matr{g}_\theta^i$ for each  $(\matr{x}_i, y_i) \in \mathcal{B}$. When using the standard back-propagation algorithm in deep learning frameworks such as PyTorch \cite{paszke2019}, this is only possible by looping over the mini-batch samples one-by-one and storing each $\matr{g}_\theta^i$, which is very inefficient. A faster approach - which was adopted by SLANG - is outlined in \cite{goodfellow2015} for standard neural networks. However, this ``trick" assumes that each network layer is fully-connected and the authors of SLANG admit that a separate implementation would be required to handle each different type of layer, such as convolutional \cite{krizhevsky09}, recurrent \cite{hochreiter1997} or transformer \cite{vaswani2017}.
+the non-diagonal component on the right-hand side of Equation (\ref{eqn:slang_infeasible_sigma_update}) is approximated as $\matr{Q}_{1:K} \Lambda_{1:K} \matr{Q}_{1:K}^\intercal$, where $\Lambda_{1:K}$ is a $K \times K$ diagonal matrix containing the $K$ largest eigenvalues of $(1 - \eta_\Sigma) \matr{U} \matr{U}^\intercal + \eta_\Sigma \hat{\matr{G}}_\theta$, and the columns of $\matr{Q}_{1:K} \in \R^{D \times K}$ are the corresponding eigenvectors. This eigen-decomposition is obtained via a randomised SVD algorithm which avoids evaluating $\hat{\matr{G}}_\theta$ explicitly \cite{mishkin2018}. However, it requires individual gradients $\matr{g}_\theta^i$ for each  $(\matr{x}_i, y_i) \in \mathcal{B}$. When using the standard back-propagation algorithm in deep learning frameworks such as PyTorch \cite{paszke2019}, this is only possible by looping over the mini-batch samples one-by-one and storing each $\matr{g}_\theta^i$, which is very inefficient. A faster approach - which was adopted by SLANG - is outlined in \cite{goodfellow2015} for standard neural networks. However, this ``trick" assumes that each network layer is fully-connected and the authors of SLANG admit that a separate implementation would be required to handle each different type of layer, such as convolutional \cite{krizhevsky09}, recurrent \cite{hochreiter1997} or transformer \cite{vaswani2017}.
 
 
 \section{Project Goals}
@@ -351,10 +278,6 @@ Although SWAG and SLANG are distinctly different approaches to Bayesian deep lea
 \\ \\
 \textbf{Online Factor Analysis}.
 The first goal of this project is motivated by the fact that SWAG does not make use of all the available data when estimating the low-rank plus diagonal approximation of the posterior covariance. This is unnecessary, since a covariance matrix with the same structure can be learned from \emph{all} the SGD iterates via FA. To see this, let $\matr{F} = \frac{1}{\sqrt{2(K-1)}} \hat{\matr{D}}$ and $\Psi = \frac{1}{2} \Sigma_\text{diag}$. Then the SWAG posterior from Equation (\ref{eqn:swag_dist}) becomes $\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big)$,
-%\begin{equation}
-	%\mathcal{N}\Big(\theta_\text{SWA}, \frac{1}{2(K-1)} \hat{\matr{D}}\hat{\matr{D}}^\intercal + \frac{1}{2}\Sigma_\text{diag}\Big)
-	%\mathcal{N}\big(\theta_\text{SWA}, \matr{FF}^{\intercal} + \Psi\big),
-%\end{equation}
 which is the same as the FA model from Equation (\ref{eqn:fa_marginal_dist}) with $\matr{c} = \theta_\text{SWA}$ \cite{brownlie2021}. In theory, such a model could be fit to $\theta_1, \theta_2, \dots, \theta_T$ using either the EM or SVD algorithm from \cite{barber2007}. However, given these are both batch algorithms, the SGD iterates would have to be stored in memory, which is impractical for deep neural networks with millions of parameters. Hence, an online, iterative approach is required. To the best of this author's knowledge, no such algorithm exists. \textbf{To fill this gap, this thesis presents two novel online FA algorithms which scale to high-dimensional data, such as the parameter vectors of deep neural networks.}
 \\ \\
 \textbf{Variational Inference with a Factor Analysis Posterior}.
@@ -628,13 +551,13 @@ In summary, these results suggest that online EM is generally better at fitting 
 		 (e) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$ 
 		 & (f) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$\\[6pt]
 	\end{tabular}
-	\caption{The relative distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue, orange and green lines show, for batch SVD, online EM and online SGA, respectively, the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.} 
+	\caption{The relative distance of the estimated FA covariance matrices from the true covariance matrix as a function of the number of samples used to learn the models. The blue, orange and green lines show, for batch SVD, online EM and online SGA, respectively, the Frobenius norm of the difference between the true covariance matrix and the estimated covariance matrix divided by the Frobenius norm of the true covariance matrix. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted (although in most cases, these are very small and thus difficult to see). The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.} 
 	\label{fig:fa_covar_distance}
 \end{figure}
 
 \subsection{Posterior Estimation with Synthetic Data}\label{sec:online_fa_posterior_experiments}
 
-The ability of online EM to learn the posterior of a neural network's parameter vector hinges on obtaining samples of the parameter vector which are representative of the true posterior. In SWAG, such samples are thought to be obtained from the iterates of the parameter vector which are encountered along the SGD trajectory while training the neural network with a high constant learning rate, following an initial pre-training phase \cite{maddox2019}. In the case of linear regression - which is a neural network with no hidden layers - this assumption can be tested directly, since the true posterior of its parameter vector can be computed in closed form. Recall, however, that the linear regression posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. More specifically, in Equation (\ref{eqn:linear_regression_log_posterior}) the log-posterior of $\theta$ is written as 
+The ability of online EM to learn the posterior of a neural network's parameter vector hinges on obtaining samples of the parameter vector which are representative of the true posterior. In SWAG, such samples are thought to be obtained from the iterates of the parameter vector which are encountered along the SGD trajectory while training the neural network with a high constant learning rate, following an initial pre-training phase \cite{maddox2019}. In the case of linear regression - which is a neural network with no hidden layers - this assumption can be tested directly, since the true posterior of its parameter vector can be computed in closed-form. Recall, however, that the linear regression posterior distribution in Equation (\ref{eqn:linear_regression_posterior}) refers to specific values of $\alpha$ and $\beta$. More specifically, in Equation (\ref{eqn:linear_regression_log_posterior}) the log-posterior of $\theta$ is written as 
 \begin{equation}
 	\log p(\theta | \mathcal{D}) 
 	= -\frac{\beta}{2} \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
@@ -648,7 +571,7 @@ Hence, the maximum \emph{a posteriori} (MAP) estimate of $\theta$ is
 	= \argmin_\theta \Big[ \sum_{n=1}^N \big(y_n - \theta^\intercal \matr{x}_n \big)^2 
 	+ \lambda \theta^\intercal \theta \Big],
 \end{equation}
-where $\lambda = \frac{\alpha}{\beta}$ and the right-hand side is obtained by multiplying the left-hand side by $-\frac{2}{\beta}$. Note that the objective on the right is the L2-regularised training loss from non-Bayesian linear regression \cite{barber2007}. This shows that MAP estimation with prior precision $\alpha$ and noise precision $\beta$ is equivalent to L2-regularised linear regression with $\lambda = \frac{\alpha}{\beta}$. Therefore, if one intends to obtain posterior samples from the SGD trajectory, $\lambda = \frac{\alpha}{\beta}$ would appear a sensible initial guess for the regularisation strength.
+where $\lambda = \frac{\alpha}{\beta}$ and the right-hand side is obtained by multiplying the left-hand side by $-\frac{2}{\beta}$. Note that the objective on the right is the L2-regularised training loss from non-Bayesian linear regression \cite{barber2007}. This shows that MAP estimation with prior precision $\alpha$ and noise precision $\beta$ is equivalent to L2-regularised linear regression with $\lambda = \frac{\alpha}{\beta}$. Therefore, if one intends to obtain posterior samples from the regularised SGD trajectory, $\lambda = \frac{\alpha}{\beta}$ would appear a sensible initial guess for the regularisation strength.
 
 In order to test this hypothesis, synthetic data was generated as follows. First, 1000 inputs $\matr{x} \in \R^2$ were sampled from a multivariate zero mean Gaussian distribution with unit variances and covariances of 0.5. Next, the parameter vector $\theta \in \R^2$ was sampled from $\mathcal{N}\big(\matr{0}, \alpha^{-1} \matr{I} \big)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to Equation (\ref{eqn:linear_regression}) with $\beta = 0.1$. Using this data, the true posterior was evaluated according to Equation (\ref{eqn:linear_regression_posterior}). For the purpose of obtaining samples from the posterior, an unregularised linear regression model was pre-trained for 500 epochs of SGD with a learning rate of 0.001 and a batch size of 100. Then, starting from the pre-trained model, a further 100 epochs of SGD were executed with the same batch size but with a learning rate of $0.1$ and the regularisation parameter set to $\lambda = \frac{\alpha}{\beta} = 0.1$. During these final 100 epochs, the parameter vector sampled after each mini-batch gradient update was used to iteratively fit an approximate FA posterior with latent dimension $K=1$ via online EM (Algorithm \ref{alg:online_em}).
 
@@ -779,7 +702,7 @@ Let the log-likelihood, $\log p(\mathcal{D} | \theta)$, be parameterised by a ne
 	 \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
 	\approx \frac{1}{L} \sum_{l=1}^{L} \Bigg( \frac{N}{M} \sum_{(\matr{x}, y) \in \mathcal{B}_l} \log p(y | \matr{x}, \theta_l) \Bigg),
 \end{equation}
-where $L$ is the Monte Carlo average size, each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$ and $\theta_l \sim q(\theta)$. In order to obtain the partial derivatives of this expression with respect to $\matr{c}$, $\matr{F}$ and $\Psi$, the re-parameterisation trick \cite{goodfellow2016} can be used. First note that, by re-writing Equation (\ref{eqn:fa_model}), sampling $\theta_l \sim q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ is equivalent to setting  
+where $L$ is the Monte Carlo average size, each $\mathcal{B}_l$ is a mini-batch of $M$ training examples sampled from the full dataset $\mathcal{D}$ of size $N$ and each $\theta_l \sim q(\theta)$. In order to obtain the partial derivatives of this expression with respect to $\matr{c}$, $\matr{F}$ and $\Psi$, the re-parameterisation trick \cite{goodfellow2016} can be used. First note that, by re-writing Equation (\ref{eqn:fa_model}), sampling $\theta_l \sim q(\theta) = \mathcal{N}\big(\matr{c}, \matr{FF}^{\intercal} + \Psi\big)$ is equivalent to setting  
 \begin{equation}\label{eqn:fa_reparam_trick}
 	\theta_l = \matr{F}\matr{h}_l + \matr{c} + \Psi^{1/2} \matr{z}_l
 \end{equation}
@@ -814,7 +737,7 @@ Note that $\matr{g}_{\theta_l}$ is the gradient of the average negative log-like
 
 \subsection{Practical Implementation}
 
-In order to compute the partial derivatives in Equations (\ref{eqn:grad_vi_dist_wrt_F}) and (\ref{eqn:grad_vi_dist_wrt_Psi}), the inverse of $\matr{S} = \matr{FF}^{\intercal} + \Psi$ is required. Using the Woodbury identity \cite{petersen2012},
+In order to compute the partial derivatives in Equations (\ref{eqn:grad_vi_dist_wrt_F}) and (\ref{eqn:grad_vi_dist_wrt_Psi}), the inverse of $\matr{S} = \matr{FF}^{\intercal} + \Psi \in \R^{D \times D}$ is required. Using the Woodbury identity \cite{petersen2012},
 \begin{align}
 \begin{split}
 	( \matr{FF}^{\intercal} + \Psi)^{-1}
@@ -850,7 +773,7 @@ Note that these partial derivatives involve no explicit use of $D \times D$ matr
 \end{equation}
 \begin{equation}
 	\nabla_\psi \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{-1/2} \odot \matr{z} \big).
+	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{-1/2} \odot \matr{z}_l \big).
 \end{equation}
 Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = \exp \gamma$ can again be used to ensure that the variances remain positive. Since $\nabla_\gamma \psi = \psi$, it follows from the chain rule that the corresponding partial derivatives with respect to $\gamma$ are 
 \begin{equation}
@@ -861,7 +784,7 @@ Finally, as in Algorithm \ref{alg:gradient_fa}, the re-parameterisation $\psi = 
 \end{equation}
 \begin{equation}
 	\nabla_\gamma \E_{q(\theta)} [\log p(\mathcal{D} | \theta)]
-	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big).
+	 \approx  -\frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z}_l \big).
 \end{equation}
 Collecting the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}), the final update rules are
  \begin{equation}\label{eqn:vifa_c_update}
@@ -877,7 +800,7 @@ Collecting the partial derivatives in Equation (\ref{eqn:vi_fa_derivatives}), th
 \begin{equation}\label{eqn:vifa_gamma_update}
 	\gamma \leftarrow \gamma - \eta_\gamma\Bigg(
 	-\frac{1}{2} + \frac{1}{2} \text{sum}\big(\matr{C} \odot \matr{A}, \text{ dim} = 1\big) \odot \psi
-	+\frac{\alpha}{2} \psi + \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z} \big)
+	+\frac{\alpha}{2} \psi + \frac{1}{L} \sum_{l=1}^{L} \frac{N}{2} \matr{g}_{\theta_l} \odot \big(\psi^{1/2} \odot \matr{z}_l \big)
 	\Bigg)
 \end{equation}
 for learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$. Pseudo code for the practical implementation is given in Algorithm \ref{alg:vi_fa}. Being a VI method for approximating a posterior with a FA model, the algorithm is named VIFA.
@@ -900,9 +823,9 @@ for learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$. Pseudo code
 			\State $\theta \leftarrow \matr{Fh} + \matr{c} + \psi^{1/2} \odot \matr{z}$
 			\State $\matr{g}_\theta \leftarrow \nabla_\theta \big(-\frac{1}{M} \sum_{(\matr{x}, y) \in \mathcal{B}} \log p(y | \matr{x}, \theta)\big)$ 
 			(via back-propagation)
-			\State $\hat{\matr{g}}_\matr{c} \leftarrow \hat{\matr{g}}_\matr{c} + N \hat{\matr{g}}_\theta$
-			\State $\hat{\matr{G}}_\matr{F} \leftarrow \hat{\matr{G}}_\matr{F} + N \hat{\matr{g}}_\theta \matr{h}^\intercal$
-			\State $\hat{\matr{g}}_\gamma \leftarrow \hat{\matr{g}}_\gamma + \frac{N}{2} \hat{\matr{g}}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
+			\State $\hat{\matr{g}}_\matr{c} \leftarrow \hat{\matr{g}}_\matr{c} + N \matr{g}_\theta$
+			\State $\hat{\matr{G}}_\matr{F} \leftarrow \hat{\matr{G}}_\matr{F} + N \matr{g}_\theta \matr{h}^\intercal$
+			\State $\hat{\matr{g}}_\gamma \leftarrow \hat{\matr{g}}_\gamma + \frac{N}{2} \matr{g}_\theta \odot \big(\psi^{1/2} \odot \matr{z}\big)$
 			\If {$t \bmod L = 0$}
 				\State $\matr{c} \leftarrow \matr{c} - \eta_\matr{c} \big(\alpha \matr{c} + \frac{1}{L}\hat{\matr{g}}_\matr{c}\big)$
 				\State $\matr{F} \leftarrow \matr{F} - \eta_\matr{F} \big(-\matr{A}  + \matr{C} \matr{B}^\intercal+ \alpha \matr{F} +\frac{1}{L}\hat{\matr{G}}_\matr{F}\big)$
@@ -918,6 +841,8 @@ for learning rates $\eta_\matr{c},  \eta_\matr{F}, \eta_\gamma > 0$. Pseudo code
 
 
 \section{Experiments}
+
+This section present the results of using VIFA to estimate the posterior distribution of linear regression models fit to both synthetic and real datasets. Also, for neural networks, the ability of VIFA to make predictions with uncertainty estimates is tested in comparison to SLANG.
 
 \subsection{Posterior Estimation with Synthetic Data}\label{sec:vifa_posterior_synthetic}
 
@@ -1175,8 +1100,6 @@ It then follows that $\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi)$ is th
 \begin{split}
 	\nabla_{\matr{F}} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \E \big[ \Psi^{-1} (\matr{d}_t - \matr{Fh}_t) \matr{h}_t^\intercal \big] \\
-	%& = \Psi^{-1} \big(\E \big[ \matr{d}_t \matr{h}_t^\intercal \big] 
-	%- \E \big[ \matr{Fh}_t \matr{h}_t^\intercal \big] \big) \\
 	& = \Psi^{-1}\big( \matr{d}_t \E \big[ \matr{h}_t^\intercal \big] 
 	- \matr{F}  \E \big[ \matr{h}_t \matr{h}_t^\intercal \big]\big).
 \end{split}
@@ -1236,7 +1159,6 @@ Again, letting $\E[\cdot]$ denote $\E_{p(\matr{h}_t | \theta_t, \matr{F}, \Psi)}
 \begin{split}
 	2 \cdot \nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \E \big[ \diag\big(\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big) - \Psi^{-1} \big] \\
-	%& = \diag\Big(\E \big[\diag(\Psi^{-2}) \odot (\matr{d}_t - \matr{Fh}_t)^2\big]\Big) - \E \big[ \Psi^{-1} \big] \\
 	& = \diag\Big(\diag(\Psi^{-2}) \odot \E \big[(\matr{d}_t - \matr{Fh}_t)^2\big]\Big) - \Psi^{-1}.
 \end{split}
 \end{align} 
@@ -1246,14 +1168,13 @@ Now, expanding the expectation inside Equation (\ref{eqn:expected_gradient}) and
 	\E \big[(\matr{d}_t - \matr{Fh}_t)^2\big] 
 	& = \E \big[\matr{d}_t \odot \matr{d}_t \big] - 2\E \big[ \matr{d}_t \odot (\matr{Fh}_t) \big] + \E \big[ (\matr{Fh}_t) \odot (\matr{Fh}_t) \big] \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot \big(\matr{F} \E \big[ \matr{h}_t \big]\big) + \E \big[ \diag(\matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal) \big] \\
-	%& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big(\E \big[ \matr{F}\matr{h}_t \matr{h}_t^\intercal  \matr{F}^\intercal \big]\big) \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big( \matr{F} \E \big[ \matr{h}_t \matr{h}_t^\intercal \big] \matr{F}^\intercal \big) \\
 	& = \matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) + \diag\big( \matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \matr{F}^\intercal \big).
 \end{split}
 \end{align} 
 Finally, substituting Equation (\ref{eqn:expected_gradient_d_Fh}) into Equation (\ref{eqn:expected_gradient}) and rearranging, 
 \begin{align}
-\begin{split}%\label{eqn:derivatives_wrt_Psi}
+\begin{split}
 	\nabla_{\Psi} \log p(\theta_t | \matr{F}, \Psi) 
 	& = \diag\Bigg(\frac{1}{2} \diag(\Psi^{-2}) \odot \Big(\matr{d}_t \odot \matr{d}_t - 2\matr{d}_t \odot (\matr{F} \matr{m}_t) \\
 	& \quad + \diag\big( \matr{F} (\Sigma + \matr{m}_t \matr{m}_t^\intercal) \matr{F}^\intercal \big) \Big) \Bigg)
@@ -1293,13 +1214,13 @@ Recall that Figure \ref{fig:fa_covar_distance} shows the relative distance of th
  			\toprule
  			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ 
  			\midrule
-			100 	& $[1, 10]$ 	& $0.0454 \pm 0.0077$ 	& $0.0399 \pm 0.0058$	& $0.0426 \pm 0.0005$ \\ 
-				& $[1, 100]$ 	& $0.0631 \pm 0.0073$ 	& $0.0613 \pm 0.0057$ 	& $0.1309 \pm 0.0038$ \\ 
-				& $[1, 1000]$	& $0.0608 \pm 0.0087$ 	& $0.1767 \pm 0.0037$ 	& $0.2350 \pm 0.0046$ \\ 
+			100 	& $[1, 10]$ 	& $\mathbf{0.0454 \pm 0.0077}$ & $\mathbf{0.0399 \pm 0.0058}$	& $\mathbf{0.0426 \pm 0.0005}$ \\ 
+				& $[1, 100]$ 	& $\mathbf{0.0631 \pm 0.0073}$ & $\mathbf{0.0613 \pm 0.0057}$ 	& $0.1309 \pm 0.0038$ \\ 
+				& $[1, 1000]$	& $\mathbf{0.0608 \pm 0.0087}$ & $0.1767 \pm 0.0037$ 			& $0.2350 \pm 0.0046$ \\ 
 			\midrule
-			1000	& $[1, 10]$ 	& $0.0204 \pm 0.0010$ 	& $0.0207 \pm 0.0003$ 	& $0.0546 \pm 0.0009$ \\ 
-				& $[1, 100]$ 	& $0.0217 \pm 0.0011$ 	& $0.0238 \pm 0.0013$ 	& $0.0472 \pm 0.0008$ \\ 
-				& $[1, 1000]$ 	& $0.0218 \pm 0.0011$ 	& $0.0501 \pm 0.0016$ 	& $0.0945 \pm 0.0024$ \\
+			1000	& $[1, 10]$ 	& $\mathbf{0.0204 \pm 0.0010}$ & $\mathbf{0.0207 \pm 0.0003}$ 	& $0.0546 \pm 0.0009$ \\ 
+				& $[1, 100]$ 	& $\mathbf{0.0217 \pm 0.0011}$ & $\mathbf{0.0238 \pm 0.0013}$ 	& $0.0472 \pm 0.0008$ \\ 
+				& $[1, 1000]$ 	& $\mathbf{0.0218 \pm 0.0011}$ & $0.0501 \pm 0.0016$ 			& $0.0945 \pm 0.0024$ \\
 			\bottomrule
 		\end{tabular}
 		\caption{The relative distance of the estimated FA covariance matrix from the true covariance matrix when 
@@ -1324,7 +1245,7 @@ Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between 
 		 (e) $D=100$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$ 
 		 & (f) $D=1000$, $K=10$, $\matr{s}^2 \sim \mathcal{U}(1, 1000)$\\[6pt]
 	\end{tabular}
-	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension. The blue, orange and green lines show the scaled 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted. The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
+	\caption{The 2-Wasserstein distance between the Gaussian distribution defined by each estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension. The blue, orange and green lines show the scaled 2-Wasserstein distance corresponding to batch SVD, online EM and online SGA, respectively. Each data point shows the mean value over ten trials with different random seeds, and standard error bars are also plotted (although in most cases, these are very small and thus difficult to see). The different plots correspond to different combinations of the observation dimension $D$, the latent dimension $K$ and the range of the spectrum $\matr{s}^2$.}
 	\label{fig:fa_wasserstein}
 \end{figure}
 
@@ -1334,13 +1255,13 @@ Figure \ref{fig:fa_wasserstein} shows the scaled 2-Wasserstein distance between 
  			\toprule
  			Obs. Dim & Spectrum Range & Batch SVD & Online EM & Online SGA \\ 
  			\midrule
-			100 	& $[1, 10]$ 	& $0.0061 \pm 0.0009$ 	& $0.0058 \pm 0.0006$ 	& $0.0062 \pm 0.0004$ \\ 
-				& $[1, 100]$ 	& $0.0256 \pm 0.0022$ 	& $0.0246 \pm 0.0021$ 	& $0.0446 \pm 0.0018$ \\ 
-				& $[1, 1000]$	& $0.0780 \pm 0.0089$ 	& $0.2137 \pm 0.0054$ 	& $0.2855 \pm 0.0040$ \\ 
+			100 	& $[1, 10]$ 	& $\mathbf{0.0061 \pm 0.0009}$ & $\mathbf{0.0058 \pm 0.0006}$ 	& $\mathbf{0.0062 \pm 0.0004}$ \\ 
+				& $[1, 100]$ 	& $\mathbf{0.0256 \pm 0.0022}$ & $\mathbf{0.0246 \pm 0.0021}$ 	& $0.0446 \pm 0.0018$ \\ 
+				& $[1, 1000]$	& $\mathbf{0.0780 \pm 0.0089}$ & $0.2137 \pm 0.0054$ 			& $0.2855 \pm 0.0040$ \\ 
 			\midrule
-			1000	& $[1, 10]$ 	& $0.0015 \pm 0.0001$ 	& $0.0016 \pm 0.0001$ 	& $0.0023 \pm 0.0001$ \\ 
-				& $[1, 100]$ 	& $0.0048 \pm 0.0002$ 	& $0.0049 \pm 0.0002$ 	& $0.0062 \pm 0.0001$ \\ 
-				& $[1, 1000]$ 	& $0.0152 \pm 0.0005$ 	& $0.0217 \pm 0.0003$ 	& $0.0349 \pm 0.0006$ \\ 
+			1000	& $[1, 10]$ 	& $\mathbf{0.0015 \pm 0.0001}$ & $\mathbf{0.0016 \pm 0.0001}$ 	& $0.0023 \pm 0.0001$ \\ 
+				& $[1, 100]$ 	& $\mathbf{0.0048 \pm 0.0002}$ & $\mathbf{0.0049 \pm 0.0002}$ 	& $0.0062 \pm 0.0001$ \\ 
+				& $[1, 1000]$ 	& $\mathbf{0.0152 \pm 0.0005}$ & $0.0217 \pm 0.0003$ 			& $0.0349 \pm 0.0006$ \\ 
 			\bottomrule
 		\end{tabular}
 		\caption{2-Wasserstein distance between the Gaussian distribution defined by the estimated FA model and the Gaussian distribution defined by the true FA model, divided by the observation dimension, when the number of training samples is 100,000. Each result is the mean value over ten trials with different random seeds, along with standard errors. These results correspond to the right-most points in the plots in Figure \ref{fig:fa_wasserstein}.}
