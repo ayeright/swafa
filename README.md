@@ -50,3 +50,5 @@ The stages correspond to the experiments in the following section of the thesis:
 * `online_fa` an `online_fa_analysis`: Section 4.4.1
 * `linear_regression_vi`: Section 5.2.2
 * `neural_net_predictions`: Section 5.2.3
+
+If you want to change any of the parameters for the experiments, you can do so in `params.yaml`.
