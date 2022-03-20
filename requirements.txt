@@ -1,4 +1,4 @@
-pytorch==1.8.1
+torch==1.8.1
 torchvision==0.9.1
 pytest==6.2.4
 dvc==2.4.3
