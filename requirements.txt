@@ -2,7 +2,7 @@ torch==1.8.1
 torchvision==0.9.1
 torchmetrics==0.4.1
 pytest==6.2.4
-dvc==2.4.3
+dvc==2.27.2
 scikit-learn==0.24.2
 numpy==1.20.3
 pandas==1.2.5
