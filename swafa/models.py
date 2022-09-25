@@ -225,7 +225,7 @@ class FeedForwardNet(LightningModule):
         return torch.stack(step_losses).mean()
 
 
-class FeedForwardGaussianNet(FeedForwardNet, LightningModule):
+class FeedForwardGaussianNet(FeedForwardNet):
     """
     A feed forward neural network which predicts the parameters of a 1D Gaussian distribution for each input.
 
