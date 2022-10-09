@@ -180,12 +180,6 @@ class Objective:
         y_mean = scaler.mean_[-1]
         y_scale = scaler.scale_[-1]
 
-        if torch.cuda.is_available():
-            X_train.to('cuda')
-            y_train.to('cuda')
-            X_test.to('cuda')
-            y_test.to('cuda')
-
         standardised_noise_precision = self.standardise_noise_precision(noise_precision, y_scale)
 
         model, variational_callback = self.train_model(
@@ -429,6 +423,10 @@ class Objective:
         Returns:
             The predictions, of shape (n_rows,). Note that these are non-standardised.
         """
+        if torch.cuda.is_available():
+            model.cuda()
+            X.to(model.device)
+
         weights = variational_callback.sample_weight_vector()
         set_weights(model, weights)
         y_pred, _ = model(X)
