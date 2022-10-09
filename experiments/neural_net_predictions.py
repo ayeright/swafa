@@ -430,6 +430,9 @@ class Objective:
             model.cuda()
             X.to(next(model.parameters()).device)
 
+        print(X)
+        print(model.hidden_layers[0].weight)
+
         y_pred, _ = model(X)
 
         return self.de_standardise_target(y_pred, y_mean, y_scale)
