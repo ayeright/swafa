@@ -299,7 +299,7 @@ class Objective:
             accelerator="auto",
         )
 
-        trainer.fit(model, train_dataloader=dataloader)
+        trainer.fit(model, train_dataloaders=dataloader)
 
         return model, variational_callback
 
