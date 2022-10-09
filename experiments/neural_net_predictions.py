@@ -427,13 +427,9 @@ class Objective:
         set_weights(model, weights)
 
         if torch.cuda.is_available():
-            device = 'cuda:0'
-            model.to(device)
-            X.to(device)
-
-        print(device)
-        print(X)
-        print(model.hidden_layers[0].weight)
+            model.cuda()
+            device = next(model.parameters()).device
+            X = X.to(device)
 
         y_pred, _ = model(X)
 
