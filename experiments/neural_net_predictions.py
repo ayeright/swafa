@@ -423,12 +423,13 @@ class Objective:
         Returns:
             The predictions, of shape (n_rows,). Note that these are non-standardised.
         """
+        weights = variational_callback.sample_weight_vector()
+        set_weights(model, weights)
+
         if torch.cuda.is_available():
             model.cuda()
             X.to(model.device)
 
-        weights = variational_callback.sample_weight_vector()
-        set_weights(model, weights)
         y_pred, _ = model(X)
 
         return self.de_standardise_target(y_pred, y_mean, y_scale)
