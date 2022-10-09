@@ -277,6 +277,8 @@ class Objective:
             random_seed=self.random_seed,
         )
 
+        use_gpu = torch.cuda.is_available()
+
         variational_callback = FactorAnalysisVariationalInferenceCallback(
             latent_dim=self.latent_dim,
             precision=prior_precision,
@@ -287,7 +289,7 @@ class Objective:
             noise_optimiser_kwargs=optimiser_kwargs,
             max_grad_norm=self.max_grad_norm,
             random_seed=self.random_seed,
-            device=torch.device('cuda'),
+            device=torch.device('cuda:0') if use_gpu else None,
         )
 
         dataset = TensorDataset(X, y)
@@ -296,8 +298,9 @@ class Objective:
         trainer = Trainer(
             max_epochs=self.n_epochs,
             callbacks=variational_callback,
-            devices=1,
-            accelerator="gpu",
+            devices=1 if use_gpu else -1,
+            accelerator='gpu' if use_gpu else 'cpu',
+            enable_progress_bar=False,
         )
 
         trainer.fit(model, train_dataloaders=dataloader)
@@ -432,10 +435,9 @@ class Objective:
 
         if torch.cuda.is_available():
             model.cuda()
-            device = next(model.parameters()).device
-            X = X.to(device)
 
-        y_pred, _ = model(X)
+        device = next(model.parameters()).device
+        y_pred, _ = model(X.to(device))
 
         return self.de_standardise_target(y_pred, y_mean, y_scale)
 
