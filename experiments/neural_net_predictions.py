@@ -287,6 +287,7 @@ class Objective:
             noise_optimiser_kwargs=optimiser_kwargs,
             max_grad_norm=self.max_grad_norm,
             random_seed=self.random_seed,
+            device=torch.device('cuda'),
         )
 
         dataset = TensorDataset(X, y)
