@@ -272,6 +272,14 @@ class FeedForwardGaussianNet(FeedForwardNet):
             random_seed=random_seed,
         )
 
+        self.hidden_layers = nn.ModuleList()
+        d_in = deepcopy(input_dim)
+        for d_out in self.hidden_dims:
+            self.hidden_layers.append(nn.Linear(d_in, d_out, bias=bias))
+            d_in = d_out
+
+        self.output_layer = nn.Linear(d_in, 1, bias=bias)
+
         self.log_variance_layer = None
         if target_variance is None:
             d_in = self.output_layer.in_features

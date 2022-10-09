@@ -299,7 +299,6 @@ class Objective:
             accelerator="gpu",
         )
 
-        model.cuda()
         trainer.fit(model, train_dataloaders=dataloader)
 
         return model, variational_callback
