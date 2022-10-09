@@ -377,10 +377,12 @@ class Objective:
         Returns:
             The root mean squared error between the true targets and the mean of the predicted targets.
         """
+        device = y_preds.device
+
         mu = y_preds.mean(dim=1)
         mse_fn = torch.nn.MSELoss(reduction='mean')
 
-        return mse_fn(mu, y).sqrt().item()
+        return mse_fn(mu, y.to(device)).sqrt().item()
 
     @staticmethod
     def compute_marginal_log_likelihood(y: Tensor, y_preds: Tensor, noise_precision: float) -> float:
@@ -395,12 +397,14 @@ class Objective:
         Returns:
             The average marginal log-likelihood.
         """
+        device = y_preds.device
+
         n_predictions = y_preds.shape[1]
-        var = torch.ones_like(y) * (1 / noise_precision)
+        var = torch.ones_like(y, device=device) * (1 / noise_precision)
 
         nll_fn = torch.nn.GaussianNLLLoss(reduction='none', full=True)
         lls = -torch.hstack(
-            [nll_fn(y_preds[:, i], y, var).unsqueeze(dim=1) for i in range(n_predictions)]
+            [nll_fn(y_preds[:, i], y.to(device), var).unsqueeze(dim=1) for i in range(n_predictions)]
         )
 
         return torch.logsumexp(lls, dim=1).mean().item() - np.log(n_predictions)
