@@ -427,8 +427,8 @@ class Objective:
         set_weights(model, weights)
 
         if torch.cuda.is_available():
-            model.cuda()
-            device = next(model.parameters()).device
+            device = 'cuda:0'
+            model.to(device)
             X.to(device)
 
         print(device)
