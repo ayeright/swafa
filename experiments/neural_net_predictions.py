@@ -295,7 +295,6 @@ class Objective:
         trainer = Trainer(
             max_epochs=self.n_epochs,
             callbacks=variational_callback,
-            weights_summary=None,
             progress_bar_refresh_rate=0,
             gpus=1 if torch.cuda.is_available() else None,
         )
