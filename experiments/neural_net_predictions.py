@@ -428,10 +428,7 @@ class Objective:
 
         if torch.cuda.is_available():
             model.cuda()
-            X.to(model.device)
-
-        print(X)
-        print(model.hidden_layers[0].weight)
+            X.to(next(model.parameters()).device)
 
         y_pred, _ = model(X)
 
