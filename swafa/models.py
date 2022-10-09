@@ -318,4 +318,8 @@ class FeedForwardGaussianNet(FeedForwardNet):
         """
         X, y = batch
         mu, var = self(X)
+
+        print(mu)
+        print(var)
+
         return self.loss_fn(mu, y, var) * self.loss_multiplier

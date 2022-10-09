@@ -296,7 +296,7 @@ class Objective:
             max_epochs=self.n_epochs,
             callbacks=variational_callback,
             devices=1,
-            accelerator="auto",
+            accelerator="gpu",
         )
 
         trainer.fit(model, train_dataloaders=dataloader)
