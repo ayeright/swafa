@@ -317,9 +317,9 @@ class FeedForwardGaussianNet(FeedForwardNet):
             The batch loss. Of shape (1,).
         """
         X, y = batch
-        mu, var = self(X)
 
-        print(mu)
-        print(var)
+        print(X)
+
+        mu, var = self(X)
 
         return self.loss_fn(mu, y, var) * self.loss_multiplier
