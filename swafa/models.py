@@ -319,6 +319,7 @@ class FeedForwardGaussianNet(FeedForwardNet):
         X, y = batch
 
         print(X)
+        print(self.hidden_layers[0])
 
         mu, var = self(X)
 
