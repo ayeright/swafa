@@ -302,9 +302,9 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         self.diag_psi = fa.diag_psi
         self._log_diag_psi = Variable(torch.log(self.diag_psi), requires_grad=False)
 
-        self.c.grad = torch.zeros_like(self.c.data)
-        self.F.grad = torch.zeros_like(self.F.data)
-        self._log_diag_psi.grad = torch.zeros_like(self._log_diag_psi.data)
+        self.c.grad = torch.zeros_like(self.c.data, device=self.device)
+        self.F.grad = torch.zeros_like(self.F.data, device=self.device)
+        self._log_diag_psi.grad = torch.zeros_like(self._log_diag_psi.data, device=self.device)
 
     def _init_optimiser(self):
         """
@@ -325,8 +325,10 @@ class FactorAnalysisVariationalInferenceCallback(Callback):
         Returns:
             Sample of shape (self.weight_dim,).
         """
-        self._h = torch.normal(torch.zeros(self.latent_dim), torch.ones(self.latent_dim))[:, None]
-        self._z = torch.normal(torch.zeros(self.weight_dim), torch.ones(self.weight_dim))[:, None]
+        self._h = torch.normal(torch.zeros(self.latent_dim, device=self.device),
+                               torch.ones(self.latent_dim, device=self.device))[:, None]
+        self._z = torch.normal(torch.zeros(self.weight_dim, device=self.device),
+                               torch.ones(self.weight_dim, device=self.device))[:, None]
         self._sqrt_diag_psi_dot_z = torch.sqrt(self.diag_psi) * self._z
         return (self.F.mm(self._h) + self.c + self._sqrt_diag_psi_dot_z).squeeze(dim=1)
 

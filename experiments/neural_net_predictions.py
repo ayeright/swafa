@@ -277,6 +277,8 @@ class Objective:
             random_seed=self.random_seed,
         )
 
+        use_gpu = torch.cuda.is_available()
+
         variational_callback = FactorAnalysisVariationalInferenceCallback(
             latent_dim=self.latent_dim,
             precision=prior_precision,
@@ -287,6 +289,7 @@ class Objective:
             noise_optimiser_kwargs=optimiser_kwargs,
             max_grad_norm=self.max_grad_norm,
             random_seed=self.random_seed,
+            device=torch.device('cuda:0') if use_gpu else None,
         )
 
         dataset = TensorDataset(X, y)
@@ -295,8 +298,9 @@ class Objective:
         trainer = Trainer(
             max_epochs=self.n_epochs,
             callbacks=variational_callback,
-            devices=1,
-            accelerator="auto",
+            devices=1 if use_gpu else -1,
+            accelerator='gpu' if use_gpu else 'cpu',
+            enable_progress_bar=False,
         )
 
         trainer.fit(model, train_dataloaders=dataloader)
@@ -376,10 +380,12 @@ class Objective:
         Returns:
             The root mean squared error between the true targets and the mean of the predicted targets.
         """
+        device = y_preds.device
+
         mu = y_preds.mean(dim=1)
         mse_fn = torch.nn.MSELoss(reduction='mean')
 
-        return mse_fn(mu, y).sqrt().item()
+        return mse_fn(mu, y.to(device)).sqrt().item()
 
     @staticmethod
     def compute_marginal_log_likelihood(y: Tensor, y_preds: Tensor, noise_precision: float) -> float:
@@ -394,12 +400,14 @@ class Objective:
         Returns:
             The average marginal log-likelihood.
         """
+        device = y_preds.device
+
         n_predictions = y_preds.shape[1]
-        var = torch.ones_like(y) * (1 / noise_precision)
+        var = torch.ones_like(y, device=device) * (1 / noise_precision)
 
         nll_fn = torch.nn.GaussianNLLLoss(reduction='none', full=True)
         lls = -torch.hstack(
-            [nll_fn(y_preds[:, i], y, var).unsqueeze(dim=1) for i in range(n_predictions)]
+            [nll_fn(y_preds[:, i], y.to(device), var).unsqueeze(dim=1) for i in range(n_predictions)]
         )
 
         return torch.logsumexp(lls, dim=1).mean().item() - np.log(n_predictions)
@@ -424,7 +432,12 @@ class Objective:
         """
         weights = variational_callback.sample_weight_vector()
         set_weights(model, weights)
-        y_pred, _ = model(X)
+
+        if torch.cuda.is_available():
+            model.cuda()
+
+        device = next(model.parameters()).device
+        y_pred, _ = model(X.to(device))
 
         return self.de_standardise_target(y_pred, y_mean, y_scale)
 
