@@ -38,8 +38,9 @@ def generate_model_and_data(
         y: Binary output labels, of shape (n_samples,)
         theta: Model weights, of shape (n_features, 1).
     """
-    np.random.seed(random_seed)
-    torch.manual_seed(random_seed)
+    if random_seed is not None:
+        np.random.seed(random_seed)
+        torch.manual_seed(random_seed)
 
     n_features = len(feature_covar)
     zeros = torch.zeros(n_features)
@@ -134,7 +135,7 @@ def compute_prior_log_prob(theta: Tensor, precision: float) -> float:
 
     p_theta = MultivariateNormal(loc=torch.zeros(n_features), covariance_matrix=torch.eye(n_features) / precision)
 
-    return p_theta.log_prob(theta)
+    return p_theta.log_prob(theta).item()
 
 
 def compute_log_likelihood(theta: Tensor, X: Tensor, y: Tensor) -> float:
@@ -151,4 +152,4 @@ def compute_log_likelihood(theta: Tensor, X: Tensor, y: Tensor) -> float:
     """
     logits = X.mm(theta.unsqueeze(1)).squeeze()
 
-    return -nn.BCEWithLogitsLoss(reduction='sum')(logits, y)
+    return -nn.BCEWithLogitsLoss(reduction='sum')(logits, y).item()
