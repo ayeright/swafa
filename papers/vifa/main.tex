@@ -12,6 +12,11 @@
 \usepackage{hyperref}
 \usepackage{url}
 
+% graphics
+\usepackage{graphicx}
+%\usepackage{subfig}
+%\usepackage{booktabs}
+
 
 \title{Formatting Instructions for TMLR \\Journal Submissions}
 
@@ -36,6 +41,9 @@
 
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
+
+% Scott's commands
+\newcommand{\vgamma}{\bm{\gamma}}
 
 \def\month{MM}  % Insert correct month for camera-ready version
 \def\year{YYYY} % Insert correct year for camera-ready version
@@ -399,7 +407,66 @@ Only add this information once your submission is accepted and deanonymized.
 
 \section{Simulations}
 
-Let's put any simulation results here for now.
+\subsection{Linear regression posterior estimation with synthetic data}
+
+The purpose of these simulations is to test that VIFA is able to learn the posterior distribution of a very simple linear regression model with two learnable parameters.
+
+\subsubsection{Methodology}\label{sec:linear_regression_synthetic_data_posterior_methodology}
+
+Synthetic data was generated as follows. First, $1000$ inputs $\vx \in \R^2$ were sampled from a multivariate zero mean Gaussian distribution with unit variances and covariances of $0.5$. Next, the linear regression parameter vector $\vtheta \in \R^2$ was sampled from $\mathcal{N} ( \vtheta ; 0, \alpha^{-1} \mI)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to the equation $y = \vtheta^T \vx + \epsilon$, where $\epsilon \sim \mathcal{N} ( \epsilon ; 0, \beta^{-1})$ with $\beta = 0.1$.
+
+Using this data, the true posterior distribution was evaluated in closed form (TODO: needs citation or reference to equation) and an approximate posterior with latent dimension $K=1$ was estimated via VIFA. VIFA ran for $5000$ epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\vc$,  $\eta_\mF$ and $\eta_{\vgamma}$ were set to $0.01$, $0.0001$ and $0.01$, respectively. The reasoning for using a smaller learning rate for $\mF$ was that its contribution to the full covariance matrix is $\mF\mF^T$. Since this is regression, the likelihood function used in VIFA was set to $\mathcal{N} (y; \vtheta^T \vx, \beta^{-1})$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than $10$ were rescaled to have norm of exactly $10$.
+
+\subsubsection{Results and discussion}
+
+Figure \ref{fig:linear_regression_synthetic_data_posterior} shows a qualitative comparison between the ground truth and approximate linear regression posteriors. (TODO: add discussion here plus results for more random seeds in appendix).
+\begin{figure}[!htbp] 
+\begin{center}
+\begin{tabular}{cc}
+	\includegraphics[width=70mm]{../../thesis/plots/linear_model_true_posterior__alpha=0.01__beta=0.1.png}
+	& \includegraphics[width=70mm]{../../thesis/plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=1.png} \\
+	(a) Ground truth
+	& (b) VIFA \\[6pt]
+\end{tabular}
+\end{center}
+\caption{The ground truth posterior pdf of a linear regression model with two learnable parameters, plus the pdf of a FA model with a single latent dimension which was fit to the same data using VIFA.}
+\label{fig:linear_regression_synthetic_data_posterior}
+\end{figure}
+
+
+\subsection{Logistic regression posterior estimation with synthetic data}
+
+The purpose of these simulations is to test that VIFA is able to learn the posterior distribution of a very simple logistic regression model with two learnable parameters.
+
+\subsubsection{Methodology}
+
+Synthetic inputs $\vx \in \R^2$ and the logistic regression parameter vector $\vtheta \in \R^2$ were sampled in the same way as in Section \ref{sec:linear_regression_synthetic_data_posterior_methodology}. However, this time $3000$ inputs were used. To generate each output $y \in \{0, 1\}$, the positive class probability was first evaluated as $p = \sigmoid(\vtheta^T \vx)$, where $\sigma: \R \rightarrow [0,1]$ denotes the logistic sigmoid function. Then a random number was sampled uniformly from the interval $[0, 1]$ and $y$ was set to $1$ if this number was less than $p$, else $0$.
+
+Unlike linear regression, there is no closed form solution for the true posterior of a logistic regression model. In this case, the ground truth posterior was evaluated by first looping over a 2D grid around the true parameter vector $\vtheta$ and evaluating the unnormalised log posterior probability at each point in the grid. Formally, this is
+\begin{equation}
+	\mathcal{N} ( \vtheta ; 0, \alpha^{-1} \mI) \prod_{n=1}^{3000} \sigmoid(\vtheta^T \vx_n)^{y_n} \sigmoid(\vtheta^T \vx_n)^{1 - y_n}.
+\end{equation}
+Then the values in the grid were scaled such that the maximum value was equal to $1$. This posterior is only correct up to a constant, but suffices for a qualitative comparison.
+
+The posterior was then approximated via VIFA using the exact same hyperparameters as in Section \ref{sec:linear_regression_synthetic_data_posterior_methodology}. This time, the likelihood function used in VIFA was set to binary cross-entropy. That is, $\sigmoid(\vtheta^T \vx_n)^{y_n} \sigmoid(\vtheta^T \vx_n)^{1 - y_n}$.
+
+
+\subsubsection{Results and discussion}
+
+Figure \ref{fig:logistic_regression_synthetic_data_posterior} shows a qualitative comparison between the ground truth and approximate logistic regression posteriors. (TODO: add discussion here plus results for more random seeds in appendix).
+\begin{figure}[!htbp] 
+\begin{center}
+\begin{tabular}{cc}
+	\includegraphics[width=70mm]{plots/logistic_regression_synthetic_true_posterior.png}
+	& \includegraphics[width=70mm]{plots/logistic_regression_synthetic_vifa_posterior.png} \\
+	(a) Ground truth
+	& (b) VIFA \\[6pt]
+\end{tabular}
+\end{center}
+\caption{The ground truth posterior pdf of a logistic regression model with two learnable parameters, plus the pdf of a FA model with a single latent dimension which was fit to the same data using VIFA. Both posteriors are scaled such that the maximum value is equal to $1$.}
+\label{fig:logistic_regression_synthetic_data_posterior}
+\end{figure}
+
 
 \bibliography{main}
 \bibliographystyle{tmlr}
