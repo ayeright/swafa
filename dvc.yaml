@@ -8,6 +8,8 @@ vars:
       results_dir: experiments/data/linear_regression_vi_results
   - neural_net_predictions_io:
       results_dir: experiments/data/neural_net_predictions_results
+  - slang_datasets_io:
+      datasets_dir: experiments/data/slang_datasets
 
 stages:
   online_fa:
@@ -99,3 +101,11 @@ stages:
         - neural_net_predictions.datasets.${key}
       outs:
         - ${neural_net_predictions_io.results_dir}/${key}
+
+  download_slang_datasets:
+    cmd: python experiments/slang_datasets.py
+      --datasets-output-dir ${slang_datasets_io.datasets_dir}
+    deps:
+      - experiments/slang_datasets.py
+    outs:
+      - ${slang_datasets_io.datasets_dir}
