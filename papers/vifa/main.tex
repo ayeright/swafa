@@ -503,20 +503,20 @@ By computing uncertainty scores for each test sample using either of the two afo
 \subsection{Results and discussion}
 
 \subsubsection{Prediction Performance}
-Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance of VIFA and traditional gradient descent training of resnet-18 model. For most metrics, such as Accuracy, Precision, Recall, and F1-score, VIFA training leads to a better model than traditional gradient descent training. The only two exceptions are AU-ROC and training time. However, the differences for these two metrics are not significant, and it is noticeable that VIFA uses only slightly more time than Gradient Descent but gets reliable predictive uncertainties simultaneously. 
+Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance of VIFA and traditional gradient descent training of resnet-18 model. For most metrics, such as Accuracy, F1-score and AU-ROC, the performances of VIFA are very competitive to that of Gradient Descent and their value are very close to each other. VIFA leads to a better Precision value while Gradient Descent has more satisfying Recall score, but their differences are not significant. The only exceptional metric is the training time, for which the time used for Gradient Descent training is around 6\% less than VIFA training. However, it is noticeable that VIFA gets reliable predictive uncertainties simultaneously and a little bit more computational time compared to this achievable uncertainty quantification is reasonable. 
 
 \begin{table}[!htp]
-\caption{Mean test results for resnet-18 model on diabetic retinopathy detection task. The performances of applying VIFA and Gradient Descent algorithms are compared. Metrics include accuracy, precision, recall, F1-score, and Area Under Receiver Operating Characteristic curve (AU-ROC). The mean results over 5 different train-valid-test splits are shown. The results for test metrics include standard errors. The runtime refers to the total runtime for a single train-valid-test split. The best results on each row are highlighted in bold.}
+\caption{Mean test results for resnet-18 model on diabetic retinopathy detection task. The performances of applying VIFA and Gradient Descent algorithms are compared. Metrics include accuracy, precision, recall, F1-score, and Area Under Receiver Operating Characteristic curve (AU-ROC). The mean results over 5 different train-valid-test splits are shown. The results for test metrics include standard errors. The runtime refers to the total runtime for a single train-valid-test split. All experiments were executed on machines with Intel(R) Xeon(R) Silver 4114 CPU and NVIDIA GeForce RTX 2080 Ti GPU. The best results on each row are highlighted in bold (no score is bolded if both scores are competitive).}
 \label{table: VIFA_GD_comparison}
 \begin{center}
 \begin{tabular}{c|c|c}
                    & \textbf{VIFA}        & \textbf{Gradient Descent} \\ \hline
-\textbf{Accuracy}  & \textbf{0.929$\pm$0.003} & 0.921$\pm$0.004               \\
-\textbf{Precision} & \textbf{0.913$\pm$0.009} & 0.911$\pm$0.009               \\
-\textbf{Recall}    & \textbf{0.919$\pm$0.014} & 0.896$\pm$0.009               \\
-\textbf{F1-Score}  & \textbf{0.915$\pm$0.004} & 0.903$\pm$0.006               \\
-\textbf{AU-ROC}    & 0.977$\pm$0.002          & \textbf{0.979$\pm$0.002}      \\
-\textbf{Time(minutes)}      & 460.9$\pm$2.4        & \textbf{452.7$\pm$1.8}   
+\textbf{Accuracy}  & 0.928$\pm$0.003 & 0.927$\pm$0.004               \\
+\textbf{Precision} & \textbf{0.921$\pm$0.009} & 0.914$\pm$0.009               \\
+\textbf{Recall}    & 0.904$\pm$0.014 & \textbf{0.907$\pm$0.009}               \\
+\textbf{F1-Score}  & 0.912$\pm$0.004 & 0.911$\pm$0.005              \\
+\textbf{AU-ROC}    & 0.980$\pm$0.002          & 0.979$\pm$0.002      \\
+\textbf{Time(minutes)}      & 463.2$\pm$2.8        & \textbf{435.7$\pm$1.8}   
 \end{tabular}
 \end{center}
 \end{table}
