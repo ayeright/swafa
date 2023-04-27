@@ -934,14 +934,3 @@ stages:
       md5: e6af019317ebcbed5a0a36b1609372c6.dir
       size: 2494
       nfiles: 2
-  download_slang_datasets:
-    cmd: python experiments/slang_datasets.py --datasets-output-dir experiments/data/slang_datasets
-    deps:
-    - path: experiments/slang_datasets.py
-      md5: bd623a6931b1e28d7428c29dc69b4651
-      size: 720
-    outs:
-    - path: experiments/data/slang_datasets
-      md5: 209701a0b826fc0a5716b0d6efcc458e.dir
-      size: 183034810
-      nfiles: 396
