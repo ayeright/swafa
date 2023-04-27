@@ -467,6 +467,82 @@ Figure \ref{fig:logistic_regression_synthetic_data_posterior} shows a qualitativ
 \label{fig:logistic_regression_synthetic_data_posterior}
 \end{figure}
 
+\section{Application: Medical Imaging}
+
+To illustrate the model-agnostic nature of VIFA algorithm, we adopt our algorithm to Convolutional Neural Networks (CNN) and evaluate its effectiveness for medical image diagnosis, which is often regarded as a safety-critical task where prediction reliability matters significantly. In particular, we focus on a diabetic retinopathy detection problem in India \footnote{APTOS 2019 Blindness Detection Dataset, https://www.kaggle.com/competitions/aptos2019-blindness-detection/overview}. The dataset contains 3662 samples, and there are 5 severity levels of diabetic retinopathy, which mean label $y \in$ $\{0,1,2,3,4\}$. To simplify the problem, we follow the strategy used in \cite{leibig2017leveraging} to convert all instance labels into binary forms. This is done by categorizing the classes into two groups: sight-threatening diabetic retinopathy and non-sight-threatening diabetic retinopathy. The former includes cases of moderate diabetic retinopathy or more severe (classes 2, 3, and 4), while the latter includes cases with no or mild diabetic retinopathy (classes 0 and 1).
+
+\subsection{Methodology}
+
+The Convolutional Neural Network model we select is the resnet-18 model, which contains roughly 11.2M trainable parameters. Due to the non-linear nature of the neural network model, there is no closed-form solution for the true posterior of resnet-18 model on the dataset. In this case, our focus is on the prediction performance made by Bayesian model averaging of resnet-18 model trained via VIFA algorithm. To evaluate its effectiveness, we also train resnet-18 model via standard gradient descent and use the performance as a baseline. 
+
+To apply VIFA algorithm to resnet-18 model, we utilize a 2-stages strategy for updating posterior distribution parameters $\vc$, $\mF$, and $\psi$. In the first stage of training, covariance-related parameters $\mF$ and $\psi$ stay unchanged with small absolute values (less than 1e-5), and the parameter $\vc$ is trained starting from pre-trained resnet-18 weights as initialization. During the second stage, the learning rates for $\mF$ and $\psi$ gradually increases from 0 to target values, while keeping the learning rate for $\vc$ constant. Learning rate decay scheduler is in use for $\vc$ during both stages. To keep things simple, learning rates for $\vc$, $\mF$, and $\psi$ are set to the same values $\eta$, which are optimized as hyper-parameter on the validation dataset. We run a total of 10 epochs, with 2 epochs in stage 1. The FA distribution has a latent dimension of 1, and the gradients for parameter update are computed based on mini-batches of size 16. All gradients are clipped to have Frobenius norm less than or equal to 10, and parameter update is performed after 12 times of gradients calculations. We use Adam optimizer \cite{kingma2014adam} to perform gradient updates.
+
+In order to report robust results, test metrics are averaged over 5 train-valid-test splits with split ratios  50\%, 20\%, 30\% respectively. For each data split, hyper-parameters prior precision $\alpha$ and learning rate $\eta$ are tuned via 6 times random searches, where $\alpha$ and $\eta$ are log-uniformly sampled from [0.01, 10] and [1e-6, 5e-4] respectively. After the best hyper-parameter configuration are found for the current split, evaluation metrics are computed on test data with Monte Carlo average size $S$ being 100.
+
+\subsection{Prediction with Uncertainty}
+One advantage of Bayesian deep learning methods compared to traditional Frequentist training is that we are able to obtain predictive uncertainty at the same time as getting predictions. Based on this uncertainty, \cite{band2022benchmarking} propose an automated diagnostic workflow for medical imaging: When given input, a model generates a prediction along with an associated uncertainty estimation. If the uncertainty estimation falls below a specified reference threshold, indicating low uncertainty, the diagnosis proceeds without additional examination. However, if the threshold is not met, a medical professional is consulted for further review. In general, we desire a model's predictive uncertainty to have a strong correlation with the accuracy of its predictions. High-quality predictive uncertainty estimates can be a fail-safe against false predictions 
+\cite{band2022benchmarking}. 
+
+There are multiple ways to define test sample uncertainty \footnote{In literature, the predictive uncertainty are usually argued to have different sources, such as aleatoric uncertainty and epistemic uncertainty, and different definitions may lead to varied implications \cite{ulmer2023prior, d2021repulsive}. However in this paper, we do not distinguish them, and just regard predictive uncertainty as a measure which reflects to what extent we trust the model's prediction result.} One definition adopted in \cite{band2022benchmarking} is that for any given test sample $\vx_*$ the predictive uncertainty is equal to the entropy of the predictive distribution: 
+\begin{equation}
+H(\E_{\vtheta \sim Q(\vtheta)}[p(\ry_* \mid f(\vx_* ; \vtheta))])=-\sum_{c \in\{0,1\}} \E_{\vtheta \sim Q(\vtheta)}[p(\ry_*=c \mid f(\vx_* ; \vtheta))] \log \E_{\vtheta \sim Q(\vtheta)} [p(\ry_*=c \mid f(\vx_* ; \vtheta))]
+\end{equation}
+
+where $H$ represents the Shannon entropy, $f(\vx_*;\vtheta)$ is logit value, $p(\ry_*=c \mid f(\vx_* ; \vtheta))$ is a binary cross-entropy likelihood function and $Q(\vtheta)$ is the variational distribution. In practice, the expectation $\E_{\vtheta \sim Q(\vtheta)}[p(\ry_* \mid f(\vx_* ; \vtheta))]$ is approximated by $S$ Monte Carlo samples,
+$\E_{\vtheta \sim Q(\vtheta)}[p(\ry_* \mid f(\vx_* ; \vtheta))] \approx \frac{1}{S} \sum_i^S p(\ry_* \mid f(\vx_* ; \vtheta^{(i)}))$ , here $\{\vtheta^{(i)}\}_{i=1}^S$ are sampled from (trained) variational distribution $Q(\vtheta)$, and $p(\ry_* \mid f(\vx_* ; \vtheta^{(i)}))$ denotes the predictive distribution given parameter realization $\vtheta^{\left(i\right)}$.
+
+Another way to define predictive uncertainty is by measuring the model disagreement \cite{d2021repulsive}, which is computed as:
+\begin{equation}
+    \mathcal{MD}^2 (\vx_*) = \sum_{c \in\{0,1\}} \E_{\vtheta \sim Q(\vtheta)}[(p(\ry_*=c \mid f(\vx_*; \vtheta)) - \E_{\vtheta \sim Q(\vtheta)}[p(\ry_* = c\mid f(\vx_* ; \vtheta))])^2]
+\end{equation}
+This quality represents how much 'disagreement' exist among the distribution of models. In practice, this quantity is approximated by $\mathcal{MD}^2(\vx_*) \approx \sum_{c \in\{0,1\}} \frac{1}{S}\sum_{\vtheta^{(i)} \in\{\vtheta^{(1)},...,\vtheta^{(S)}\}} (p(\ry_*=c \mid f(\vx_*; \vtheta^{(i)})) - \frac{1}{S}\sum_{\vtheta^{(i)} \in\{\vtheta^{(1)},...,\vtheta^{(S)}\}}[p(\ry_* = c\mid f(\vx_* ; \vtheta^{(i)}))])^2$, where $\{\vtheta^{(1)},...,\vtheta^{(S)}\}$ are Monte Carlo samples from the variational distribution $Q(\vtheta)$. It is easy to see if all models agree on the prediction $\vx_*$, the disagreement measure $\mathcal{MD}^2 (\vx_*)$ becomes zero. On the other hand, the larger the score $\mathcal{MD}^2 (\vx_*)$, the server disagreement exists between predictive distributions.
+
+By computing uncertainty scores for each test sample using either of the two aforementioned methods, we can implement selective prediction in the automated diagnostic workflow. This involves sorting the test samples based on their uncertainty scores and evaluating the model's performance on the 90\%, 80\%, 70\%, 60\%, and 50\% most certain samples. With high-quality uncertainties, we expect the model's performance to increase as we extract fewer and fewer test samples with ascending predictive uncertainty. From another perspective, the assessment score of selective prediction also reflects the utility of the uncertainty obtained from Bayesian deep learning methods.
+
+
+\subsection{Results and discussion}
+
+\subsubsection{Prediction Performance}
+Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance of VIFA and traditional gradient descent training of resnet-18 model. For most metrics, such as Accuracy, F1-score and AU-ROC, the performances of VIFA are very competitive to that of Gradient Descent and their value are very close to each other. VIFA leads to a better Precision value while Gradient Descent has more satisfying Recall score, but their differences are not significant. The only exceptional metric is the training time, for which the time used for Gradient Descent training is around 6\% less than VIFA training. However, it is noticeable that VIFA gets reliable predictive uncertainties simultaneously and a little bit more computational time compared to this achievable uncertainty quantification is reasonable. 
+
+\begin{table}[!htp]
+\caption{Mean test results for resnet-18 model on diabetic retinopathy detection task. The performances of applying VIFA and Gradient Descent algorithms are compared. Metrics include accuracy, precision, recall, F1-score, and Area Under Receiver Operating Characteristic curve (AU-ROC). The mean results over 5 different train-valid-test splits are shown. The results for test metrics include standard errors. The runtime refers to the total runtime for a single train-valid-test split. All experiments were executed on machines with Intel(R) Xeon(R) Silver 4114 CPU and NVIDIA GeForce RTX 2080 Ti GPU. The best results on each row are highlighted in bold (no score is bolded if both scores are competitive).}
+\label{table: VIFA_GD_comparison}
+\begin{center}
+\begin{tabular}{c|c|c}
+                   & \textbf{VIFA}        & \textbf{Gradient Descent} \\ \hline
+\textbf{Accuracy}  & 0.928$\pm$0.003 & 0.927$\pm$0.004               \\
+\textbf{Precision} & \textbf{0.921$\pm$0.009} & 0.914$\pm$0.009               \\
+\textbf{Recall}    & 0.904$\pm$0.014 & \textbf{0.907$\pm$0.009}               \\
+\textbf{F1-Score}  & 0.912$\pm$0.004 & 0.911$\pm$0.005              \\
+\textbf{AU-ROC}    & 0.980$\pm$0.002          & 0.979$\pm$0.002      \\
+\textbf{Time(minutes)}      & 463.2$\pm$2.8        & \textbf{435.7$\pm$1.8}   
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsubsection{Uncertainty Effectiveness}
+
+Table \ref{table: VIFA_uncertainty_acc} shows the test accuracy of selective prediction with different uncertainty levels (Results for F1 score and AU-ROC are in Table \ref{table: VIFA_uncertainty_f1_score}, \ref{table: VIFA_uncertainty_auroc} in the Appendix). Predictive uncertainties calculated from two approaches: predictive entropy and model disagreement score are in use. We observe that prediction performance continuously increase with the decline of predictive uncertainty. The best performance reached when extracting 50\% of most certain samples for assessment, which is the lowest uncertainty we accept.
+This result illustrates that predictive uncertainty has negative correlation with prediction accuracy, which shows the effectiveness of the uncertainty from the VIFA-resnet model. 
+
+\begin{table}[!htp]
+\caption{Mean test accuracies of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for evaluation. The results for test accuracy include standard errors. The best results in each column are highlighted in bold.}
+\label{table: VIFA_uncertainty_acc}
+\begin{center}
+\begin{tabular}{c|c|c}
+\textbf{Proportion of Samples} & \textbf{Predictive Entropy} & \textbf{Model Disagreement} \\ \hline
+\textbf{90\%}                               & 0.957$\pm$0.005                 & 0.956$\pm$0.005                 \\
+\textbf{80\%}                               & 0.973$\pm$0.004                 & 0.975$\pm$0.003                 \\
+\textbf{70\%}                               & 0.983$\pm$0.002                 & 0.984$\pm$0.002                 \\
+\textbf{60\%}                               & 0.991$\pm$0.002                 & 0.99$\pm$0.002                  \\
+\textbf{50\%}                               & \textbf{0.994$\pm$0.001}                 & \textbf{0.994$\pm$0.001}        
+\end{tabular}
+\end{center}
+\end{table}
+
+
+
 
 \bibliography{main}
 \bibliographystyle{tmlr}
@@ -474,5 +550,37 @@ Figure \ref{fig:logistic_regression_synthetic_data_posterior} shows a qualitativ
 \appendix
 \section{Appendix}
 You may include other additional sections here.
+\subsection{Uncertainty on Medical Imaging}
+\begin{table}[!htp]
+\caption{Mean F1-scores of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for testing. The results for F1 scores include standard errors. The best results in each column are highlighted in bold.}
+\label{table: VIFA_uncertainty_f1_score}
+\begin{center}
+\begin{tabular}{c|c|c}
+\textbf{Proportion of Samples} & \textbf{Predictive Entropy} & \textbf{Model Disagreement} \\ \hline
+\textbf{90\%}                               & 0.946$\pm$0.007                 & 0.945$\pm$0.007                 \\
+\textbf{80\%}                               & 0.965$\pm$0.005                 & 0.966$\pm$0.004                 \\
+\textbf{70\%}                               & 0.975$\pm$0.004                 & 0.976$\pm$0.004                 \\
+\textbf{60\%}                               & 0.986$\pm$0.003                 & 0.985$\pm$0.003                 \\
+\textbf{50\%}                               & \textbf{0.989$\pm$0.002}                 & \textbf{0.989$\pm$0.002}                
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\begin{table}[!htp]
+\caption{Mean AU-ROC scores of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for testing. The results for AU-ROC include standard errors. The best results in each column are highlighted in bold.}
+\label{table: VIFA_uncertainty_auroc}
+\begin{center}
+\begin{tabular}{c|c|c}
+\textbf{Proportion of Samples} & \textbf{Predictive Entropy} & \textbf{Model Disagreement} \\ \hline
+\textbf{90\%}                               & 0.984+0.002                 & 0.984+0.003                 \\
+\textbf{80\%}                               & 0.989+0.002                 & 0.989+0.002                 \\
+\textbf{70\%}                               & 0.992+0.002                 & 0.992+0.002                 \\
+\textbf{60\%}                               & 0.994+0.002                 & 0.994+0.002                 \\
+\textbf{50\%}                               & \textbf{0.995+0.001}                 & \textbf{0.995+0.002}                
+\end{tabular}
+\end{center}
+\end{table}
+
 
 \end{document}
