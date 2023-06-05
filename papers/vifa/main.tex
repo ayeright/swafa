@@ -457,7 +457,7 @@ Given the positive results achieved by VIFA in the experiments using synthetic d
 
 
 \textbf{Results and discussion}
-Figures \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Yacht Hydrodynamics and Boston Housing datasets. In the interest of space, qualitative comparisons for the Energy Efficiency and Concrete Compressive Strength datasets can be found in Figures \ref{fig:posterior_energy_efficiency} and \ref{fig:posterior_concrete_strength} in Appendix \ref{app:uci_posterior}, along with quantitative results for all four datasets in Table \ref{table:linear_regression_vi_posterior_uci}.
+Figures \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} show a qualitative comparison of the true posterior of a linear regression model and the approximate posterior learned by VIFA, in the case of the Yacht Hydrodynamics and Boston Housing datasets. In the interest of space, qualitative comparisons for the Energy Efficiency and Concrete Compressive Strength datasets can be found in Figures \ref{fig:posterior_energy_efficiency_and_concrete_strength} in Appendix \ref{app:uci_posterior}, along with quantitative results for all four datasets in Table \ref{table:linear_regression_vi_posterior_uci}.
 
 The results for Yacht Hydrodynamics and Boston Housing make for an interesting comparison, since these datasets have dimensions 6 and 13, respectively, but in both cases, the latent dimension was set to 3. In the case of Yacht Hydrodynamics, Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (e) shows that the off-diagonal entries of the approximate covariance matrix are a good match for the ground truth. In comparison, while the approximate covariance matrix for Boston Housing captures the general structure of the ground truth, the two matrices are noticeably different, as shown in Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (f). On closer inspection, most of the discrepancies appear to be caused by small covariances in the ground truth which are set closer to zero in the approximation. The diagonal entries of the covariance matrix are also better approximated in the case of Yacht Hydrodynamics, as can be seen by comparing Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (c) with Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (d). Although the Boston Housing variances appear to be ordered correctly with respect to each other, most of them are underestimated. Quantitatively, the results in Table \ref{table:linear_regression_vi_posterior_uci} show that the relative distance of the approximate covariance matrix from the ground truth is an order of magnitude less for Yacht Hydrodynamics: $0.0391$ compared to $0.3185$ for Boston Housing. However, the relative distance of the approximate posterior mean from the ground truth is actually worse for Yacht Hydrodynamics: $0.0435$ compared to $0.0262$ for Boston Housing. This is not necessarily surprising, since while the quality of the posterior covariance approximation is dependent on the data dimension relative to the latent dimension, the posterior mean can in theory be approximated exactly, irrespective of the data dimension. 
 
@@ -572,7 +572,7 @@ Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance
 \textbf{Uncertainty Effectiveness} Table \ref{table: VIFA_uncertainty_acc} shows the test accuracy of selective prediction with different uncertainty levels (results for F1 score and AU-ROC are in Table \ref{table: VIFA_uncertainty_f1_score}, \ref{table: VIFA_uncertainty_auroc} in the Appendix \ref{app:uncertainty_on_medical_imaging}). Predictive uncertainties calculated from two approaches: predictive entropy and model disagreement score are in use. We observe that prediction performance continuously increases with the decline of predictive uncertainty. The best performance was reached when extracting 50\% of most certain samples for assessment, which is the lowest uncertainty we accept. These facts show that the uncertainty scores obtained from VIFA are indeed effective for selective prediction. In practice, high uncertainty can be used to detect error-prone test samples, thus one can control the model's predictive accuracy by adjusting suitable uncertainty threshold. 
 
 
-\begin{table}[!htp]
+\begin{table}[htp]
 \caption{Mean test accuracies of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for evaluation. Subset with smaller proportion indicates its samplers have lower uncertainty scores. The results for test accuracy include standard errors. The best results in each column are highlighted in bold.}
 \label{table: VIFA_uncertainty_acc}
 \begin{center}
@@ -701,7 +701,7 @@ $0.0031 \pm 0.0005$ 	& $0.0983 \pm 0.0129$ 	& $0.0194 \pm 0.0023$ \\
 
 \subsection{Logistic Regression Posterior for Sythetic Data}
 \label{app:results_of_logistic_regression_posterior_for_sythetic_data}
-The purpose of these simulations is to test that VIFA is able to learn the posterior distribution of a very simple logistic regression model with two learnable parameters.
+The purpose of the following simulations is to test that VIFA is able to learn the posterior distribution of a very simple logistic regression model with two learnable parameters.
 
 \textbf{Methodology} Synthetic inputs $\vx \in \R^2$ and the logistic regression parameter vector $\vtheta \in \R^2$ were sampled in the same way as regression experiments in Section \ref{sec:experiments_on_synthetic_data}. However, this time $3000$ inputs were used. To generate each output $y \in \{0, 1\}$, the positive class probability was first evaluated as $p = \sigmoid(\vtheta^T \vx)$, where $\sigma: \R \rightarrow [0,1]$ denotes the logistic sigmoid function. Then a random number was sampled uniformly from the interval $[0, 1]$, and $y$ was set to $1$ if this number was less than $p$, else $0$.
 
@@ -761,33 +761,35 @@ Boston Housing 				& 3 & 25,000 & 100 & 10 	& 0.001 	& 0.2859 & 0.0429 \\
 \end{center}
 \end{table}
 
-Recall that Section \ref{sec:experiments_on_UCI_datasets} presented qualitative comparisons of the true posterior of a linear regression model and the approximate posterior learned by VIFA for the Boston Housing and Yacht Hydrodynamics datasets. Figure \ref{fig:posterior_energy_efficiency} and Figure \ref{fig:posterior_concrete_strength} show the same comparisons for the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Finally, Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four UCI regression datasets. 
+Recall that Section \ref{sec:experiments_on_UCI_datasets} presented qualitative comparisons of the true posterior of a linear regression model and the approximate posterior learned by VIFA for the Boston Housing and Yacht Hydrodynamics datasets. Figure \ref{fig:posterior_energy_efficiency_and_concrete_strength} show the same comparisons for the Energy Efficiency and Concrete Compressive Strength datasets, respectively.  
+
+
 
 \begin{figure}[!htbp] 
-	\begin{tabular}{c}
-		\includegraphics[width=140mm]{plots/energy_efficiency_posterior_mean.png} \\
-		(a) Comparison of true and estimated posterior means \\[6pt] 
-		 \includegraphics[width=140mm]{plots/energy_efficiency_posterior_variance.png} \\
-		(b) Comparison of true and estimated posterior variances \\[6pt] 
-		\includegraphics[width=140mm]{plots/energy_efficiency_posterior_covariance.png} \\
-		(c) Comparison of true and estimated posterior covariances \\[6pt] 
+\begin{center}
+	\begin{tabular}{cc}
+		\includegraphics[width=83mm]{vifa/plots/energy_efficiency_posterior_mean.png}
+		& \includegraphics[width=83mm]{vifa/plots/concrete_strength_posterior_mean.png} \\
+        (a) Energy Efficiency posterior mean
+        & (b) Concrete Compressive Strength  posterior mean \\
+		\includegraphics[width=83mm]{vifa/plots/energy_efficiency_posterior_variance.png} 
+        & \includegraphics[width=83mm]{vifa/plots/concrete_strength_posterior_variance.png} \\
+        (c) Energy Efficiency posterior variance
+        & (d) Concrete Compressive Strength posterior variance \\
+        \includegraphics[width=83mm]
+        {plots/energy_efficiency_posterior_covariance.png}
+        & \includegraphics[width=83mm]
+        {plots/concrete_strength_posterior_covariance.png} \\
+        (e) Energy Efficiency posterior covariance
+        & (f) Concrete Compressive Strength posterior covariance
+        
 	\end{tabular}
-	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Energy Efficiency dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
-	\label{fig:posterior_energy_efficiency}
+	\caption{Comparison of the ground truth posterior of linear regression models fit the Energy Efficiency and the Concrete Compressive Strength datasets, and the approximate posteriors learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plots (e) and (f), the diagonal entries of the covariance matrices have been set to zero. In each plot, the true covariance is placed on the left.}
+	\label{fig:posterior_energy_efficiency_and_concrete_strength}
+\end{center}
 \end{figure}
 
-\begin{figure}[!htbp] 
-	\begin{tabular}{c}
-		\includegraphics[width=140mm]{plots/concrete_strength_posterior_mean.png} \\
-		(a) Comparison of true and estimated posterior means \\[6pt] 
-		 \includegraphics[width=140mm]{plots/concrete_strength_posterior_variance.png} \\
-		(b) Comparison of true and estimated posterior variances \\[6pt] 
-		\includegraphics[width=140mm]{plots/concrete_strength_posterior_covariance.png} \\
-		(c) Comparison of true and estimated posterior covariances \\[6pt] 
-	\end{tabular}
-	\caption{Comparison of the ground truth posterior of a linear regression model fit to the Concrete Compressive Strength dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
-	\label{fig:posterior_concrete_strength}
-\end{figure} 
+Finally, Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four UCI regression datasets.
 
 \begin{table}[!h]
 \caption{For each UCI dataset, the distance between the true posterior distribution
@@ -816,13 +818,12 @@ Yacht            & 0.0435                        & 0.0391                       
 \subsection{Methodology and Discussion}
 
 \textbf{Methodology} We picked the same four classification datasets as in SLANG \cite{mishkin2018}, that is Australian, Breast Cancer, a1a and USPS(3v5) \footnote{Downloaded from https://github.com/aaronpmishkin/SLANG/releases/download/v1.0.0/data.zip}. More details about these datasets are given in Appendix \ref{app:dataset_implementation_and_results_details}. The learning rate and number of epoches are tuned in the same way as in Section \ref{sec:experiments_on_UCI_datasets}. The latent dimension was set to $K = 5$ for all datasets. The mini-batch size and
-Monte Carlo average size were set to M = 100 and L = 10, respectively, which are the same choices as in Section \ref{sec:experiments_on_UCI_datasets}. While training, gradient norms were clipped at a maximum value of 10. Bambi library \cite{Capretto2022} is in use for computing the ground truth posterior. 20,000 Markov Chain Monte Carlo (MCMC) iterations are adopted for Australian and Breast Cancer datasets, and 25,000 iterations are used for a1a and USPS(3v5) datasets.
+Monte Carlo average size were set to M = 100 and L = 10, respectively, which are the same choices as in Section \ref{sec:experiments_on_UCI_datasets}. While training, gradient norms were clipped at a maximum value of 10. Bambi library \cite{Capretto2022} is in use for computing the ground truth posterior. 20,000 Markov Chain Monte Carlo (MCMC) iterations are adopted for Australian and Breast Cancer datasets, and 25,000 iterations are used for a1a and USPS(3v5) datasets, since these two datasets are of higher dimension.
 
 
 \textbf{Results and Discussion}
 
-Figures \ref{fig:posterior_Australian_and_a1a} show a qualitative comparison of the true posterior of a logistic regression model and the approximate posterior learned by VIFA, in the case of the Australian and the a1a datasets.  Qualitative comparisons for the other datasets can be found in Figures \ref{fig:posterior_Breast_Cancer} and \ref{fig:posterior_USPS} in Appendix \ref{app:dataset_implementation_and_results_details}, along with quantitative results for all four datasets in Table \ref{table:logistic_regression_vi_posterior_uci}. It is noticeable that the Australian and the a1a dataset have dimensions 14 and 123, but both approximated by VIFA has latent dimension equal to 5. In terms of the posterior mean, VIFA give good quality approximations for both datasets. The claim can be validated by examining Figure \ref{fig:posterior_Australian_and_a1a} (a) and (b), where the difference between the ground truth and the VIFA Approximation is not obvious. The relative distance of the approximate posterior mean from the ground truth for both the Australian dataset and the a1a dataset are small, which are 0.0215 and 0.0204 respectively. However, the approximation quality for variances and off-diagonal covariances are not as good as for the means. In terms of variances, one may notice clear difference between the ground truth and the VIFA Approximation in Figure \ref{fig:posterior_Australian_and_a1a} (c) and (d). The difference is more obvious for the comparison between covariances from VIFA approximation and ground truth covariances for the a1a dataset. This is understandable, since the a1a dataset is of high dimensional, a Factor analysis distribution with latent dimension being 5 might be not enough to capture its true posterior. In addition, the relative distance of the approximate posterior covariance from the ground truth is actually worse for the a1a: 0.3882 compared to 0.1018 for the Australian. 
-This can be explained by a fact that the quality of the posterior covariance approximation is dependent on the data dimension relative to the latent dimension, which is already stated in Section \ref{sec:experiments_on_UCI_datasets}.
+Figures \ref{fig:posterior_Australian_and_a1a} show a qualitative comparison of the true posterior of a logistic regression model and the approximate posterior learned by VIFA, in the case of the Australian and the a1a datasets.  
 
 \begin{figure}[!htbp] 
 \begin{center}
@@ -848,7 +849,10 @@ This can be explained by a fact that the quality of the posterior covariance app
 \end{center}
 \end{figure}
 
-\subsection{Dataset, Implementation and More Results Details}
+Qualitative comparisons for the other datasets can be found in Figures \ref{fig:posterior_breast_cancer_and_USPS} in Appendix \ref{app:dataset_implementation_and_results_details}, along with quantitative results for all four datasets in Table \ref{table:logistic_regression_vi_posterior_uci}. It is noticeable that the Australian and the a1a dataset have dimensions 14 and 123, but both approximated by VIFA has latent dimension equal to 5. In terms of the posterior mean, VIFA give good quality approximations for both datasets. The claim can be validated by examining Figure \ref{fig:posterior_Australian_and_a1a} (a) and (b), where the difference between the ground truth and the VIFA Approximation is not obvious. The relative distance of the approximate posterior mean from the ground truth for both the Australian dataset and the a1a dataset are small, which are 0.0215 and 0.0204 respectively. However, the approximation quality for variances and off-diagonal covariances are not as good as for the means. In terms of variances, one may notice clear difference between the ground truth and the VIFA Approximation in Figure \ref{fig:posterior_Australian_and_a1a} (c) and (d). The difference is more obvious for the comparison between covariances from VIFA approximation and ground truth covariances for the a1a dataset. This is understandable, since the a1a dataset is of high dimensional, a Factor analysis distribution with latent dimension being 5 might be not enough to capture the rich pattern of its true posterior. In addition, the relative distance of the approximate posterior covariance from the ground truth is actually worse for the a1a: 0.3882 compared to 0.1018 for the Australian. 
+This can be explained by a fact that the quality of the posterior covariance approximation is dependent on the data dimension relative to the latent dimension, which is already stated in Section \ref{sec:experiments_on_UCI_datasets}.
+
+\subsection{Datasets, Implementation and Experimental Results Details}
 \label{app:dataset_implementation_and_results_details}
 Table \ref{table:uci_classification_datasets} shows the number of instances and input variables in each UCI classification dataset. Note that we only use the training sets in original datasets in SLANG \cite{mishkin2018}.
 
@@ -866,7 +870,7 @@ Breast-cancer-scale & 341                        & 10
 \end{center}
 \end{table}
 
-Table \ref{table:vifa_uci_logistic_hyperparameters} shows the hyperparameter values used in the experiments. Note that the values of prior precision for the datasets are same SLANG \cite{mishkin2018}.
+Table \ref{table:vifa_uci_logistic_hyperparameters} shows the hyperparameter values used in the experiments. Note that the values of prior precision for the datasets are same as in SLANG \cite{mishkin2018}.
 
 \begin{table}[!h]
 \caption{VIFA hyperparameters for UCI logistic regression experiments.}
@@ -882,7 +886,7 @@ Breast-cancer-scale & 5          & 23,000          & 100 & 10 & 0.001 & 1.0
 \end{center}
 \end{table}
 
-Figure \ref{fig:posterior_Breast_Cancer} and Figure \ref{fig:posterior_USPS} show the same comparisons for the Breast Cancer and USPS datasets, respectively. Finally, Table \ref{table:logistic_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four classification datasets.
+Figure \ref{fig:posterior_breast_cancer_and_USPS} show the same comparisons for the Breast Cancer and USPS datasets, respectively. Finally, Table \ref{table:logistic_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four classification datasets.
 
 \begin{table}[!h]
 \caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a logistic regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the number of dimensions in the dataset.}
@@ -899,31 +903,34 @@ Breast-cancer-scale & 0.0205                        & 0.1729                    
 \end{table}
 
 
-\begin{figure}[!htbp] 
-	\begin{tabular}{c}
-		\includegraphics[width=140mm]{plots/Breast_Cancer_posterior_mean.png} \\
-		(a) Comparison of true and estimated posterior means \\[6pt] 
-		 \includegraphics[width=140mm]{plots/Breast_Cancer_posterior_variance.png} \\
-		(b) Comparison of true and estimated posterior variances \\[6pt] 
-		\includegraphics[width=140mm]{plots/Breast_Cancer_posterior_covariance.png} \\
-		(c) Comparison of true and estimated posterior covariances \\[6pt] 
-	\end{tabular}
-	\caption{Comparison of the ground truth posterior of a logistic regression model fit to the Breast Cancer dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
-	\label{fig:posterior_Breast_Cancer}
-\end{figure}
+
 
 \begin{figure}[!htbp] 
-	\begin{tabular}{c}
-		\includegraphics[width=140mm]{plots/USPS_posterior_mean.png} \\
-		(a) Comparison of true and estimated posterior means \\[6pt] 
-		 \includegraphics[width=140mm]{plots/USPS_posterior_variance.png} \\
-		(b) Comparison of true and estimated posterior variances \\[6pt] 
-		\includegraphics[width=140mm]{plots/USPS_posterior_covariance.png} \\
-		(c) Comparison of true and estimated posterior covariances \\[6pt] 
+\begin{center}
+	\begin{tabular}{cc}
+		\includegraphics[width=83mm]{plots/Breast_Cancer_posterior_mean.png}
+		& \includegraphics[width=83mm]{plots/USPS_posterior_mean.png} \\
+        (a) Breast Cancer posterior mean
+        & (b) USPS posterior mean \\
+		\includegraphics[width=83mm]{plots/Breast_Cancer_posterior_variance.png} 
+        & \includegraphics[width=85mm]{plots/USPS_posterior_variance.png} \\
+        (c) Breast Cancer posterior variance
+        & (d) USPS posterior variance \\
+        \includegraphics[width=83mm]
+        {plots/Breast_Cancer_posterior_covariance.png}
+        & \includegraphics[width=83mm]
+        {plots/USPS_posterior_covariance.png} \\
+        (e) Breast Cancer posterior covariance
+        & (f) USPS posterior covariance
+        
 	\end{tabular}
-	\caption{Comparison of the ground truth posterior of a logistic regression model fit to the USPS dataset, and the approximate posterior learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plot (c), the diagonal entries of the covariance matrices have been set to zero.}
-	\label{fig:posterior_USPS}
+	\caption{Comparison of the ground truth posterior of logistic regression models fit the Breast Cancer and the USPS datasets, and the approximate posteriors learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plots (e) and (f), the diagonal entries of the covariance matrices have been set to zero. In each plot, the true covariance is placed on the left.}
+	\label{fig:posterior_breast_cancer_and_USPS}
+\end{center}
 \end{figure}
+
+
+
 
 
 \section{UCI Neural Network Regression Predictions}\label{app:uci_nn_predictions}
