@@ -92,7 +92,7 @@ One of the simplest approaches is to use a diagonal - or \emph{mean-field} - app
 
 The work in this paper is based on the low-rank plus diagonal factor analysis (FA) model \citep{barber2007}, which can help to overcome these limitations. The main contribution in this paper is a novel variational inference (VI) algorithm called VIFA which can be applied to any neural network architecture to approximate its posterior with a FA distribution. 
 
-In the remainder of this paper, after introducing background in Section \ref{sec:background}, we illustrate our VIFA algorithm in Section \ref{sec: Variational Inference with a Factor Analysis Posterior (VIFA)} with detailed description of gradients formulas (used for learning approximate posterior) derivation and practical computation simplification. An overview summary of VIFA algorithm is in Algorithm \ref{alg:vi_fa}. This algorithm is tested on synthetic and real-world datasets in Section \ref{sec: Experiments}. Moreover, VIFA is applied to a Convolutional Neural Network (CNN) model for a medical imaging task, validating  VIFA is model-agnostic. Finally, a conclusion is given in the Section \ref{Conclusion}.
+In the remainder of this paper, after introducing background in Section \ref{sec:background}, we illustrate our VIFA algorithm in Section \ref{sec: Variational Inference with a Factor Analysis Posterior (VIFA)} in detail. An overview summary of VIFA algorithm is in Algorithm \ref{alg:vi_fa}. This algorithm is tested on synthetic and real-world datasets, experimental results are shown in Section \ref{sec: Experiments}. Moreover, VIFA is applied to a Convolutional Neural Network (CNN) model for a medical imaging task, validating  VIFA is model-agnostic. Finally, a conclusion is given in the Section \ref{Conclusion}.
 
 
 \section{Background}
@@ -417,21 +417,24 @@ In this section, we test the performance of VIFA algorithm on both synthetic and
 
 
 \subsection{Experiments on Synthetic Dataset}
-\subsubsection{Linear regression posterior estimation with synthetic data}
-\label{sec:linear_regression_synthetic_data_posterior_methodology}
-The purpose of these simulations is to test that VIFA is able to learn the posterior distribution of a very simple linear regression model with two learnable parameters.
+\label{sec:experiments_on_synthetic_data}
+%\subsubsection{Linear regression posterior estimation with synthetic data}
+%\label{sec:linear_regression_synthetic_data_posterior_methodology}
+We first test that if VIFA is able to learn the posterior distribution of a very simple linear regression model with two learnable parameters.
 
 \textbf{Methodology} Synthetic data was generated as follows. First, $1000$ inputs $\vx \in \R^2$ were sampled from a multivariate zero-mean Gaussian distribution with unit variances and covariances of $0.5$. Next, the linear regression parameter vector $\vtheta \in \R^2$ was sampled from $\mathcal{N} ( \vtheta ; 0, \alpha^{-1} \mI)$ with $\alpha = 0.01$. Then the outputs $y \in \R$ were generated according to the equation $y = \vtheta^T \vx + \epsilon$, where $\epsilon \sim \mathcal{N} ( \epsilon ; 0, \beta^{-1})$ with $\beta = 0.1$.
 
-Using this data, the true posterior distribution was evaluated in closed form (see \ref{eqn:linear_regression_posterior}) and an approximate posterior with latent dimension $K=1$ was estimated via VIFA. VIFA ran for $5000$ epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\vc$,  $\eta_\mF$ and $\eta_{\vgamma}$ were set to $0.01$, $0.0001$ and $0.01$, respectively. The reasoning for using a smaller learning rate for $\mF$ was that its contribution to the full covariance matrix is $\mF\mF^T$. Since this is regression, the likelihood function used in VIFA was set to $\mathcal{N} (y; \vtheta^T \vx, \beta^{-1})$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than $10$ were rescaled to have norm of exactly $10$.
+Using this data, the true posterior distribution was evaluated in closed form (see \ref{eqn:linear_regression_posterior}) and an approximate posterior with latent dimension $K=1$ was estimated via VIFA. VIFA ran for $5000$ epochs with a batch size of $M=100$ and a Monte Carlo average size of $L=10$.  The learning rates $\eta_\vc$,  $\eta_\mF$ and $\eta_{\vgamma}$ were set to $0.01$, $0.0001$ and $0.01$, respectively. The reason for using a smaller learning rate for $\mF$ was that its contribution to the full covariance matrix is $\mF\mF^T$. Since this is regression, the likelihood function used in VIFA was set to $\mathcal{N} (y; \vtheta^T \vx, \beta^{-1})$. Finally, to improve numerical stability, any gradients with Frobenius norm greater than $10$ were rescaled to have norm of exactly $10$.
 
-\textbf{Results and discussion} Figure \ref{fig:linear_regression_synthetic_data_posterior} shows a qualitative comparison between the ground truth and approximate linear regression posteriors. It can be seen that the contours of the approximate posterior are very similar to the ground truth in terms of position, direction, and density. To test the stability of VIFA, multiple random seeds are ran, and quantitative results are shown in \ref{app:quantitative_results_linear_regression_posterior}.
+\textbf{Results and discussion} Figure \ref{fig:linear_regression_synthetic_data_posterior} shows a qualitative comparison between the ground truth and approximate linear regression posteriors. It can be seen that the contours of the approximate posterior are very similar to the ground truth in terms of position, direction, and density. To test the stability of VIFA, multiple random seeds are ran, and quantitative results are shown in Appendix \ref{app:quantitative_results_linear_regression_posterior}.
+
+Similar experiments has been done for classification data, whose results are in Appendix \ref{app:results_of_logistic_regression_posterior_for_sythetic_data}. Based on these results, we have found that the VIFA algorithm is capable of effectively approximating the true posterior distribution of linear and logistic regression models on simple sythetic dataset.
 
 \begin{figure}[!htbp] 
 \begin{center}
 \begin{tabular}{cc}
-	\includegraphics[width=70mm]{plots/linear_model_true_posterior__alpha=0.01__beta=0.1.png}
-	& \includegraphics[width=70mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=1.png} \\
+	\includegraphics[width=65mm]{plots/linear_model_true_posterior__alpha=0.01__beta=0.1.png}
+	& \includegraphics[width=65mm]{plots/linear_model_vi_posterior__alpha=0.01__beta=0.1__latent_dim=1.png} \\
 	(a) Ground truth
 	& (b) VIFA \\[6pt]
 \end{tabular}
@@ -441,41 +444,16 @@ Using this data, the true posterior distribution was evaluated in closed form (s
 \end{figure}
 
 
-\subsubsection{Logistic regression posterior estimation with synthetic data}
-
-The purpose of these simulations is to test that VIFA is able to learn the posterior distribution of a very simple logistic regression model with two learnable parameters.
-
-\textbf{Methodology} Synthetic inputs $\vx \in \R^2$ and the logistic regression parameter vector $\vtheta \in \R^2$ were sampled in the same way as in Section \ref{sec:linear_regression_synthetic_data_posterior_methodology}. However, this time $3000$ inputs were used. To generate each output $y \in \{0, 1\}$, the positive class probability was first evaluated as $p = \sigmoid(\vtheta^T \vx)$, where $\sigma: \R \rightarrow [0,1]$ denotes the logistic sigmoid function. Then a random number was sampled uniformly from the interval $[0, 1]$, and $y$ was set to $1$ if this number was less than $p$, else $0$.
-
-Unlike linear regression, there is no closed form solution for the true posterior of a logistic regression model. In this case, the ground truth posterior was evaluated by first looping over a 2D grid around the true parameter vector $\vtheta$ and evaluating the unnormalised log posterior probability at each point in the grid. Formally, this is
-\begin{equation}
-	\mathcal{N} ( \vtheta ; 0, \alpha^{-1} \mI) \prod_{n=1}^{3000} \sigmoid(\vtheta^T \vx_n)^{y_n} \sigmoid(\vtheta^T \vx_n)^{1 - y_n}.
-\end{equation}
-Then the values in the grid were scaled such that the maximum value was equal to $1$. This posterior is only correct up to a constant but suffices for a qualitative comparison.
-
-The posterior was then approximated via VIFA using the exact same hyperparameters as in Section \ref{sec:linear_regression_synthetic_data_posterior_methodology}. This time, the likelihood function used in VIFA was set to binary cross-entropy. That is, $\sigmoid(\vtheta^T \vx_n)^{y_n} \sigmoid(\vtheta^T \vx_n)^{1 - y_n}$.
-
-
-\textbf{Results and discussion} Figure \ref{fig:logistic_regression_synthetic_data_posterior} shows a qualitative comparison between the ground truth and approximate logistic regression posteriors. It can be seen that the contours of the approximate posterior are very similar to the ground truth in terms of position, direction, and density.
-\begin{figure}[!htbp] 
-\begin{center}
-\begin{tabular}{cc}
-	\includegraphics[width=70mm]{plots/logistic_regression_synthetic_true_posterior.png}
-	& \includegraphics[width=70mm]{plots/logistic_regression_synthetic_vifa_posterior.png} \\
-	(a) Ground truth
-	& (b) VIFA \\[6pt]
-\end{tabular}
-\end{center}
-\caption{The ground truth posterior pdf of a logistic regression model with two learnable parameters, plus the pdf of a FA model with a single latent dimension which was fit to the same data using VIFA. Both posteriors are scaled such that the maximum value is equal to $1$.}
-\label{fig:logistic_regression_synthetic_data_posterior}
-\end{figure}
+%\subsubsection{Logistic regression posterior estimation with synthetic data}
 
 \subsection{Experiments on UCI Datasets}
-Given the positive results achieved by VIFA in the experiments using synthetic data, the purpose of these experiments is to test how well VIFA is able to approximate the posterior of linear and logistics regression models fit real datasets with more dimensions.
+\label{sec:experiments_on_UCI_datasets}
+Given the positive results achieved by VIFA in the experiments using synthetic data, the purpose of these experiments is to test how well VIFA is able to approximate the posterior of linear and logistics regression models fit real datasets with more dimensions. Regression datasets are initially considered.
 
-\subsubsection{Linear regression posterior estimation with UCI datasets}
-\label{sec:vifa_posterior_uci}
-\textbf{Methodology}  Four regression datasets from the UCI Machine Learning Repository \citep{dua2019} were used. Namely, the Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency}, Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Appendix \ref{app:uci_posterior}.  Each dataset was randomly split into validation and test sets of equal size. The learning rate and the number of epochs were tuned on the validation set to minimise the 2-Wasserstein distance between the true and approximate posteriors, and then the algorithm was evaluated once on the test set. To reduce the number of hyperparameters, a single learning rate $\eta$ was used to optimise all parameters of the approximate posterior. That is, $\eta_\vc = \eta_\mF = \eta_{\vgamma} = \eta$. The latent dimension was set to $K=3$ for all datasets. Also, the mini-batch size and Monte Carlo average size were set to $M=100$ and $L=10$, respectively, since these values worked well for the experiments with synthetic data in Section \ref{sec:linear_regression_synthetic_data_posterior_methodology}. The \texttt{BayesianRidge} estimator from the scikit-learn library \citep{pedregosa2012} was used to compute the ground truth posterior. This algorithm automatically selects $\alpha$ and $\beta$ via the Bayesian method described in \citep{mackay1992}. These ground truth values were also used when running VIFA. In particular, $\beta$ was used in the calculation of the average negative log-likelihood term. The selected VIFA hyperparameter values for each dataset are given in Table \ref{table:vifa_uci_hyperparameters} in Appendix \ref{app:uci_posterior}. Finally, before running the algorithms, each input variable was re-scaled to have zero mean and unit standard deviation, and while training, gradient norms were clipped at a maximum value of 10. 
+%\subsubsection{Linear regression posterior estimation with UCI %datasets}
+%\label{sec:vifa_posterior_uci}
+
+\textbf{Methodology}  Four regression datasets from the UCI Machine Learning Repository \citep{dua2019} were used. Namely, the Energy Efficiency\footnote{https://archive.ics.uci.edu/ml/datasets/energy+efficiency}, Boston Housing\footnote{https://archive.ics.uci.edu/ml/machine-learning-databases/housing}, Concrete Compressive Strength\footnote{https://archive.ics.uci.edu/ml/datasets/concrete+compressive+strength} and Yacht Hydrodynamics\footnote{http://archive.ics.uci.edu/ml/datasets/yacht+hydrodynamics} datasets. More details about these datasets are given in Appendix \ref{app:uci_posterior}.  Each dataset was randomly split into validation and test sets of equal size. The learning rate and the number of epochs were tuned on the validation set to minimise the 2-Wasserstein distance between the true and approximate posteriors, and then the algorithm was evaluated once on the test set. To reduce the number of hyperparameters, a single learning rate $\eta$ was used to optimise all parameters of the approximate posterior. That is, $\eta_\vc = \eta_\mF = \eta_{\vgamma} = \eta$. The latent dimension was set to $K=3$ for all datasets. Also, the mini-batch size and Monte Carlo average size were set to $M=100$ and $L=10$, respectively, since these values worked well for the experiments with synthetic data in Section \ref{sec:experiments_on_synthetic_data}. The \texttt{BayesianRidge} estimator from the scikit-learn library \citep{pedregosa2012} was used to compute the ground truth posterior. This algorithm automatically selects $\alpha$ and $\beta$ via the Bayesian method described in \citep{mackay1992}. These ground truth values were also used when running VIFA. In particular, $\beta$ was used in the calculation of the average negative log-likelihood term. The selected VIFA hyperparameter values for each dataset are given in Table \ref{table:vifa_uci_hyperparameters} in Appendix \ref{app:uci_posterior}. Finally, before running the algorithms, each input variable was re-scaled to have zero mean and unit standard deviation, and while training, gradient norms were clipped at a maximum value of 10. 
 
 
 \textbf{Results and discussion}
@@ -483,22 +461,20 @@ Figures \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} show a qualit
 
 The results for Yacht Hydrodynamics and Boston Housing make for an interesting comparison, since these datasets have dimensions 6 and 13, respectively, but in both cases, the latent dimension was set to 3. In the case of Yacht Hydrodynamics, Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (e) shows that the off-diagonal entries of the approximate covariance matrix are a good match for the ground truth. In comparison, while the approximate covariance matrix for Boston Housing captures the general structure of the ground truth, the two matrices are noticeably different, as shown in Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (f). On closer inspection, most of the discrepancies appear to be caused by small covariances in the ground truth which are set closer to zero in the approximation. The diagonal entries of the covariance matrix are also better approximated in the case of Yacht Hydrodynamics, as can be seen by comparing Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (c) with Figure \ref{fig:posterior_yacht_hydrodynamics_and_boston_housing} (d). Although the Boston Housing variances appear to be ordered correctly with respect to each other, most of them are underestimated. Quantitatively, the results in Table \ref{table:linear_regression_vi_posterior_uci} show that the relative distance of the approximate covariance matrix from the ground truth is an order of magnitude less for Yacht Hydrodynamics: $0.0391$ compared to $0.3185$ for Boston Housing. However, the relative distance of the approximate posterior mean from the ground truth is actually worse for Yacht Hydrodynamics: $0.0435$ compared to $0.0262$ for Boston Housing. This is not necessarily surprising, since while the quality of the posterior covariance approximation is dependent on the data dimension relative to the latent dimension, the posterior mean can in theory be approximated exactly, irrespective of the data dimension. 
 
-In summary,  across the four regression datasets, VIFA demonstrates good capacity to approximate the true posterior distribution of linear regression models. However, the quality of the covariance approximation naturally deteriorates as the data dimension becomes larger in relation to the latent dimension.
-
 \begin{figure}[!htbp] 
 \begin{center}
 	\begin{tabular}{cc}
-		\includegraphics[width=85mm]{plots/yacht_hydrodynamics_posterior_mean.png}
-		& \includegraphics[width=85mm]{plots/boston_housing_posterior_mean.png} \\
+		\includegraphics[width=83mm]{plots/yacht_hydrodynamics_posterior_mean.png}
+		& \includegraphics[width=83mm]{plots/boston_housing_posterior_mean.png} \\
         (a) Yacht Hydrodynamics posterior mean
         & (b) Boston Housing posterior mean \\
-		\includegraphics[width=85mm]{plots/yacht_hydrodynamics_posterior_variance.png} 
-        & \includegraphics[width=85mm]{plots/boston_housing_posterior_variance.png} \\
+		\includegraphics[width=83mm]{plots/yacht_hydrodynamics_posterior_variance.png} 
+        & \includegraphics[width=83mm]{plots/boston_housing_posterior_variance.png} \\
         (c) Yacht Hydrodynamics posterior variance
         & (d) Boston Housing posterior variance \\
-        \includegraphics[width=85mm]
+        \includegraphics[width=83mm]
         {plots/yacht_hydrodynamics_posterior_covariance.png}
-        & \includegraphics[width=85mm]
+        & \includegraphics[width=83mm]
         {plots/boston_housing_posterior_covariance.png} \\
         (e) Yacht Hydrodynamics posterior covariance
         & (f) Boston Housing posterior covariance
@@ -509,50 +485,12 @@ In summary,  across the four regression datasets, VIFA demonstrates good capacit
 \end{center}
 \end{figure}
 
-
-\subsubsection{Logistic regression posterior estimation with UCI datasets}
-\label{sec:vifa_logistic_posterior_uci}
-\textbf{Methodology} We picked the same four classification datasets as in SLANG \cite{mishkin2018}, that is Australian, Breast Cancer, a1a and USPS(3v5) \footnote{Downloaded from https://github.com/aaronpmishkin/SLANG/releases/download/v1.0.0/data.zip}. More details about these datasets are given in Appendix \ref{app:uci_logistic_posterior}. The learning rate and number of epoches are tuned in the same way as in Section \ref{sec:vifa_posterior_uci}. The latent dimension was set to $K = 5$ for all datasets. The mini-batch size and
-Monte Carlo average size were set to M = 100 and L = 10, respectively, which are the same choices as in Section \ref{sec:vifa_posterior_uci}. While training, gradient norms were clipped at a maximum value of 10. Bambi library \cite{Capretto2022} is in use for computing the ground truth posterior. 20,000 Markov Chain Monte Carlo (MCMC) iterations are adopted for Australian and Breast Cancer datasets, and 25,000 iterations are used for a1a and USPS(3v5) datasets.
+Due to space limitations, the experimental results regarding logistic regression have been deferred to the Appendix \ref{app:UCI_logistic_regression_posterior_estimation}. In summary,  across the regression and classification datasets, VIFA demonstrates good capacity to approximate the true posterior distribution. However, the quality of the covariance approximation naturally deteriorates as the data dimension becomes larger in relation to the latent dimension.
 
 
-\textbf{Results and Discussion}
-
-Figures \ref{fig:posterior_Australian_and_a1a} show a qualitative comparison of the true posterior of a logistic regression model and the approximate posterior learned by VIFA, in the case of the Australian and the a1a datasets. In the interest of space, qualitative comparisons for the  and datasets can be found in Figures \ref{fig:posterior_Breast_Cancer} and \ref{fig:posterior_USPS} in Appendix \ref{app:uci_logistic_posterior}, along with quantitative results for all four datasets in Table \ref{table:logistic_regression_vi_posterior_uci}. It is noticeable that the Australian and the a1a dataset have dimensions 14 and 123, but both approximated by VIFA has latent dimension equal to 5. In terms of the posterior mean, VIFA give good quality approximations for both datasets. The claim can be validated by examining Figure \ref{fig:posterior_Australian_and_a1a} (a) and (b), where the difference between the ground truth and the VIFA Approximation is not obvious. The relative distance of the approximate posterior mean from the ground truth for both the Australian dataset and the a1a dataset are small, which are 0.0215 and 0.0204 respectively. However, the approximation quality for variances and off-diagonal covariances are not as good as for the means. In terms of variances, one may notice clear difference between the ground truth and the VIFA Approximation in Figure \ref{fig:posterior_Australian_and_a1a} (c) and (d). The difference is more obvious for the comparison between covariances from VIFA approximation and ground truth covariances for the a1a dataset. This is understandable, since the a1a dataset is of high dimensional, a Factor analysis distribution with latent dimension being 5 might be not enough to capture its true posterior. In addition, the relative distance of the approximate posterior covariance from the ground truth is actually worse for the a1a: 0.3882 compared to 0.1018 for the Australian. 
-This can be explained by a fact that the quality of the posterior covariance approximation is dependent on the data dimension relative to the latent dimension, which is already stated in Section \ref{sec:vifa_posterior_uci}.
-
-To summarize, across the four classification datasets, VIFA demonstrates good capacity to approximate the true posterior distribution of logistic regression models as well.
-
-
-\begin{figure}[!htbp] 
-\begin{center}
-	\begin{tabular}{cc}
-		\includegraphics[width=85mm]{plots/Australian_posterior_mean.png}
-		& \includegraphics[width=85mm]{plots/a1a_posterior_mean.png} \\
-        (a) Australian posterior mean
-        & (b) a1a posterior mean \\
-		\includegraphics[width=85mm]{plots/Australian_posterior_variance.png} 
-        & \includegraphics[width=85mm]{plots/a1a_posterior_variance.png} \\
-        (c) Australian posterior variance
-        & (d) a1a posterior variance \\
-        \includegraphics[width=85mm]
-        {plots/Australian_posterior_covariance.png}
-        & \includegraphics[width=85mm]
-        {plots/a1a_posterior_covariance.png} \\
-        (e) Australian posterior covariance
-        & (f) a1a posterior covariance
-        
-	\end{tabular}
-	\caption{Comparison of the ground truth posterior of logistic regression models fit the Australian and the a1a datasets, and the approximate posteriors learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plots (e) and (f), the diagonal entries of the covariance matrices have been set to zero. In each plot, the true covariance is placed on the left.}
-	\label{fig:posterior_Australian_and_a1a}
-\end{center}
-\end{figure}
-
-
-
-\subsubsection{Neural network regression with UCI datasets}
+\subsubsection{Neural Network Regression with UCI Datasets}
 \label{sec:uci_nn_predictions}
-Given the encouraging results achieved by VIFA when applied to linear regression, the purpose of the following experiments is to test VIFA on simple neural networks with a single hidden layer. Unlike linear regression, it is not possible to compute the true posterior distribution of the parameter vector of a non-linear neural network in closed-form. Therefore, the focus of these experiments is on the quality of predictions made by neural networks trained via VIFA in comparison to SLANG. 
+Given the encouraging results achieved by VIFA in above experiments, the purpose of the following experiments is to test VIFA on simple neural networks with a single hidden layer. Unlike linear regression, it is not possible to compute the true posterior distribution of the parameter vector of a non-linear neural network in closed-form. Therefore, the focus of these experiments is on the quality of predictions made by neural networks trained via VIFA in comparison to SLANG. 
 
 \textbf{Methodology} The setup for the experiments largely followed the methodology adopted by the authors of SLANG \citep{mishkin2018}. Each neural network had a single hidden layer with 50 rectified linear units (ReLU) and a single, unactivated output. The UCI regression datasets from Table \ref{table:uci_datasets} were used once again. Each dataset was split 20 times into different train and tests sets\footnote{Data splits are available at \texttt{https://github.com/yaringal/DropoutUncertaintyExps}}. For each train-test split, VIFA hyperparameters were tuned using the training data and then the best configuration was evaluated once on the test set. The hyperparameters which were tuned were the learning rate $\eta$, the precision $\alpha$ of the prior, and the precision $\beta$ of the additive target noise distribution. As with SLANG, these were optimised via 30 iterations of hyperparameter search, with 5-fold cross-validation performed in each iteration to estimate the marginal log-likelihood. However, while SLANG used Bayesian optimisation, VIFA was tuned via random search to keep things simple. During the search, values for $\eta$, $\alpha$ and $\beta$ were sampled log-uniformly from $[0.01, 0.02]$, $[0.01, 10]$ and $[0.01, 1]$, respectively. To improve numerical stability, any gradients with a Frobenius norm greater than 10 were rescaled to have a norm of exactly 10. The other hyperparameters were fixed to the same values as SLANG. That is, latent dimension $K=1$, number of epochs $T=120$, mini-batch size $M=10$, and Monte Carlo average size $L=4$. Although vanilla SGD is employed in Algorithm \ref{alg:vi_fa}, a whole host of gradient optimisers can be used in conjunction with VIFA. In this case, the Adam optimiser \citep{kingma2014} was used to perform the gradient updates. Before each training run, the features and targets were normalised by subtracting their mean and dividing by their standard deviation. These statistics were computed on training data only, including within each separate fold of cross-validation. When training, the average negative Gaussian log-likelihood was used on line 12 of Algorithm \ref{alg:vi_fa}. When testing, both the average marginal Gaussian log-likelihood and root mean squared error (RMSE) were computed, using a Monte Carlo average size of 100. Full details of how the training loss and test metrics were computed are given in Appendix \ref{app:uci_nn_predictions}. The same experiments were re-run for SLANG\footnote{Using the code available at \texttt{https://github.com/aaronpmishkin/SLANG}} with some minor adjustments to the authors' original setup to allow for a fairer comparison with VIFA. In particular, the Monte Carlo average size when testing and the hyperparameter ranges for $\alpha$ and $\beta$ were adjusted to match those of VIFA. Finally, the VIFA experiments were also run for linear regression models. The only difference is that the hyperparameter range for the learning rate $\eta$ was set to $[0.001, 0.01]$, as this appeared to work better than $[0.01, 0.02]$ during some initial cross-validation runs. 
 
@@ -593,36 +531,33 @@ In summary, the choice between VIFA and SLANG depends on the dataset and evaluat
 
 \subsection{Experiments on Medical Imaging Dataset}
 
-One key characteristic of VIFA algorithm is that it can be easily extended to any neural network architecture without much modification. To validate this claim, we adopt our algorithm to Convolutional Neural Network (CNN) model and evaluate its effectiveness for medical image diagnosis, which is often regarded as a safety-critical task where prediction reliability matters significantly. In particular, we focus on a diabetic retinopathy detection problem in India \footnote{APTOS 2019 Blindness Detection Dataset, https://www.kaggle.com/competitions/aptos2019-blindness-detection/overview}. The dataset contains 3662 samples, and there are 5 severity levels of diabetic retinopathy, which means label $y \in$ $\{0,1,2,3,4\}$. To simplify the problem, we follow the strategy used in \citet{leibig2017leveraging} to convert all instance labels into binary forms. This is done by categorizing the classes into two groups: sight-threatening diabetic retinopathy and non-sight-threatening diabetic retinopathy. The former includes cases of moderate diabetic retinopathy or more severe (classes 2, 3, and 4), while the latter includes cases with no or mild diabetic retinopathy (classes 0 and 1).
+One key advantage of VIFA algorithm compared to SLANG is that it can be easily extended to any neural network architecture without much modification. To validate this claim, we adopt our algorithm to Convolutional Neural Network (CNN) model and evaluate its effectiveness for medical image diagnosis, which is often regarded as a safety-critical task where prediction reliability matters significantly. In particular, we focus on a diabetic retinopathy detection problem in India \footnote{APTOS 2019 Blindness Detection Dataset, https://www.kaggle.com/competitions/aptos2019-blindness-detection/overview}. The dataset contains 3662 samples, and there are 5 severity levels of diabetic retinopathy, which means label $y \in$ $\{0,1,2,3,4\}$. To simplify the problem, we follow the strategy used in \citet{leibig2017leveraging} to convert all instance labels into binary forms. This is done by categorizing the classes into two groups: sight-threatening diabetic retinopathy and non-sight-threatening diabetic retinopathy. The former includes cases of moderate diabetic retinopathy or more severe (classes 2, 3, and 4), while the latter includes cases with no or mild diabetic retinopathy (classes 0 and 1).
 
 \subsubsection{Methodology}
 
-The Convolutional Neural Network model we choose is the Resnet-18 model \citep{he2016deep}, which contains roughly 11.2M trainable parameters. Due to the non-linear nature of the neural network model, there is no closed-form solution for the true posterior of Resnet-18 model on the dataset. In this case, our focus is on the prediction performance made by the Bayesian model averaging of the Resnet-18 model trained via the VIFA algorithm. We also train another Resnet-18 model by standard  gradient descent based training whose performance is used as a baseline. 
+The Convolutional Neural Network model we choose is the ResNet-18 model \citep{he2016deep}, which contains roughly 11.2 million trainable parameters. Due to the non-linearity nature of neural networks, there is no closed-form solution for the true posterior of ResNet-18 model on the dataset. In this case, our focus is on the prediction performance made by the Bayesian model averaging of the Resnet-18 model trained via the VIFA algorithm. In order to assess the performance of VIFA applied to the ResNet-18 model posterior approximation, we separately train a point estimate of ResNet-18 model as a baseline.
 
-In the preliminary experiment of applying the original VIFA algorithm to a Resnet-18 model, we find the model is not learning at all. This phenomenon might due to the fact that the mean and the covariance of a factor analysis distribution for high dimensional models are challenging to be learned simultaneously from random start \footnote{One explanation is that in the process of learning a FA posterior, mean updating and covariance updating are closely related. An unlearned covariance will lead to a terrible sampling of model parameters $\vtheta$, thus directing the mean parameter in the wrong way.}. Therefore, we 'decouple' the learning of mean parameters $\vc$ and covariance parameter $\mF$, $\psi$ by utilizing a 2-stages training strategy. In the first stage of training, covariance-related parameters $\mF$ and $\psi$ stay unchanged with small absolute values (less than 1e-5), and the parameter $\vc$ is trained starting from pre-trained Resnet-18 weights as initialization. During the second stage, the learning rates for $\mF$ and $\psi$ gradually increase from 0 to target values, while keeping the learning rate for $\vc$ constant. The learning rate decay scheduler is in use for $\vc$ during both stages. Compared to the original VIFA, this modification can further reduce computational cost since no gradient computations for $\mF$ and $\psi$ are needed in the first stage. To keep things simple, learning rates for $\vc$, $\mF$, and $\psi$ are set to the same values $\eta$, which are optimized as hyper-parameter on the validation dataset. We run a total of 10 epochs, with 2 epochs in stage 1. The FA distribution has a latent dimension of 1, and the gradients for parameter update are computed based on mini-batches of size 16. All gradients are clipped to have Frobenius norm less than or equal to 10, and Monte Carlo average size for gradient computation is L = 12. We use Adam optimizer \citep{kingma2014adam} to perform gradient updates.
+In the initial experiment of applying the original VIFA algorithm to a ResNet-18 model, we observe suboptimal learning behavior of the posterior distribution. This phenomenon might due to the fact that the mean and the covariance of a factor analysis distribution for such high dimensional model are extremely challenging to be learned simultaneously.  \footnote{One explanation is that in the process of learning a FA posterior, mean updating and covariance updating are closely related. An unlearned covariance will lead to a terrible sampling of model parameters $\vtheta$, thus directing the mean parameter update in a wrong way.}. Therefore, we 'decouple' the learning process of mean parameters $\vc$ and covariance parameter $\mF$, $\psi$ by utilizing a 2-stages training strategy. In the first stage of training, covariance-related parameters $\mF$ and $\psi$ stay unchanged with small absolute values \footnote{randomly initialised with absolute value less than 1e-4.}, and the parameter $\vc$ is trained starting from pre-trained Resnet-18 weights as initialization. During the second stage, the learning rates for $\mF$ and $\psi$ gradually increase from 0 to target values, while keeping the learning rate for $\vc$ constant. The learning rate decay scheduler is in use for $\vc$ during both stages. Compared to the original VIFA, this modification can further reduce computational cost since no gradient computations for $\mF$ and $\psi$ are needed in the first stage. To keep things simple, learning rates for $\vc$, $\mF$, and $\psi$ are set to the same values $\eta$, which are optimized as hyper-parameter on the validation dataset. We run a total of 10 epochs, with 2 epochs in stage 1. The FA distribution has a latent dimension of 1, and the gradients for parameter update are computed based on mini-batches of size 16. All gradients are clipped to have Frobenius norm less than or equal to 10, and Monte Carlo average size for gradient computation is L = 12. We use Adam optimizer \citep{kingma2014adam} to perform gradient updates.
 All settings are the same for the standard training of Resnet-18 to make sure the comparison is fair.
 
 In order to report robust results, test metrics are averaged over 5 train-valid-test splits with split ratios  50\%, 20\%, 30\% respectively. For each data split, hyper-parameters prior precision $\alpha$ and learning rate $\eta$ are tuned via 6 times random searches, where $\alpha$ and $\eta$ are log-uniformly sampled from [0.01, 10] and [1e-6, 5e-4] respectively. After the best hyper-parameter configuration is found for the current split, evaluation metrics are computed on test data with Monte Carlo average size $S$ being 100.
 
 \subsubsection{Prediction with Uncertainty}
-One advantage of Bayesian deep learning methods compared to traditional Frequentist training is that we are able to obtain predictive uncertainty at the same time as getting predictions. Based on this uncertainty, \citet{band2022benchmarking} propose an automated diagnostic workflow for medical imaging: When given input, a model generates a prediction along with an associated uncertainty estimation. If the uncertainty estimation falls below a specified reference threshold, indicating low uncertainty, the diagnosis proceeds without additional examination. However, if the threshold is not met, a medical professional is consulted for further review. In general, we desire a model's predictive uncertainty to have a strong correlation with the accuracy of its predictions. High-quality predictive uncertainty estimates can be a fail-safe against false predictions 
-\citep{band2022benchmarking}. 
+One advantage of Bayesian deep learning methods compared to traditional Frequentist training is that we are able to obtain predictive uncertainty at the same time as getting predictions. Based on this uncertainty, \citet{band2022benchmarking} propose an automated diagnostic workflow for medical imaging: When given input, a model generates a prediction along with an associated uncertainty estimation. If the uncertainty estimation falls below a specified reference threshold, indicating low uncertainty, the diagnosis proceeds without additional examination. However, if the threshold is not met, a medical professional is consulted for further review. In general, we desire a model's predictive uncertainty to have a strong correlation with the accuracy of its predictions. High-quality predictive uncertainty estimates can be a fail-safe against false predictions \citep{band2022benchmarking}. There are multiple ways to define predictive uncertainty on test samples \footnote{In literature, the predictive uncertainty is usually argued to have different sources, such as aleatoric uncertainty and epistemic uncertainty, and different definitions may lead to varied implications \citep{ulmer2023prior, d2021repulsive}. However, in this paper, we do not distinguish them and just regard predictive uncertainty as a measure that reflects to what extent we trust the model's prediction result.} We adopt two of them in this section, which are Predictive Entropy \citep{band2022benchmarking} and Model Disagreement \citep{d2021repulsive}, see details in Appendix \ref{app:uncertainty_scores_defs}. 
 
-There are multiple ways to define test sample uncertainty \footnote{In literature, the predictive uncertainty is usually argued to have different sources, such as aleatoric uncertainty and epistemic uncertainty, and different definitions may lead to varied implications \citep{ulmer2023prior, d2021repulsive}. However, in this paper, we do not distinguish them and just regard predictive uncertainty as a measure that reflects to what extent we trust the model's prediction result.} We adopt two of them in this section, which are Predictive Entropy \citep{band2022benchmarking} and Model Disagreement \citep{d2021repulsive}, see details in Appendix \ref{app:uncertainty_scores_defs}. 
-
-By computing uncertainty scores for each test sample, we can implement selective prediction in the automated diagnostic workflow. This involves sorting the test samples based on their uncertainty scores and evaluating the model's performance on the 90\%, 80\%, 70\%, 60\%, and 50\% most certain samples (i.e. samples with smaller uncertainty scores). With high-quality uncertainties, we expect the model's performance to increase as we extract fewer and fewer test samples with ascending predictive uncertainty. From another perspective, the assessment score of selective prediction also reflects the utility of the uncertainty obtained from Bayesian deep learning methods.
+By computing uncertainty scores for each test sample, we can implement selective prediction in the automated diagnostic workflow. This process entails sorting the test samples based on their uncertainty scores and assessing the model's performance on subsets containing the 90\%, 80\%, 70\%, 60\%, and 50\% most certain samples (i.e., subsets of samples with lower and lower uncertainty scores). If the model possesses high-quality uncertainty scores, we expect the test results to improve as we extract subsets of samples with increasinly smaller uncertainty scores. From another perspective, the assessment score of selective prediction also reflects the utility of the uncertainty obtained from Bayesian deep learning methods.
 
 
 \subsubsection{Results and discussion}
 
 \textbf{Prediction Performance}
-Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance of VIFA and traditional gradient descent training of Resnet-18 model. For most metrics, such as Accuracy, F1-score, and AU-ROC, the performances of VIFA are very competitive to that of Gradient Descent and their values are very close to each other. VIFA leads to a better Precision value while Gradient Descent has a more satisfying Recall score, but their differences are not significant. The only exceptional metric is the training time, for which the time used for Gradient Descent training is around 6\% less than VIFA training. However, it is noticeable that VIFA gets reliable predictive uncertainties simultaneously (see below) and a little bit more computational time compared to that is reasonable. 
+Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance of VIFA and traditional gradient descent training of Resnet-18 model. For most metrics, such as Accuracy, F1-score, and AU-ROC, the performances of VIFA are very competitive to that of Gradient Descent and their values are very close to each other. VIFA leads to a better Precision value while Gradient Descent has a more satisfying Recall score, but their differences are not significant. The only exceptional metric is the training time, for which the time used for Gradient Descent training is around 6\% less than VIFA training. However, it is noticeable that VIFA gets reliable predictive uncertainties simultaneously (see Table \ref{table: VIFA_GD_comparison}) and a little bit more computational time compared to that is reasonable. 
 
 \begin{table}[!htp]
 \caption{Mean test results for Resnet-18 model on diabetic retinopathy detection task. The performances of applying VIFA and Gradient Descent algorithms are compared. Metrics include accuracy, precision, recall, F1-score, and Area Under Receiver Operating Characteristic curve (AU-ROC). The mean results over 5 different train-valid-test splits are shown. The results for test metrics include standard errors. The runtime refers to the total runtime for a single train-valid-test split. All experiments were executed on machines with Intel(R) Xeon(R) Silver 4114 CPU and NVIDIA GeForce RTX 2080 Ti GPU. The best results on each row are highlighted in bold (no score is bolded if both scores are competitive).}
 \label{table: VIFA_GD_comparison}
 \begin{center}
-\begin{tabular}{c|c|c}
+\begin{tabular}{c|cc}
                    & \textbf{VIFA}        & \textbf{Gradient Descent} \\ \hline
 \textbf{Accuracy}  & 0.928$\pm$0.003 & 0.927$\pm$0.004               \\
 \textbf{Precision} & \textbf{0.921$\pm$0.009} & 0.914$\pm$0.009               \\
@@ -634,14 +569,14 @@ Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance
 \end{center}
 \end{table}
 
-\textbf{Uncertainty Effectiveness} Table \ref{table: VIFA_uncertainty_acc} shows the test accuracy of selective prediction with different uncertainty levels (Results for F1 score and AU-ROC are in Table \ref{table: VIFA_uncertainty_f1_score}, \ref{table: VIFA_uncertainty_auroc} in the Appendix). Predictive uncertainties calculated from two approaches: predictive entropy and model disagreement score are in use. We observe that prediction performance continuously increases with the decline of predictive uncertainty. The best performance was reached when extracting 50\% of most certain samples for assessment, which is the lowest uncertainty we accept. These facts show that the uncertainty scores obtained from VIFA are indeed effective for selective prediction. In practice, high uncertainty can be used to detect error-prone test samples, thus one can control the model's predictive accuracy by adjusting suitable uncertainty threshold. 
+\textbf{Uncertainty Effectiveness} Table \ref{table: VIFA_uncertainty_acc} shows the test accuracy of selective prediction with different uncertainty levels (results for F1 score and AU-ROC are in Table \ref{table: VIFA_uncertainty_f1_score}, \ref{table: VIFA_uncertainty_auroc} in the Appendix \ref{app:uncertainty_on_medical_imaging}). Predictive uncertainties calculated from two approaches: predictive entropy and model disagreement score are in use. We observe that prediction performance continuously increases with the decline of predictive uncertainty. The best performance was reached when extracting 50\% of most certain samples for assessment, which is the lowest uncertainty we accept. These facts show that the uncertainty scores obtained from VIFA are indeed effective for selective prediction. In practice, high uncertainty can be used to detect error-prone test samples, thus one can control the model's predictive accuracy by adjusting suitable uncertainty threshold. 
 
 
 \begin{table}[!htp]
-\caption{Mean test accuracies of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for evaluation. The results for test accuracy include standard errors. The best results in each column are highlighted in bold.}
+\caption{Mean test accuracies of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for evaluation. Subset with smaller proportion indicates its samplers have lower uncertainty scores. The results for test accuracy include standard errors. The best results in each column are highlighted in bold.}
 \label{table: VIFA_uncertainty_acc}
 \begin{center}
-\begin{tabular}{c|c|c}
+\begin{tabular}{c|cc}
 \textbf{Proportion of Samples} & \textbf{Predictive Entropy} & \textbf{Model Disagreement} \\ \hline
 \textbf{90\%}                               & 0.957$\pm$0.005                 & 0.956$\pm$0.005                 \\
 \textbf{80\%}                               & 0.973$\pm$0.004                 & 0.975$\pm$0.003                 \\
@@ -656,8 +591,8 @@ Table \ref{table: VIFA_GD_comparison} shows a comparison between the performance
 \label{Conclusion}
  This work presents a novel Variational Inference algorithm named VIFA for posterior distribution estimation of neural network models. We adopt Factor Analysis (FA) as our variational distribution whose low rank plus diagonal structure for covariance matrix effectively alleviates computational burden when neural networks are large. Moreover, VIFA is model-agnostic, making it can be readily applied to any network architecture. 
  
-To assess VIFA, we conduct posterior estimation experiments for linear regression models on both synthetic and real-world datasets. In all cases,
-VIFA was able to learn a good approximation of the true posterior covariance. Moreover, VIFA also achieved encouraging results in the neural network prediction experiments in comparison to SLANG \citep{mishkin2018}, in terms of RMSE, marginal likelihood, and runtime. Finally, to validate the claim that VIFA is model agnostic, experiments of applying VIFA on Convolutional Neural Networks for real-world medical imaging tasks are conducted. Though the practical implementation of VIFA training has been modified a little bit to make the algorithm works, the new algorithm becomes even more efficient and achieves satisfying performance for prediction under uncertainty. The model-agnostic nature of VIFA also opens new research directions for being applied to many different models, such as generative models \citep{harshvardhan2020comprehensive}, graph neural networks \citep{wu2020comprehensive}, and transformers \citep{vaswani2017attention}. 
+To assess VIFA, we conduct posterior estimation experiments for linear and logistic regression models on both synthetic and real-world datasets. In all cases,
+VIFA was able to learn a good approximation of the true posterior covariance. Moreover, VIFA also achieved encouraging results in the neural network regression experiments in comparison to SLANG \citep{mishkin2018}, in terms of RMSE, marginal likelihood, and runtime. Finally, to validate the claim that VIFA is truly model-agnostic, experiments of applying VIFA on Convolutional Neural Networks for real-world medical imaging tasks are conducted. Though the practical implementation of VIFA training has been modified a little bit to make the algorithm works, the new algorithm becomes even more efficient and achieves satisfying performance for prediction under uncertainty. The model-agnostic nature of VIFA also opens new research directions for being applied to many different models, such as generative models \citep{harshvardhan2020comprehensive}, graph neural networks \citep{wu2020comprehensive}, and transformers \citep{vaswani2017attention}. 
  
 
 
@@ -666,9 +601,9 @@ VIFA was able to learn a good approximation of the true posterior covariance. Mo
 
 \appendix
 
-\section{Appendix}
+% \section{JI}
 
-\subsection{Linear Regression Posterior}
+\section{Linear Regression Posterior}
 \label{app:bayesian_linear_regression_posterior}
  
 This section completes the derivation of the linear regression posterior from Section \ref{sec:bayesian_lr}. Recall from Equation (\ref{eqn:linear_regression_log_likelihood}) that
@@ -746,6 +681,7 @@ Hence, the posterior distribution of $\vtheta$ is
 \end{split}
 \end{align}
 
+\section{Results for Synthetic Data}
 
 \subsection{Quantitative Results of Linear Regression Posterior for Synthetic Data}
 \label{app:quantitative_results_linear_regression_posterior}
@@ -762,7 +698,37 @@ $0.0031 \pm 0.0005$ 	& $0.0983 \pm 0.0129$ 	& $0.0194 \pm 0.0023$ \\
 \end{center}
 \end{table}
 
-\subsection{UCI Linear Regression Posterior Estimation}
+
+\subsection{Logistic Regression Posterior for Sythetic Data}
+\label{app:results_of_logistic_regression_posterior_for_sythetic_data}
+The purpose of these simulations is to test that VIFA is able to learn the posterior distribution of a very simple logistic regression model with two learnable parameters.
+
+\textbf{Methodology} Synthetic inputs $\vx \in \R^2$ and the logistic regression parameter vector $\vtheta \in \R^2$ were sampled in the same way as regression experiments in Section \ref{sec:experiments_on_synthetic_data}. However, this time $3000$ inputs were used. To generate each output $y \in \{0, 1\}$, the positive class probability was first evaluated as $p = \sigmoid(\vtheta^T \vx)$, where $\sigma: \R \rightarrow [0,1]$ denotes the logistic sigmoid function. Then a random number was sampled uniformly from the interval $[0, 1]$, and $y$ was set to $1$ if this number was less than $p$, else $0$.
+
+Unlike linear regression, there is no closed form solution for the true posterior of a logistic regression model. In this case, the ground truth posterior was evaluated by first looping over a 2D grid around the true parameter vector $\vtheta$ and evaluating the unnormalised log posterior probability at each point in the grid. Formally, this is
+\begin{equation}
+	\mathcal{N} ( \vtheta ; 0, \alpha^{-1} \mI) \prod_{n=1}^{3000} \sigmoid(\vtheta^T \vx_n)^{y_n} \sigmoid(\vtheta^T \vx_n)^{1 - y_n}.
+\end{equation}
+Then the values in the grid were scaled such that the maximum value was equal to $1$. This posterior is only correct up to a constant but suffices for a qualitative comparison.
+
+The posterior was then approximated via VIFA using the exact same hyperparameters as in Section \ref{sec:experiments_on_synthetic_data}. This time, the likelihood function used in VIFA was set to binary cross-entropy. That is, $\sigmoid(\vtheta^T \vx_n)^{y_n} \sigmoid(\vtheta^T \vx_n)^{1 - y_n}$.
+
+
+\textbf{Results and discussion} Figure \ref{fig:logistic_regression_synthetic_data_posterior} shows a qualitative comparison between the ground truth and approximate logistic regression posteriors. It can be seen that the contours of the approximate posterior are very similar to the ground truth in terms of position, direction, and density.
+\begin{figure}[!htbp] 
+\begin{center}
+\begin{tabular}{cc}
+	\includegraphics[width=70mm]{plots/logistic_regression_synthetic_true_posterior.png}
+	& \includegraphics[width=70mm]{plots/logistic_regression_synthetic_vifa_posterior.png} \\
+	(a) Ground truth
+	& (b) VIFA \\[6pt]
+\end{tabular}
+\end{center}
+\caption{The ground truth posterior pdf of a logistic regression model with two learnable parameters, plus the pdf of a FA model with a single latent dimension which was fit to the same data using VIFA. Both posteriors are scaled such that the maximum value is equal to $1$.}
+\label{fig:logistic_regression_synthetic_data_posterior}
+\end{figure}
+
+\section{UCI Linear Regression Posterior Estimation}
 \label{app:uci_posterior}
 Table \ref{table:uci_datasets} shows the number of instances and input variables in each UCI regression dataset. Note that the original Energy Efficiency dataset has two target variables, heating load, and cooling load, but in these experiments, only the heating load was used.
 
@@ -795,7 +761,7 @@ Boston Housing 				& 3 & 25,000 & 100 & 10 	& 0.001 	& 0.2859 & 0.0429 \\
 \end{center}
 \end{table}
 
-Recall that Section \ref{sec:vifa_posterior_uci} presented qualitative comparisons of the true posterior of a linear regression model and the approximate posterior learned by VIFA for the Boston Housing and Yacht Hydrodynamics datasets. Figure \ref{fig:posterior_energy_efficiency} and Figure \ref{fig:posterior_concrete_strength} show the same comparisons for the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Finally, Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four UCI datasets. 
+Recall that Section \ref{sec:experiments_on_UCI_datasets} presented qualitative comparisons of the true posterior of a linear regression model and the approximate posterior learned by VIFA for the Boston Housing and Yacht Hydrodynamics datasets. Figure \ref{fig:posterior_energy_efficiency} and Figure \ref{fig:posterior_concrete_strength} show the same comparisons for the Energy Efficiency and Concrete Compressive Strength datasets, respectively. Finally, Table \ref{table:linear_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four UCI regression datasets. 
 
 \begin{figure}[!htbp] 
 	\begin{tabular}{c}
@@ -844,13 +810,51 @@ Yacht            & 0.0435                        & 0.0391                       
 \end{center}
 \end{table}
 
-\subsection{UCI Logistic Regression Posterior Estimation}
-\label{app:uci_logistic_posterior}
-Table \ref{table:logistic_regression_vi_posterior_uci} shows the number of instances, input variables and prior precision in each UCI classification dataset. Note that we only use the training sets in original datasets and the choices for prior precision for these datasets are same as in SLANG \cite{mishkin2018}.
+\section{UCI Logistic Regression Posterior Estimation}
+\label{app:UCI_logistic_regression_posterior_estimation}
+
+\subsection{Methodology and Discussion}
+
+\textbf{Methodology} We picked the same four classification datasets as in SLANG \cite{mishkin2018}, that is Australian, Breast Cancer, a1a and USPS(3v5) \footnote{Downloaded from https://github.com/aaronpmishkin/SLANG/releases/download/v1.0.0/data.zip}. More details about these datasets are given in Appendix \ref{app:dataset_implementation_and_results_details}. The learning rate and number of epoches are tuned in the same way as in Section \ref{sec:experiments_on_UCI_datasets}. The latent dimension was set to $K = 5$ for all datasets. The mini-batch size and
+Monte Carlo average size were set to M = 100 and L = 10, respectively, which are the same choices as in Section \ref{sec:experiments_on_UCI_datasets}. While training, gradient norms were clipped at a maximum value of 10. Bambi library \cite{Capretto2022} is in use for computing the ground truth posterior. 20,000 Markov Chain Monte Carlo (MCMC) iterations are adopted for Australian and Breast Cancer datasets, and 25,000 iterations are used for a1a and USPS(3v5) datasets.
+
+
+\textbf{Results and Discussion}
+
+Figures \ref{fig:posterior_Australian_and_a1a} show a qualitative comparison of the true posterior of a logistic regression model and the approximate posterior learned by VIFA, in the case of the Australian and the a1a datasets.  Qualitative comparisons for the other datasets can be found in Figures \ref{fig:posterior_Breast_Cancer} and \ref{fig:posterior_USPS} in Appendix \ref{app:dataset_implementation_and_results_details}, along with quantitative results for all four datasets in Table \ref{table:logistic_regression_vi_posterior_uci}. It is noticeable that the Australian and the a1a dataset have dimensions 14 and 123, but both approximated by VIFA has latent dimension equal to 5. In terms of the posterior mean, VIFA give good quality approximations for both datasets. The claim can be validated by examining Figure \ref{fig:posterior_Australian_and_a1a} (a) and (b), where the difference between the ground truth and the VIFA Approximation is not obvious. The relative distance of the approximate posterior mean from the ground truth for both the Australian dataset and the a1a dataset are small, which are 0.0215 and 0.0204 respectively. However, the approximation quality for variances and off-diagonal covariances are not as good as for the means. In terms of variances, one may notice clear difference between the ground truth and the VIFA Approximation in Figure \ref{fig:posterior_Australian_and_a1a} (c) and (d). The difference is more obvious for the comparison between covariances from VIFA approximation and ground truth covariances for the a1a dataset. This is understandable, since the a1a dataset is of high dimensional, a Factor analysis distribution with latent dimension being 5 might be not enough to capture its true posterior. In addition, the relative distance of the approximate posterior covariance from the ground truth is actually worse for the a1a: 0.3882 compared to 0.1018 for the Australian. 
+This can be explained by a fact that the quality of the posterior covariance approximation is dependent on the data dimension relative to the latent dimension, which is already stated in Section \ref{sec:experiments_on_UCI_datasets}.
+
+\begin{figure}[!htbp] 
+\begin{center}
+	\begin{tabular}{cc}
+		\includegraphics[width=85mm]{plots/Australian_posterior_mean.png}
+		& \includegraphics[width=85mm]{plots/a1a_posterior_mean.png} \\
+        (a) Australian posterior mean
+        & (b) a1a posterior mean \\
+		\includegraphics[width=85mm]{plots/Australian_posterior_variance.png} 
+        & \includegraphics[width=85mm]{plots/a1a_posterior_variance.png} \\
+        (c) Australian posterior variance
+        & (d) a1a posterior variance \\
+        \includegraphics[width=85mm]
+        {plots/Australian_posterior_covariance.png}
+        & \includegraphics[width=85mm]
+        {plots/a1a_posterior_covariance.png} \\
+        (e) Australian posterior covariance
+        & (f) a1a posterior covariance
+        
+	\end{tabular}
+	\caption{Comparison of the ground truth posterior of logistic regression models fit the Australian and the a1a datasets, and the approximate posteriors learned by VIFA. Variances and covariance are plotted separately due to the difference in their magnitude. In plots (e) and (f), the diagonal entries of the covariance matrices have been set to zero. In each plot, the true covariance is placed on the left.}
+	\label{fig:posterior_Australian_and_a1a}
+\end{center}
+\end{figure}
+
+\subsection{Dataset, Implementation and More Results Details}
+\label{app:dataset_implementation_and_results_details}
+Table \ref{table:uci_classification_datasets} shows the number of instances and input variables in each UCI classification dataset. Note that we only use the training sets in original datasets in SLANG \cite{mishkin2018}.
 
 \begin{table}[!h]
 \caption{UCI classification datasets used in experiments.}
-\label{table:logistic_regression_vi_posterior_uci}
+\label{table:uci_classification_datasets}
 \begin{center}
 \begin{tabular}{l|ll}
 \textbf{Dataset}    & \textbf{No. of  Instances} & \textbf{No. of Input Variables}  \\ \hline
@@ -878,7 +882,7 @@ Breast-cancer-scale & 5          & 23,000          & 100 & 10 & 0.001 & 1.0
 \end{center}
 \end{table}
 
-Recall that Section \ref{sec:vifa_logistic_posterior_uci} presented qualitative comparisons of the true posterior of a logistic regression model and the approximate posterior learned by VIFA for the Australian and a1a datasets. Figure \ref{fig:posterior_Breast_Cancer} and Figure \ref{fig:posterior_USPS} show the same comparisons for the Breast Cancer and USPS datasets, respectively. Finally, Table \ref{table:logistic_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four classification datasets.
+Figure \ref{fig:posterior_Breast_Cancer} and Figure \ref{fig:posterior_USPS} show the same comparisons for the Breast Cancer and USPS datasets, respectively. Finally, Table \ref{table:logistic_regression_vi_posterior_uci} contains quantitative measures of the difference between the true and estimate posteriors for all four classification datasets.
 
 \begin{table}[!h]
 \caption{For each UCI dataset, the distance between the true posterior distribution of the parameter vector of a logistic regression model and the approximate FA posterior estimated by VIFA. Relative distances between the true and approximate means and covariances are shown. Each relative distance is the Frobenius norm of the difference between the true parameter and the approximate parameter divided by the Frobenius norm of the true parameter. Also shown is the 2-Wasserstein distance between the true posterior Gaussian distribution and the approximate Gaussian distribution, divided by the number of dimensions in the dataset.}
@@ -922,7 +926,7 @@ Breast-cancer-scale & 0.0205                        & 0.1729                    
 \end{figure}
 
 
-\subsection{UCI Neural Network Predictions}\label{app:uci_nn_predictions}
+\section{UCI Neural Network Regression Predictions}\label{app:uci_nn_predictions}
 
 This section provides more details and results for the neural network prediction experiments in Section \ref{sec:uci_nn_predictions}. Firstly, important details which are worth making explicit are the loss functions used in the experiments. When training, the average negative log-likelihood term used on line 12 of Algorithm \ref{alg:vi_fa} was set to
 \begin{equation}\label{eqn:train_nll}
@@ -972,6 +976,7 @@ RMSE 	& Energy 	 	& $3.04$ 					& $2.93$ 					& $\mathbf{1.19}$ \\
 \end{center}
 \end{table}
 
+\section{Experiments on Medical Imaging Dataset}
 \subsection{Definitions of Uncertainty Scores}\label{app:uncertainty_scores_defs}
 Recall these are different ways to reflect predictive uncertainty. One definition adopted in \citet{band2022benchmarking} is that for any given test sample $\vx_*$ the predictive uncertainty is equal to the entropy of the predictive distribution: 
 \begin{equation}
@@ -989,11 +994,13 @@ This quality represents how much 'disagreement' exist among the distribution of 
 
 
 \subsection{Uncertainty on Medical Imaging}
+\label{app:uncertainty_on_medical_imaging}
 \begin{table}[!htp]
-\caption{Mean F1-scores of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for testing. The results for F1 scores include standard errors. The best results in each column are highlighted in bold.}
+\caption{Mean F1-scores of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for testing. Subset with smaller proportion indicates
+its samplers have lower uncertainty scores. The results for F1 scores include standard errors. The best results in each column are highlighted in bold.}
 \label{table: VIFA_uncertainty_f1_score}
 \begin{center}
-\begin{tabular}{c|c|c}
+\begin{tabular}{c|cc}
 \textbf{Proportion of Samples} & \textbf{Predictive Entropy} & \textbf{Model Disagreement} \\ \hline
 \textbf{90\%}                               & 0.946$\pm$0.007                 & 0.945$\pm$0.007                 \\
 \textbf{80\%}                               & 0.965$\pm$0.005                 & 0.966$\pm$0.004                 \\
@@ -1006,16 +1013,17 @@ This quality represents how much 'disagreement' exist among the distribution of 
 
 
 \begin{table}[!htp]
-\caption{Mean AU-ROC scores of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for testing. The results for AU-ROC include standard errors. The best results in each column are highlighted in bold.}
+\caption{Mean AU-ROC scores of selective prediction under different uncertainty levels. Uncertainty scores calculated from two distinct approaches are employed, which are predictive entropy and model disagreement. Test samples are arranged in ascending order based on their uncertainty scores. 'Proportion of Samples' indicates the percentage of ordered samples used for testing. Subset with smaller proportion indicates
+its samplers have lower uncertainty scores. The results for AU-ROC include standard errors. The best results in each column are highlighted in bold.}
 \label{table: VIFA_uncertainty_auroc}
 \begin{center}
-\begin{tabular}{c|c|c}
+\begin{tabular}{c|cc}
 \textbf{Proportion of Samples} & \textbf{Predictive Entropy} & \textbf{Model Disagreement} \\ \hline
-\textbf{90\%}                               & 0.984+0.002                 & 0.984+0.003                 \\
-\textbf{80\%}                               & 0.989+0.002                 & 0.989+0.002                 \\
-\textbf{70\%}                               & 0.992+0.002                 & 0.992+0.002                 \\
-\textbf{60\%}                               & 0.994+0.002                 & 0.994+0.002                 \\
-\textbf{50\%}                               & \textbf{0.995+0.001}                 & \textbf{0.995+0.002}                
+\textbf{90\%}                               & 0.984$\pm$0.002                 & 0.984$\pm$0.003                 \\
+\textbf{80\%}                               & 0.989$\pm$0.002                 & 0.989$\pm$0.002                 \\
+\textbf{70\%}                               & 0.992$\pm$0.002                 & 0.992$\pm$0.002                 \\
+\textbf{60\%}                               & 0.994$\pm$0.002                 & 0.994$\pm$0.002                 \\
+\textbf{50\%}                               & \textbf{0.995$\pm$0.001}                 & \textbf{0.995$\pm$0.002}                
 \end{tabular}
 \end{center}
 \end{table}
